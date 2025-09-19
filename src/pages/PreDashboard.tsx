@@ -22,8 +22,8 @@ const PreDashboard = () => {
   const currentData = periodData[period as keyof typeof periodData];
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-[1120px] mx-auto px-5 py-6">
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="max-w-[1120px] mx-auto px-5 py-6 w-full">
         <div className="flex flex-col items-center gap-6">
           {/* Header */}
           <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
