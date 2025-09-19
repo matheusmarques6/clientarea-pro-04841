@@ -22,40 +22,47 @@ const PreDashboard = () => {
   const currentData = periodData[period as keyof typeof periodData];
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-[1120px] mx-auto px-5 py-6 w-full">
-        <div className="flex flex-col items-center gap-6">
+    <div className="min-h-screen flex items-center justify-center py-4">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="flex flex-col items-center gap-4 sm:gap-6">
           {/* Header */}
-          <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+            {/* Logo */}
+            <div className="flex-shrink-0">
               <img 
                 src={convertfyLogo} 
                 alt="Convertfy" 
-                className="h-12 w-auto"
+                className="h-10 sm:h-12 w-auto"
               />
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  Olá, <span className="text-premium">João</span>
-                </h1>
-                <p className="text-muted-foreground">
-                  Bem-vindo de volta à sua central Convertfy
-                </p>
-              </div>
             </div>
-            <Badge variant="secondary" className="px-3 py-1">
-              Sincronizado há 5 min
-            </Badge>
+            
+            {/* Central Content */}
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                Olá, <span className="text-premium">João</span>
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Bem-vindo de volta à sua central Convertfy
+              </p>
+            </div>
+            
+            {/* Badge */}
+            <div className="flex-shrink-0">
+              <Badge variant="secondary" className="px-3 py-1 text-xs sm:text-sm">
+                Sincronizado há 5 min
+              </Badge>
+            </div>
           </div>
 
           {/* Hero Card */}
-          <Card className="w-full max-w-[960px] mx-auto glass-card min-h-[160px]">
-            <CardContent className="p-7">
+          <Card className="w-full max-w-[960px] mx-auto glass-card min-h-[140px] sm:min-h-[160px]">
+            <CardContent className="p-4 sm:p-6 lg:p-7">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-2">
                     Seu faturamento dos{' '}
                     <Select value={period} onValueChange={setPeriod}>
-                      <SelectTrigger className="inline-flex w-auto h-auto p-0 border-none bg-transparent text-xl font-semibold focus:ring-2 focus:ring-primary/20 rounded">
+                      <SelectTrigger className="inline-flex w-auto h-auto p-0 border-none bg-transparent text-lg sm:text-xl font-semibold focus:ring-2 focus:ring-primary/20 rounded">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -68,8 +75,8 @@ const PreDashboard = () => {
                     </Select>
                   </h2>
                 </div>
-                <div className="text-left lg:text-right">
-                  <div className="text-4xl lg:text-5xl font-extrabold text-premium leading-none mb-3">
+                <div className="text-center lg:text-right">
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-premium leading-none mb-2 lg:mb-3">
                     R$ {currentData.revenue.toLocaleString('pt-BR')}
                   </div>
                   <Badge 
@@ -86,7 +93,7 @@ const PreDashboard = () => {
 
           {/* Channel Cards */}
           <div className="w-full max-w-[1120px] mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {mockChannelRevenue.map((channel, index) => {
                 const icons = [Mail, MessageCircle, Smartphone];
                 const Icon = icons[index];
@@ -97,15 +104,15 @@ const PreDashboard = () => {
                 ];
 
                 return (
-                  <Card key={channel.channel} className="glass-card animate-hover min-h-[128px] transition-all duration-200 ease-smooth">
-                    <CardContent className="p-6 h-full">
-                      <div className="flex items-start gap-4 h-full">
-                        <div className={`p-3 rounded-lg ${colors[index]} flex-shrink-0`} style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon className="h-5 w-5" />
+                  <Card key={channel.channel} className="glass-card animate-hover min-h-[120px] sm:min-h-[128px] transition-all duration-200 ease-smooth">
+                    <CardContent className="p-4 sm:p-6 h-full">
+                      <div className="flex items-start gap-3 sm:gap-4 h-full">
+                        <div className={`p-2 sm:p-3 rounded-lg ${colors[index]} flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center`}>
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">{channel.channel}</p>
-                          <p className="text-2xl font-bold text-foreground mb-1">
+                          <p className="text-xl sm:text-2xl font-bold text-foreground mb-1">
                             R$ {channel.revenue.toLocaleString('pt-BR')}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -121,11 +128,11 @@ const PreDashboard = () => {
           </div>
 
           {/* CTA */}
-          <div className="flex justify-center mt-8 w-full">
+          <div className="flex justify-center mt-6 sm:mt-8 w-full">
             <Button 
               asChild 
               size="lg" 
-              className="bg-gradient-hero hover:opacity-90 text-lg min-w-[260px] h-[52px] rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20 w-full sm:w-auto"
+              className="bg-gradient-hero hover:opacity-90 text-base sm:text-lg min-w-[240px] sm:min-w-[260px] h-[48px] sm:h-[52px] rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20 w-full sm:w-auto max-w-[320px] sm:max-w-none"
             >
               <Link to="/stores">
                 Ver minhas lojas
