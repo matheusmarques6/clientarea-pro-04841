@@ -23,7 +23,7 @@ const PreDashboard = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto max-w-[1120px] px-5 py-6">
+      <div className="max-w-[1120px] mx-auto px-5 py-6">
         <div className="flex flex-col items-center gap-6">
           {/* Header */}
           <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
