@@ -52,9 +52,15 @@ export function AppSidebar() {
 
   const items = [
     {
-      title: 'Dashboard',
-      url: storeId ? `/store/${storeId}` : '/stores',
+      title: 'Suas Lojas',
+      url: '/stores',
       icon: BarChart3,
+    },
+    {
+      title: 'Dashboard',
+      url: storeId ? `/store/${storeId}` : '#',
+      icon: BarChart3,
+      disabled: !storeId,
     },
     {
       title: 'Trocas & Devoluções',

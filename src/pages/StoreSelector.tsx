@@ -49,18 +49,17 @@ const StoreSelector = () => {
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Suas Lojas</h1>
-            <p className="text-muted-foreground">
-              Selecione uma loja para acessar o dashboard
+        <div className="text-center md:text-left space-y-4 mb-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Suas Lojas
+            </h1>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto md:mx-0">
+              Selecione uma loja para acessar o dashboard completo
             </p>
+          </div>
+          <div className="flex items-center justify-center md:justify-start">
+            <div className="h-1 w-24 bg-gradient-to-r from-primary to-primary/60 rounded-full"></div>
           </div>
         </div>
 
