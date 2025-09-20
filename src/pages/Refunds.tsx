@@ -352,38 +352,32 @@ const Refunds = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
       <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="text-center md:text-left space-y-3 mb-6">
-          <div className="space-y-2">
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Reembolsos
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base">Loja Premium Fashion</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Reembolsos</h1>
           </div>
-          <div className="flex items-center justify-center md:justify-start">
-            <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/60 rounded-full"></div>
+          
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
+              <Copy className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Copiar link público</span>
+              <span className="sm:hidden">Copiar link</span>
+            </Button>
+            <Link to="/store/1/refunds/setup">
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Eye className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Configurações</span>
+                <span className="sm:hidden">Config</span>
+              </Button>
+            </Link>
+            <Link to="/store/1/refunds/new">
+              <Button className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Nova solicitação</span>
+                <span className="sm:hidden">Nova</span>
+              </Button>
+            </Link>
           </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-end gap-2 w-full md:w-auto mb-6">
-          <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
-            <Copy className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Copiar link público</span>
-            <span className="sm:hidden">Copiar link</span>
-          </Button>
-          <Link to="/store/1/refunds/setup">
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Eye className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Configurações</span>
-              <span className="sm:hidden">Config</span>
-            </Button>
-          </Link>
-          <Link to="/store/1/refunds/new">
-            <Button className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Nova solicitação</span>
-              <span className="sm:hidden">Nova</span>
-            </Button>
-          </Link>
         </div>
 
         {/* Tabs */}

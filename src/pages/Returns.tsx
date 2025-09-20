@@ -168,29 +168,22 @@ const Returns = () => {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="text-center md:text-left space-y-3 mb-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Trocas & Devoluções
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">{store.name}</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Trocas & Devoluções</h1>
         </div>
-        <div className="flex items-center justify-center md:justify-start">
-          <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/60 rounded-full"></div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
+            <Copy className="h-4 w-4 mr-2" />
+            Copiar Link Público
+          </Button>
+          <Button asChild className="w-full sm:w-auto">
+            <Link to={`/store/${storeId}/returns/new`}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Solicitação
+            </Link>
+          </Button>
         </div>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-end gap-2 w-full md:w-auto mb-6">
-        <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
-          <Copy className="h-4 w-4 mr-2" />
-          Copiar Link Público
-        </Button>
-        <Button asChild className="w-full sm:w-auto">
-          <Link to={`/store/${storeId}/returns/new`}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Solicitação
-          </Link>
-        </Button>
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-4">

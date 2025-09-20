@@ -27,21 +27,14 @@ const StoreDashboard = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="text-center md:text-left space-y-3 mb-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            {store.name}
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Dashboard • {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
           </p>
         </div>
-        <div className="flex items-center justify-center md:justify-start">
-          <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/60 rounded-full"></div>
-        </div>
-      </div>
-      
-      <div className="flex justify-center md:justify-end mb-6">
+        
         <Select value={period} onValueChange={setPeriod}>
           <SelectTrigger className="w-32 sm:w-40">
             <SelectValue />
