@@ -250,14 +250,14 @@ const Refunds = () => {
     return days === 0 ? 'Hoje' : days === 1 ? '1 dia' : `${days} dias`;
   };
 
-  // Kanban columns
+  // Kanban columns with better color scheme
   const columns = [
-    { id: 'SOLICITADO', title: 'Solicitado', color: 'bg-gray-50 border-gray-200' },
-    { id: 'EM_ANALISE', title: 'Em análise', color: 'bg-yellow-50 border-yellow-200' },
-    { id: 'APROVADO', title: 'Aprovado', color: 'bg-green-50 border-green-200' },
-    { id: 'PROCESSANDO', title: 'Processando pagamento', color: 'bg-blue-50 border-blue-200' },
-    { id: 'CONCLUIDO', title: 'Concluído', color: 'bg-emerald-50 border-emerald-200' },
-    { id: 'RECUSADO', title: 'Recusado', color: 'bg-red-50 border-red-200' }
+    { id: 'SOLICITADO', title: 'Solicitado', color: 'bg-slate-100 text-slate-800' },
+    { id: 'EM_ANALISE', title: 'Em análise', color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'APROVADO', title: 'Aprovado', color: 'bg-green-100 text-green-800' },
+    { id: 'PROCESSANDO', title: 'Processando pagamento', color: 'bg-blue-100 text-blue-800' },
+    { id: 'CONCLUIDO', title: 'Concluído', color: 'bg-emerald-100 text-emerald-800' },
+    { id: 'RECUSADO', title: 'Recusado', color: 'bg-red-100 text-red-800' }
   ];
 
   const KanbanCard = ({ refund }: { refund: RefundItem }) => (
