@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Upload, X, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Upload, X, HelpCircle, CheckCircle, Clock, FileText, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,12 +49,12 @@ const mockOrder = {
 };
 
 const steps = [
-  { id: 1, title: 'Identificação', description: 'Validar pedido' },
-  { id: 2, title: 'Itens', description: 'Selecionar produtos' },
-  { id: 3, title: 'Motivo & Provas', description: 'Informar razão' },
-  { id: 4, title: 'Método & Valor', description: 'Como receber' },
-  { id: 5, title: 'Revisão', description: 'Confirmar dados' },
-  { id: 6, title: 'Confirmação', description: 'Protocolo gerado' }
+  { id: 1, title: 'Identificação', description: 'Validar pedido', icon: FileText },
+  { id: 2, title: 'Itens', description: 'Selecionar produtos', icon: CheckCircle },
+  { id: 3, title: 'Motivo & Provas', description: 'Informar razão', icon: Upload },
+  { id: 4, title: 'Método & Valor', description: 'Como receber', icon: CreditCard },
+  { id: 5, title: 'Revisão', description: 'Confirmar dados', icon: Check },
+  { id: 6, title: 'Confirmação', description: 'Protocolo gerado', icon: CheckCircle }
 ];
 
 const reasons = [
@@ -66,7 +66,7 @@ const reasons = [
   { code: 'OUTRO', label: 'Outro motivo', description: 'Motivo não listado acima' }
 ];
 
-const PublicRefunds = () => {
+export default function PublicRefunds() {
   const { storeSlug } = useParams();
   const { toast } = useToast();
   
@@ -279,15 +279,18 @@ const PublicRefunds = () => {
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-border/50 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Solicitação de Reembolso
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-lg text-gray-600">
               Preencha os dados abaixo para solicitar o reembolso
             </p>
           </div>
@@ -295,163 +298,190 @@ const PublicRefunds = () => {
       </div>
 
       {/* Progress Steps */}
-      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
-        <div className="mb-6 sm:mb-8">
-          <Progress value={progressPercentage} className="mb-4" />
-          <div className="grid grid-cols-3 sm:flex sm:justify-between gap-2 text-xs sm:text-sm">
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className={`text-center ${
-                  step.id === currentStep
-                    ? 'text-primary font-medium'
-                    : step.id < currentStep
-                    ? 'text-green-600'
-                    : 'text-gray-400'
-                }`}
-              >
-                <div className="hidden sm:block font-medium">{step.title}</div>
-                <div className="text-xs">{step.description}</div>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <Card className="mb-8 bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <Progress value={progressPercentage} className="h-3 mb-6" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {steps.map((step) => {
+                  const StepIcon = step.icon;
+                  return (
+                    <div
+                      key={step.id}
+                      className={`text-center transition-all duration-200 ${
+                        step.id === currentStep
+                          ? 'text-primary scale-105'
+                          : step.id < currentStep
+                          ? 'text-green-600'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 transition-all duration-200 ${
+                        step.id === currentStep
+                          ? 'bg-primary text-primary-foreground shadow-lg'
+                          : step.id < currentStep
+                          ? 'bg-green-100 text-green-600'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <StepIcon className="w-5 h-5" />
+                      </div>
+                      <div className="font-medium text-sm">{step.title}</div>
+                      <div className="text-xs opacity-75">{step.description}</div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-3">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+          <div className="lg:col-span-2">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
                     {currentStep}
                   </div>
-                  <span className="truncate">{steps[currentStep - 1]?.title}</span>
+                  <span>{steps[currentStep - 1]?.title}</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6">
+              <CardContent className="space-y-6">
                 {/* Step 1: Identification */}
                 {currentStep === 1 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="orderId">Número do Pedido</Label>
+                      <Label htmlFor="orderId" className="text-base font-medium">Número do Pedido *</Label>
                       <Input
                         id="orderId"
                         placeholder="Ex: #28471"
                         value={formData.orderId}
                         onChange={(e) => setFormData(prev => ({ ...prev, orderId: e.target.value }))}
+                        className="mt-2 h-12 text-lg"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <Label htmlFor="email" className="text-sm font-medium">E-mail</Label>
+                        <Label htmlFor="email" className="text-base font-medium">E-mail *</Label>
                         <Input
                           id="email"
                           type="email"
                           placeholder="seu@email.com"
                           value={formData.email}
                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          className="mt-1"
+                          className="mt-2 h-12"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="phone" className="text-sm font-medium">Telefone (opcional)</Label>
+                        <Label htmlFor="phone" className="text-base font-medium">Telefone (opcional)</Label>
                         <Input
                           id="phone"
                           placeholder="+55 11 99999-9999"
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          className="mt-1"
+                          className="mt-2 h-12"
                         />
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                      Informe o número do pedido e pelo menos um meio de contato
-                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="text-blue-800">
+                          <p className="font-medium mb-1">Como encontrar meu pedido?</p>
+                          <p className="text-sm">Verifique o e-mail de confirmação da compra ou consulte sua conta no site da loja.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Step 2: Item Selection */}
                 {currentStep === 2 && order && (
-                  <div className="space-y-4">
-                    <div className="text-sm text-muted-foreground mb-4">
+                  <div className="space-y-6">
+                    <div className="text-base text-muted-foreground">
                       Selecione os itens que deseja solicitar reembolso:
                     </div>
 
-                    {order.items.map((item) => {
-                      const selectedItem = formData.selectedItems.find(si => si.itemId === item.id);
-                      const selectedQty = selectedItem?.quantity || 0;
+                    <div className="space-y-4">
+                      {order.items.map((item) => {
+                        const selectedItem = formData.selectedItems.find(si => si.itemId === item.id);
+                        const selectedQty = selectedItem?.quantity || 0;
 
-                      return (
-                        <div key={item.id} className="border rounded-lg p-3 sm:p-4 glass-card">
-                          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-full sm:w-16 h-32 sm:h-16 rounded object-cover"
-                            />
-                            <div className="flex-1 space-y-2">
-                              <h4 className="font-medium text-sm sm:text-base">{item.title}</h4>
-                              <p className="text-xs sm:text-sm text-muted-foreground">{item.variant}</p>
-                              <p className="text-sm font-medium text-green-600">
-                                {formatCurrency(item.price)} cada
-                              </p>
-                            </div>
-                            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:text-right gap-2">
-                              <div className="text-xs sm:text-sm text-muted-foreground">
-                                Comprou: {item.quantity}
+                        return (
+                          <Card key={item.id} className="border-2 hover:border-primary/30 transition-all duration-200">
+                            <CardContent className="p-6">
+                              <div className="flex flex-col sm:flex-row gap-4">
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  className="w-full sm:w-20 h-48 sm:h-20 rounded-lg object-cover"
+                                />
+                                <div className="flex-1 space-y-2">
+                                  <h4 className="font-semibold text-lg">{item.title}</h4>
+                                  <p className="text-muted-foreground">{item.variant}</p>
+                                  <p className="text-lg font-bold text-green-600">
+                                    {formatCurrency(item.price)} cada
+                                  </p>
+                                </div>
+                                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:text-right gap-4">
+                                  <div className="text-muted-foreground">
+                                    Comprou: <span className="font-medium">{item.quantity}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Label htmlFor={`qty-${item.id}`} className="font-medium">
+                                      Devolver:
+                                    </Label>
+                                    <Select
+                                      value={selectedQty.toString()}
+                                      onValueChange={(value) => 
+                                        handleItemSelection(item.id, parseInt(value))
+                                      }
+                                    >
+                                      <SelectTrigger className="w-20 h-10">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Array.from({ length: item.quantity + 1 }, (_, i) => (
+                                          <SelectItem key={i} value={i.toString()}>
+                                            {i}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Label htmlFor={`qty-${item.id}`} className="text-xs sm:text-sm">
-                                  Devolver:
-                                </Label>
-                                <Select
-                                  value={selectedQty.toString()}
-                                  onValueChange={(value) => 
-                                    handleItemSelection(item.id, parseInt(value))
-                                  }
-                                >
-                                  <SelectTrigger className="w-16 h-8">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {Array.from({ length: item.quantity + 1 }, (_, i) => (
-                                      <SelectItem key={i} value={i.toString()}>
-                                        {i}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
                 {/* Step 3: Reason & Evidence */}
                 {currentStep === 3 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="reason">Motivo do reembolso</Label>
+                      <Label htmlFor="reason" className="text-base font-medium">Motivo do reembolso *</Label>
                       <Select
                         value={formData.reason}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-2 h-12">
                           <SelectValue placeholder="Selecione o motivo" />
                         </SelectTrigger>
                         <SelectContent>
                           {reasons.map((reason) => (
                             <SelectItem key={reason.code} value={reason.code}>
-                              <div>
+                              <div className="py-2">
                                 <div className="font-medium">{reason.label}</div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-sm text-muted-foreground">
                                   {reason.description}
                                 </div>
                               </div>
@@ -462,157 +492,114 @@ const PublicRefunds = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="reasonNote">Observações (opcional)</Label>
+                      <Label htmlFor="reasonNote" className="text-base font-medium">Observações (opcional)</Label>
                       <Textarea
                         id="reasonNote"
-                        placeholder="Descreva melhor o motivo..."
+                        placeholder="Descreva melhor o motivo do reembolso..."
                         value={formData.reasonNote}
                         onChange={(e) => setFormData(prev => ({ ...prev, reasonNote: e.target.value }))}
+                        className="mt-2 min-h-24"
                       />
                     </div>
 
                     <div>
-                      <Label>Anexos (fotos/vídeos)</Label>
-                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Arraste arquivos aqui ou clique para selecionar
-                        </div>
+                      <Label className="text-base font-medium">Anexos (fotos/vídeos)</Label>
+                      <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                         <input
                           type="file"
                           multiple
                           accept="image/*,video/*"
+                          onChange={(e) => handleFileUpload(e.target.files)}
                           className="hidden"
                           id="file-upload"
-                          onChange={(e) => handleFileUpload(e.target.files)}
                         />
-                        <label htmlFor="file-upload">
-                          <Button variant="outline" asChild>
-                            <span>Selecionar arquivos</span>
-                          </Button>
+                        <label htmlFor="file-upload" className="cursor-pointer">
+                          <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                          <p className="text-lg font-medium">Clique para adicionar arquivos</p>
+                          <p className="text-sm text-muted-foreground">PNG, JPG, MP4 até 10MB (máximo 5 arquivos)</p>
                         </label>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          Máximo 5 arquivos, até 10MB cada
-                        </div>
                       </div>
 
                       {formData.attachments.length > 0 && (
                         <div className="mt-4 space-y-2">
                           {formData.attachments.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                              <span className="text-sm">{file.name}</span>
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-gray-500" />
+                                <span className="text-sm font-medium">{file.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                                </span>
+                              </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeAttachment(index)}
                               >
-                                <X className="h-4 w-4" />
+                                <X className="w-4 h-4" />
                               </Button>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-
-                    {['DEFEITO', 'DANIFICADO'].includes(formData.reason) && (
-                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-center gap-2 text-amber-800">
-                          <HelpCircle className="h-4 w-4" />
-                          <span className="text-sm font-medium">
-                            Fotos obrigatórias para este motivo
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {/* Step 4: Method & Amount */}
                 {currentStep === 4 && (
                   <div className="space-y-6">
-                    <div>
-                      <h3 className="font-medium mb-3">Valor do reembolso</h3>
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="text-sm text-green-700 mb-1">Total selecionado</div>
-                        <div className="text-2xl font-bold text-green-800">
-                          {formatCurrency(getSelectedItemsTotal())}
-                        </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-green-800">
+                        <p className="font-semibold text-lg">Valor do reembolso</p>
+                        <p className="text-2xl font-bold">{formatCurrency(getSelectedItemsTotal())}</p>
                       </div>
                     </div>
 
                     <div>
-                      <Label htmlFor="method">Como deseja receber?</Label>
-                      <Select
-                        value={formData.method}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, method: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o método" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CARD">
-                            <div>
-                              <div className="font-medium">Cartão de Crédito</div>
-                              <div className="text-xs text-muted-foreground">
-                                Estorno no cartão usado na compra (5-10 dias úteis)
-                              </div>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="PIX">
-                            <div>
-                              <div className="font-medium">PIX</div>
-                              <div className="text-xs text-muted-foreground">
-                                Transferência instantânea
-                              </div>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="VOUCHER">
-                            <div>
-                              <div className="font-medium">Vale-compra (+10% bônus)</div>
-                              <div className="text-xs text-muted-foreground">
-                                Receba {formatCurrency(getSelectedItemsTotal() * 1.1)} em vale
-                              </div>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-base font-medium">Como deseja receber o reembolso? *</Label>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                          { value: 'CARD', label: 'Estorno no cartão', description: 'Em até 5 dias úteis', icon: CreditCard },
+                          { value: 'PIX', label: 'PIX', description: 'Em até 1 dia útil', icon: Clock },
+                          { value: 'VOUCHER', label: 'Vale-compra', description: 'Imediato + 10% bônus', icon: CheckCircle },
+                        ].map((method) => {
+                          const MethodIcon = method.icon;
+                          return (
+                            <Card
+                              key={method.value}
+                              className={`cursor-pointer transition-all duration-200 ${
+                                formData.method === method.value
+                                  ? 'border-primary bg-primary/5'
+                                  : 'hover:border-gray-300'
+                              }`}
+                              onClick={() => setFormData(prev => ({ ...prev, method: method.value }))}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <MethodIcon className="w-6 h-6 text-primary mt-1" />
+                                  <div>
+                                    <h4 className="font-semibold">{method.label}</h4>
+                                    <p className="text-sm text-muted-foreground">{method.description}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {formData.method === 'PIX' && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="pixKeyType">Tipo da chave PIX</Label>
-                          <Select
-                            value={formData.pixKeyType}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, pixKeyType: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cpf">CPF</SelectItem>
-                              <SelectItem value="cnpj">CNPJ</SelectItem>
-                              <SelectItem value="email">E-mail</SelectItem>
-                              <SelectItem value="phone">Telefone</SelectItem>
-                              <SelectItem value="random">Chave aleatória</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="pixKey">Chave PIX</Label>
-                          <Input
-                            id="pixKey"
-                            placeholder={
-                              formData.pixKeyType === 'cpf' ? '000.000.000-00' :
-                              formData.pixKeyType === 'email' ? 'seu@email.com' :
-                              formData.pixKeyType === 'phone' ? '+55 11 99999-9999' :
-                              'Sua chave PIX'
-                            }
-                            value={formData.pixKey}
-                            onChange={(e) => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
-                          />
-                        </div>
+                      <div>
+                        <Label htmlFor="pixKey" className="text-base font-medium">Chave PIX *</Label>
+                        <Input
+                          id="pixKey"
+                          placeholder="Digite sua chave PIX"
+                          value={formData.pixKey}
+                          onChange={(e) => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
+                          className="mt-2 h-12"
+                        />
                       </div>
                     )}
                   </div>
@@ -621,89 +608,73 @@ const PublicRefunds = () => {
                 {/* Step 5: Review */}
                 {currentStep === 5 && (
                   <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="font-medium">Resumo da solicitação</h3>
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h3 className="font-semibold text-lg mb-4">Resumo da solicitação</h3>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-4">
                         <div>
-                          <strong>Pedido:</strong> {order?.id}
+                          <p className="text-sm text-muted-foreground">Pedido</p>
+                          <p className="font-medium">{formData.orderId}</p>
                         </div>
+                        
                         <div>
-                          <strong>Cliente:</strong> {order?.customer.name}
-                        </div>
-                        <div>
-                          <strong>E-mail:</strong> {order?.customer.email}
-                        </div>
-                        <div>
-                          <strong>Motivo:</strong> {reasons.find(r => r.code === formData.reason)?.label}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div>
-                        <strong>Itens selecionados:</strong>
-                        <div className="mt-2 space-y-2">
-                          {formData.selectedItems.map((selectedItem) => {
-                            const orderItem = order?.items.find(item => item.id === selectedItem.itemId);
-                            return orderItem ? (
-                              <div key={selectedItem.itemId} className="flex justify-between text-sm">
-                                <span>{orderItem.title} (x{selectedItem.quantity})</span>
-                                <span>{formatCurrency(orderItem.price * selectedItem.quantity)}</span>
-                              </div>
+                          <p className="text-sm text-muted-foreground">Itens selecionados</p>
+                          {formData.selectedItems.map(selectedItem => {
+                            const item = order?.items.find(i => i.id === selectedItem.itemId);
+                            return item ? (
+                              <p key={selectedItem.itemId} className="font-medium">
+                                {item.title} - Quantidade: {selectedItem.quantity}
+                              </p>
                             ) : null;
                           })}
                         </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="flex justify-between font-medium">
-                        <span>Total do reembolso:</span>
-                        <span className="text-green-600">
-                          {formatCurrency(getSelectedItemsTotal())}
-                          {formData.method === 'VOUCHER' && (
-                            <span className="text-xs text-green-500 ml-1">
-                              (+{formatCurrency(getSelectedItemsTotal() * 0.1)} bônus)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-
-                      <div>
-                        <strong>Método de reembolso:</strong>{' '}
-                        {formData.method === 'CARD' && 'Cartão de Crédito'}
-                        {formData.method === 'PIX' && `PIX (${formData.pixKey})`}
-                        {formData.method === 'VOUCHER' && 'Vale-compra'}
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Valor total</p>
+                          <p className="font-bold text-lg text-green-600">{formatCurrency(getSelectedItemsTotal())}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Método de reembolso</p>
+                          <p className="font-medium">
+                            {formData.method === 'CARD' && 'Estorno no cartão'}
+                            {formData.method === 'PIX' && `PIX - ${formData.pixKey}`}
+                            {formData.method === 'VOUCHER' && 'Vale-compra'}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Motivo</p>
+                          <p className="font-medium">{reasons.find(r => r.code === formData.reason)?.label}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <Separator />
-
                     <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-start space-x-3">
                         <Checkbox
-                          id="agreeToPolicy"
+                          id="policy"
                           checked={formData.agreeToPolicy}
                           onCheckedChange={(checked) => 
                             setFormData(prev => ({ ...prev, agreeToPolicy: !!checked }))
                           }
                         />
-                        <Label htmlFor="agreeToPolicy" className="text-sm">
-                          Li e aceito a política de reembolso da loja
+                        <Label htmlFor="policy" className="text-sm leading-relaxed">
+                          Aceito a <a href="#" className="text-primary underline">política de reembolsos</a> e 
+                          estou ciente dos prazos e condições.
                         </Label>
                       </div>
 
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-start space-x-3">
                         <Checkbox
-                          id="confirmTruthfulness"
+                          id="truthfulness"
                           checked={formData.confirmTruthfulness}
                           onCheckedChange={(checked) => 
                             setFormData(prev => ({ ...prev, confirmTruthfulness: !!checked }))
                           }
                         />
-                        <Label htmlFor="confirmTruthfulness" className="text-sm">
-                          Declaro que as informações fornecidas são verdadeiras
+                        <Label htmlFor="truthfulness" className="text-sm leading-relaxed">
+                          Confirmo que todas as informações fornecidas são verdadeiras e precisas.
                         </Label>
                       </div>
                     </div>
@@ -713,150 +684,135 @@ const PublicRefunds = () => {
                 {/* Step 6: Confirmation */}
                 {currentStep === 6 && protocol && (
                   <div className="text-center space-y-6">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                      <Check className="h-8 w-8 text-green-600" />
+                    <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
-
+                    
                     <div>
-                      <h3 className="text-2xl font-bold text-green-600 mb-2">
-                        Solicitação enviada!
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Seu protocolo de reembolso foi gerado
+                      <h3 className="text-2xl font-bold text-green-600 mb-2">Solicitação enviada com sucesso!</h3>
+                      <p className="text-muted-foreground">Sua solicitação foi registrada e será analisada em breve.</p>
+                    </div>
+                    
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                      <p className="text-sm text-green-700 mb-2">Protocolo de acompanhamento</p>
+                      <p className="text-3xl font-bold text-green-800">{protocol}</p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>Próximos passos:</strong><br />
+                        1. Você receberá um e-mail de confirmação<br />
+                        2. Nossa equipe analisará sua solicitação em até 2 dias úteis<br />
+                        3. Você será notificado sobre o status da análise
                       </p>
                     </div>
+                    
+                    <Button
+                      onClick={() => window.open(`/refunds/${storeSlug}/status/${protocol}`, '_blank')}
+                      className="w-full h-12"
+                    >
+                      Acompanhar Status
+                    </Button>
+                  </div>
+                )}
 
-                    <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="text-sm text-green-700 mb-1">Protocolo</div>
-                      <div className="text-3xl font-bold text-green-800">{protocol}</div>
-                      <div className="text-sm text-green-600 mt-2">
-                        Guarde este número para acompanhar sua solicitação
-                      </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      <p>Um e-mail de confirmação foi enviado para {order?.customer.email}</p>
-                      <p className="mt-2">
-                        Prazo estimado: 3-5 dias úteis para análise
-                      </p>
-                    </div>
-
-                    <Button asChild>
-                      <a href={`/refunds/${storeSlug}/status/${protocol}`}>
-                        Acompanhar status
-                      </a>
+                {/* Navigation */}
+                {currentStep < 6 && (
+                  <div className="flex justify-between pt-6 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      disabled={currentStep === 1}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Voltar
+                    </Button>
+                    
+                    <Button
+                      onClick={currentStep === 5 ? handleSubmit : handleNext}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 min-w-32"
+                    >
+                      {isLoading ? (
+                        <Clock className="w-4 h-4 animate-spin" />
+                      ) : currentStep === 5 ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Enviar solicitação
+                        </>
+                      ) : (
+                        <>
+                          Continuar
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
               </CardContent>
-
-              {/* Navigation */}
-              {currentStep < 6 && (
-                <div className="flex flex-col sm:flex-row justify-between gap-3 p-4 sm:p-6 pt-0 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={currentStep === 1}
-                    className="w-full sm:w-auto order-2 sm:order-1"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Voltar
-                  </Button>
-
-                  {currentStep === 5 ? (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isLoading}
-                      className="w-full sm:w-auto order-1 sm:order-2"
-                    >
-                      {isLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      ) : null}
-                      Enviar solicitação
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      disabled={isLoading}
-                      className="w-full sm:w-auto order-1 sm:order-2"
-                    >
-                      {isLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      ) : (
-                        <>
-                          Continuar
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              )}
             </Card>
           </div>
 
           {/* Sidebar Summary */}
-          {order && currentStep > 1 && currentStep < 6 && (
-            <div className="lg:col-span-1 order-first lg:order-last">
-              <Card className="glass-card sticky top-4 lg:top-6">
+          {currentStep >= 2 && currentStep <= 5 && order && (
+            <div className="lg:col-span-1">
+              <Card className="sticky top-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
                 <CardHeader>
                   <CardTitle className="text-lg">Resumo</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Pedido</div>
-                    <div className="font-medium">{order.id}</div>
+                    <p className="text-sm text-muted-foreground">Pedido</p>
+                    <p className="font-medium">{formData.orderId}</p>
                   </div>
-
+                  
                   {formData.selectedItems.length > 0 && (
-                    <>
-                      <Separator />
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Itens selecionados
-                        </div>
-                        <div className="space-y-1">
-                          {formData.selectedItems.map((selectedItem) => {
-                            const orderItem = order.items.find(item => item.id === selectedItem.itemId);
-                            return orderItem ? (
-                              <div key={selectedItem.itemId} className="text-sm">
-                                <div className="flex justify-between">
-                                  <span>{orderItem.title}</span>
-                                  <span>x{selectedItem.quantity}</span>
-                                </div>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Itens selecionados</p>
+                      <div className="space-y-2">
+                        {formData.selectedItems.map(selectedItem => {
+                          const item = order.items.find(i => i.id === selectedItem.itemId);
+                          return item ? (
+                            <div key={selectedItem.itemId} className="text-sm">
+                              <p className="font-medium">{item.title}</p>
+                              <p className="text-muted-foreground">
+                                Qtd: {selectedItem.quantity} × {formatCurrency(item.price)}
+                              </p>
+                            </div>
+                          ) : null;
+                        })}
                       </div>
-
-                      <Separator />
-                      <div>
-                        <div className="flex justify-between font-medium">
-                          <span>Total</span>
-                          <span className="text-green-600">
-                            {formatCurrency(getSelectedItemsTotal())}
-                          </span>
-                        </div>
-                        {formData.method === 'VOUCHER' && (
-                          <div className="text-xs text-green-600 text-right">
-                            +{formatCurrency(getSelectedItemsTotal() * 0.1)} bônus
-                          </div>
-                        )}
-                      </div>
-                    </>
+                    </div>
                   )}
-
-                  {formData.reason && (
-                    <>
-                      <Separator />
-                      <div>
-                        <div className="text-sm text-muted-foreground">Motivo</div>
-                        <div className="text-sm">
-                          {reasons.find(r => r.code === formData.reason)?.label}
-                        </div>
+                  
+                  {getSelectedItemsTotal() > 0 && (
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold">Total</p>
+                        <p className="font-bold text-lg text-green-600">
+                          {formatCurrency(getSelectedItemsTotal())}
+                        </p>
                       </div>
-                    </>
+                    </div>
+                  )}
+                  
+                  {formData.reason && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Motivo</p>
+                      <p className="font-medium">{reasons.find(r => r.code === formData.reason)?.label}</p>
+                    </div>
+                  )}
+                  
+                  {formData.method && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Método</p>
+                      <p className="font-medium">
+                        {formData.method === 'CARD' && 'Estorno no cartão'}
+                        {formData.method === 'PIX' && 'PIX'}
+                        {formData.method === 'VOUCHER' && 'Vale-compra'}
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -866,6 +822,4 @@ const PublicRefunds = () => {
       </div>
     </div>
   );
-};
-
-export default PublicRefunds;
+}
