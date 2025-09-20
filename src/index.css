@@ -3,16 +3,61 @@
 @tailwind utilities;
 
 /* Reset básico para centralização perfeita */
-html, body {
+html, body, #root, #__next {
+  height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
   box-sizing: border-box;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
+}
+
+/* Pre-dashboard perfect centering */
+#pre-dashboard.center-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 32px);
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  background: transparent;
+}
+
+#pre-dashboard .pre-dashboard-inner {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Remove any stray offsets that push content upward */
+#pre-dashboard.center-screen,
+#pre-dashboard .pre-dashboard-inner {
+  margin-block: 0;
+}
+
+#pre-dashboard .pre-dashboard-inner > :first-child { 
+  margin-block-start: 0; 
+}
+
+#pre-dashboard .pre-dashboard-inner > :last-child  { 
+  margin-block-end: 0; 
+}
+
+/* Kill global page paddings that might fight the centering */
+.page:has(#pre-dashboard) { 
+  padding-top: 0 !important; 
+}
+
+/* Flex fallback (older engines) */
+@supports not (place-items: center) {
+  #pre-dashboard.center-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* Convertfy Premium Design System */
