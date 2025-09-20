@@ -22,6 +22,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          light: "hsl(var(--primary-light))",
           hover: "hsl(var(--primary-hover))",
         },
         secondary: {
@@ -56,14 +57,24 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        store: {
-          primary: "hsl(var(--store-primary))",
-          secondary: "hsl(var(--store-secondary))",
-          accent: "hsl(var(--store-accent))",
+        glass: {
+          card: "hsl(var(--glass-card))",
+          border: "hsl(var(--glass-border))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
         },
       },
       backgroundImage: {
-        'gradient-neutral': 'var(--gradient-neutral)',
+        'gradient-premium': 'var(--gradient-premium)',
+        'gradient-hero': 'var(--gradient-hero)',
         'gradient-primary': 'var(--gradient-primary)',
       },
       boxShadow: {

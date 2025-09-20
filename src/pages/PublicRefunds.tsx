@@ -329,10 +329,7 @@ export default function PublicRefunds() {
   const storeTheme = 'default'; // Could be 'premium', 'elegant', 'nature', etc.
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-neutral flex items-center justify-center p-6"
-      data-store={storeTheme}
-    >
+    <div className="min-h-screen bg-gradient-premium flex items-center justify-center p-6">
       <div className="w-full max-w-4xl mx-auto">
         {/* Professional Header */}
         <div className="text-center mb-16">

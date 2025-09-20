@@ -67,62 +67,76 @@ html, body, #root, #__next {
 
 @layer base {
   :root {
-    /* Base Theme: Professional Neutral */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    /* Premium Background */
+    --background: 218 100% 97%;
+    --foreground: 220 39% 11%;
 
-    /* Store Customizable Colors */
-    --store-primary: 0 0% 15%;        /* Can be overridden per store */
-    --store-secondary: 0 0% 45%;      /* Can be overridden per store */
-    --store-accent: 0 0% 85%;         /* Can be overridden per store */
-    
-    /* Core UI Colors (semantic tokens) */
-    --primary: var(--store-primary);
-    --primary-foreground: 0 0% 98%;
-    --primary-hover: 0 0% 25%;
-    
-    --secondary: var(--store-secondary);
-    --secondary-foreground: 0 0% 98%;
-    
-    --accent: var(--store-accent);
-    --accent-foreground: 0 0% 15%;
-    
-    /* Neutral System */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    
+    /* Glass Card System */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-    
+    --card-foreground: 220 39% 11%;
+    --glass-card: 0 0% 100%;
+    --glass-border: 0 0% 100%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    
-    /* Professional Borders & Inputs */
-    --border: 0 0% 90%;
-    --input: 0 0% 96%;
-    --ring: var(--store-primary);
-    
-    /* Status Colors */
+    --popover-foreground: 220 39% 11%;
+
+    /* Brand Colors - Based on uploaded gradient */
+    --primary: 245 100% 60%;        /* Main blue-violet from gradient */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 245 100% 75%;   /* Lighter version */
+    --primary-hover: 245 100% 50%;   /* Darker version for hover */
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 220 39% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 214 32% 91%;
+    --accent-foreground: 220 39% 11%;
+
+    /* Status Colors for Components */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
     --warning: 48 96% 53%;
     --warning-foreground: 0 0% 9%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    
-    /* Professional Shadows */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 245 100% 60%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 39% 11%;
+    --sidebar-primary: 245 100% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 245 100% 95%;
+    --sidebar-accent-foreground: 245 100% 60%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 245 100% 60%;
+
+    /* Premium Gradients - Based on uploaded gradient */
+    --gradient-premium: radial-gradient(1200px 800px at 60% -10%, hsl(245 100% 75%) 0%, rgba(255,255,255,0) 50%), linear-gradient(135deg, hsl(218 100% 95%) 0%, hsl(218 100% 98%) 40%, hsl(218 100% 96%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(250 100% 65%) 0%, hsl(245 100% 55%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(245 100% 60%) 0%, hsl(245 100% 50%) 100%);
+    --gradient-glass: rgba(255,255,255,0.92);
+
+    /* Shadows */
+    --shadow-glass: 0 10px 30px rgba(7,16,41,0.08);
+    --shadow-hover: 0 12px 35px rgba(7,16,41,0.12);
+    --shadow-premium: 0 20px 60px rgba(7,16,41,0.15);
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    
-    /* Professional Gradients */
-    --gradient-neutral: linear-gradient(135deg, hsl(0 0% 98%) 0%, hsl(0 0% 96%) 100%);
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-hover)) 100%);
-    
-    --radius: 0.5rem;
-    
+
     /* Transitions */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --transition-fast: all 0.15s ease-out;
     --transition-normal: all 0.2s ease-out;
     --transition-slow: all 0.3s ease-out;
@@ -169,9 +183,24 @@ html, body, #root, #__next {
 
   body {
     @apply text-foreground font-sans;
-    background: var(--gradient-neutral);
+    background: var(--gradient-premium);
     min-height: 100vh;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Glass Card Component */
+  .glass-card {
+    backdrop-filter: blur(10px);
+    background: var(--gradient-glass);
+    border: 1px solid hsl(var(--glass-border) / 0.45);
+    box-shadow: var(--shadow-glass);
+    border-radius: 18px;
+    transition: var(--transition-smooth);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
   }
 
   /* Professional Card Components */
