@@ -9,11 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { mockReturns, mockStores } from '@/lib/mockData';
 import { ReturnRequest } from '@/types';
+import ReturnDetailsModal from '@/components/returns/ReturnDetailsModal';
 
 const Returns = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [returns, setReturns] = useState(mockReturns);
   
   const store = mockStores.find(s => s.id === storeId);
   
@@ -22,11 +26,31 @@ const Returns = () => {
   }
 
   const handleCopyPublicLink = () => {
-    const publicLink = `https://${store.name.toLowerCase().replace(/\s+/g, '-')}.convertfy.com/returns`;
+    const publicLink = `${window.location.origin}/public/returns/${store.name.toLowerCase().replace(/\s+/g, '-')}`;
     navigator.clipboard.writeText(publicLink);
     toast({
       title: "Link copiado!",
       description: "Link público copiado para a área de transferência",
+    });
+  };
+
+  const handleReturnClick = (returnRequest: ReturnRequest) => {
+    setSelectedReturn(returnRequest);
+    setIsModalOpen(true);
+  };
+
+  const handleStatusUpdate = (id: string, newStatus: ReturnRequest['status']) => {
+    setReturns(prev => 
+      prev.map(ret => 
+        ret.id === id ? { ...ret, status: newStatus, updatedAt: new Date().toISOString() } : ret
+      )
+    );
+    setSelectedReturn(prev => 
+      prev ? { ...prev, status: newStatus, updatedAt: new Date().toISOString() } : null
+    );
+    toast({
+      title: "Status atualizado!",
+      description: `Status alterado para: ${newStatus}`,
     });
   };
 
@@ -48,55 +72,67 @@ const Returns = () => {
       id: 'nova',
       title: 'Nova',
       status: 'Nova',
-      color: 'status-new',
-      items: mockReturns.filter(r => r.status === 'Nova')
+      color: 'bg-status-new',
+      items: returns.filter(r => r.status === 'Nova')
     },
     {
       id: 'analise',
       title: 'Em análise',
       status: 'Em análise',
-      color: 'status-analysis',
-      items: mockReturns.filter(r => r.status === 'Em análise')
+      color: 'bg-status-analysis',
+      items: returns.filter(r => r.status === 'Em análise')
     },
     {
       id: 'aprovada',
       title: 'Aprovada',
       status: 'Aprovada',
-      color: 'status-approved',
-      items: mockReturns.filter(r => r.status === 'Aprovada')
+      color: 'bg-status-approved',
+      items: returns.filter(r => r.status === 'Aprovada')
     },
     {
       id: 'postagem',
       title: 'Aguardando postagem',
       status: 'Aguardando postagem',
-      color: 'status-waiting',
-      items: mockReturns.filter(r => r.status === 'Aguardando postagem')
+      color: 'bg-status-waiting',
+      items: returns.filter(r => r.status === 'Aguardando postagem')
     },
     {
       id: 'recebida',
       title: 'Recebida em CD',
       status: 'Recebida em CD',
-      color: 'status-received',
-      items: mockReturns.filter(r => r.status === 'Recebida em CD')
+      color: 'bg-status-received',
+      items: returns.filter(r => r.status === 'Recebida em CD')
     },
     {
       id: 'concluida',
       title: 'Concluída',
       status: 'Concluída',
-      color: 'status-completed',
-      items: mockReturns.filter(r => r.status === 'Concluída')
+      color: 'bg-status-completed',
+      items: returns.filter(r => r.status === 'Concluída')
     },
     {
       id: 'recusada',
       title: 'Recusada',
       status: 'Recusada',
-      color: 'status-refused',
-      items: mockReturns.filter(r => r.status === 'Recusada')
+      color: 'bg-status-refused',
+      items: returns.filter(r => r.status === 'Recusada')
     }
   ];
 
+  const filteredColumns = columns.map(column => ({
+    ...column,
+    items: column.items.filter(item => 
+      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }));
+
   const KanbanCard = ({ item }: { item: ReturnRequest }) => (
-    <Card className="glass-card mb-3 animate-hover cursor-pointer">
+    <Card 
+      className="glass-card mb-3 animate-hover cursor-pointer transition-all duration-200 hover:shadow-hover" 
+      onClick={() => handleReturnClick(item)}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -130,19 +166,19 @@ const Returns = () => {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Trocas & Devoluções</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Trocas & Devoluções</h1>
           <p className="text-muted-foreground">{store.name}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleCopyPublicLink}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
             <Copy className="h-4 w-4 mr-2" />
             Copiar Link Público
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link to={`/store/${storeId}/returns/new`}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Solicitação
@@ -152,12 +188,12 @@ const Returns = () => {
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-auto lg:flex">
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="resumo">Resumo</TabsTrigger>
-          <TabsTrigger value="config" asChild>
-            <Link to={`/store/${storeId}/returns/setup`}>
+          <TabsTrigger value="lista" className="text-xs sm:text-sm">Lista</TabsTrigger>
+          <TabsTrigger value="resumo" className="text-xs sm:text-sm">Resumo</TabsTrigger>
+          <TabsTrigger value="config" asChild className="col-span-2 sm:col-span-1">
+            <Link to={`/store/${storeId}/returns/setup`} className="text-xs sm:text-sm">
               Configurar Link Público
             </Link>
           </TabsTrigger>
@@ -165,8 +201,8 @@ const Returns = () => {
 
         <TabsContent value="kanban" className="space-y-4">
           {/* Filters */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="relative flex-1 max-w-full sm:max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por pedido, cliente..."
@@ -175,27 +211,29 @@ const Returns = () => {
                 className="pl-8"
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full sm:w-auto">
               <Filter className="h-4 w-4 mr-2" />
               Filtros
             </Button>
           </div>
 
           {/* Kanban Board */}
-          <div className="grid grid-cols-7 gap-4 min-h-[600px]">
-            {columns.map((column) => (
-              <div key={column.id} className="space-y-3">
-                <div className={`p-3 rounded-lg ${column.color}`}>
-                  <h3 className="font-semibold text-sm">{column.title}</h3>
-                  <p className="text-xs opacity-80">{column.items.length} itens</p>
+          <div className="overflow-x-auto pb-4">
+            <div className="grid grid-cols-7 gap-2 sm:gap-4 min-h-[400px] sm:min-h-[600px] min-w-[1400px]">
+              {filteredColumns.map((column) => (
+                <div key={column.id} className="space-y-2 sm:space-y-3 min-w-[180px] sm:min-w-[200px]">
+                  <div className={`p-2 sm:p-3 rounded-lg text-white text-center ${column.color}`}>
+                    <h3 className="font-semibold text-xs sm:text-sm">{column.title}</h3>
+                    <p className="text-xs opacity-80">{column.items.length} itens</p>
+                  </div>
+                  <div className="space-y-2">
+                    {column.items.map((item) => (
+                      <KanbanCard key={item.id} item={item} />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {column.items.map((item) => (
-                    <KanbanCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </TabsContent>
 
@@ -219,6 +257,14 @@ const Returns = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Detalhes */}
+      <ReturnDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        returnRequest={selectedReturn}
+        onStatusUpdate={handleStatusUpdate}
+      />
     </div>
   );
 };

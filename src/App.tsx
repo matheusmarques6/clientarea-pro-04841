@@ -18,6 +18,7 @@ import ProductCosts from "./pages/ProductCosts";
 import StoreSettings from "./pages/StoreSettings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import PublicReturns from "./pages/PublicReturns";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<PreDashboard />} />
             <Route path="/stores" element={<StoreSelector />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
             <Route element={<AppLayout />}>
               <Route path="/store/:id" element={<StoreDashboard />} />
               <Route path="/store/:id/returns" element={<Returns />} />

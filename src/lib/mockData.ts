@@ -134,6 +134,106 @@ export const mockReturns: ReturnRequest[] = [
         user: 'Sistema'
       }
     ]
+  },
+  {
+    id: 'RT-1026',
+    pedido: '#28504',
+    cliente: 'Carlos Ferreira',
+    tipo: 'Troca',
+    motivo: 'Tamanho incorreto',
+    valor: 399.90,
+    status: 'Nova',
+    createdAt: '2025-09-18T16:45:00Z',
+    updatedAt: '2025-09-18T16:45:00Z',
+    origem: 'Link público',
+    observacoes: 'Cliente solicitou troca do tamanho M para G',
+    timeline: [
+      {
+        id: '1',
+        timestamp: '2025-09-18T16:45:00Z',
+        action: 'Criada',
+        description: 'Solicitação criada via link público',
+        user: 'Sistema'
+      }
+    ]
+  },
+  {
+    id: 'RT-1027',
+    pedido: '#28505',
+    cliente: 'Fernanda Oliveira',
+    tipo: 'Devolução',
+    motivo: 'Arrependimento da compra',
+    valor: 189.90,
+    status: 'Concluída',
+    createdAt: '2025-09-10T14:20:00Z',
+    updatedAt: '2025-09-17T10:30:00Z',
+    origem: 'Interna',
+    timeline: [
+      {
+        id: '1',
+        timestamp: '2025-09-10T14:20:00Z',
+        action: 'Criada',
+        description: 'Solicitação criada internamente',
+        user: 'Maria Santos'
+      },
+      {
+        id: '2',
+        timestamp: '2025-09-11T09:15:00Z',
+        action: 'Aprovada',
+        description: 'Solicitação aprovada após análise',
+        user: 'João Silva'
+      },
+      {
+        id: '3',
+        timestamp: '2025-09-12T11:00:00Z',
+        action: 'Recebida em CD',
+        description: 'Produto recebido no centro de distribuição',
+        user: 'Sistema'
+      },
+      {
+        id: '4',
+        timestamp: '2025-09-17T10:30:00Z',
+        action: 'Concluída',
+        description: 'Processo de devolução concluído e reembolso processado',
+        user: 'Sistema'
+      }
+    ]
+  },
+  {
+    id: 'RT-1028',
+    pedido: '#28506',
+    cliente: 'Roberto Silva',
+    tipo: 'Troca',
+    motivo: 'Produto com defeito',
+    valor: 299.90,
+    status: 'Recusada',
+    createdAt: '2025-09-14T11:30:00Z',
+    updatedAt: '2025-09-16T14:00:00Z',
+    origem: 'Link público',
+    observacoes: 'Produto fora do prazo de troca (mais de 30 dias)',
+    timeline: [
+      {
+        id: '1',
+        timestamp: '2025-09-14T11:30:00Z',
+        action: 'Criada',
+        description: 'Solicitação criada via link público',
+        user: 'Sistema'
+      },
+      {
+        id: '2',
+        timestamp: '2025-09-15T13:45:00Z',
+        action: 'Em análise',
+        description: 'Movida para análise pela equipe',
+        user: 'Ana Costa'
+      },
+      {
+        id: '3',
+        timestamp: '2025-09-16T14:00:00Z',
+        action: 'Recusada',
+        description: 'Solicitação recusada - produto fora do prazo de troca',
+        user: 'Carlos Santos'
+      }
+    ]
   }
 ];
 
