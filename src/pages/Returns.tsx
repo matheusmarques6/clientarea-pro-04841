@@ -56,15 +56,15 @@ const Returns = () => {
 
   const getStatusColor = (status: ReturnRequest['status']) => {
     const colors = {
-      'Nova': 'status-new',
-      'Em análise': 'status-analysis',
-      'Aprovada': 'status-approved',
-      'Aguardando postagem': 'status-waiting',
-      'Recebida em CD': 'status-received',
-      'Concluída': 'status-completed',
-      'Recusada': 'status-refused'
+      'Nova': 'bg-slate-100 text-slate-800',
+      'Em análise': 'bg-yellow-100 text-yellow-800',
+      'Aprovada': 'bg-green-100 text-green-800',
+      'Aguardando postagem': 'bg-blue-100 text-blue-800',
+      'Recebida em CD': 'bg-purple-100 text-purple-800',
+      'Concluída': 'bg-emerald-100 text-emerald-800',
+      'Recusada': 'bg-red-100 text-red-800'
     };
-    return colors[status] || 'bg-gray-100';
+    return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
   const columns = [
@@ -72,49 +72,49 @@ const Returns = () => {
       id: 'nova',
       title: 'Nova',
       status: 'Nova',
-      color: 'bg-status-new',
+      color: 'bg-slate-100 text-slate-800',
       items: returns.filter(r => r.status === 'Nova')
     },
     {
       id: 'analise',
       title: 'Em análise',
       status: 'Em análise',
-      color: 'bg-status-analysis',
+      color: 'bg-yellow-100 text-yellow-800',
       items: returns.filter(r => r.status === 'Em análise')
     },
     {
       id: 'aprovada',
       title: 'Aprovada',
       status: 'Aprovada',
-      color: 'bg-status-approved',
+      color: 'bg-green-100 text-green-800',
       items: returns.filter(r => r.status === 'Aprovada')
     },
     {
       id: 'postagem',
       title: 'Aguardando postagem',
       status: 'Aguardando postagem',
-      color: 'bg-status-waiting',
+      color: 'bg-blue-100 text-blue-800',
       items: returns.filter(r => r.status === 'Aguardando postagem')
     },
     {
       id: 'recebida',
       title: 'Recebida em CD',
       status: 'Recebida em CD',
-      color: 'bg-status-received',
+      color: 'bg-purple-100 text-purple-800',
       items: returns.filter(r => r.status === 'Recebida em CD')
     },
     {
       id: 'concluida',
       title: 'Concluída',
       status: 'Concluída',
-      color: 'bg-status-completed',
+      color: 'bg-emerald-100 text-emerald-800',
       items: returns.filter(r => r.status === 'Concluída')
     },
     {
       id: 'recusada',
       title: 'Recusada',
       status: 'Recusada',
-      color: 'bg-status-refused',
+      color: 'bg-red-100 text-red-800',
       items: returns.filter(r => r.status === 'Recusada')
     }
   ];
@@ -223,8 +223,8 @@ const Returns = () => {
               {filteredColumns.map((column) => (
                 <div key={column.id} className="space-y-2 sm:space-y-3 min-w-[180px] sm:min-w-[200px]">
                   <div className={`p-2 sm:p-3 rounded-lg text-center ${column.color}`}>
-                    <h3 className="font-semibold text-xs sm:text-sm text-white">{column.title}</h3>
-                    <p className="text-xs opacity-80 text-white">{column.items.length} itens</p>
+                    <h3 className="font-semibold text-xs sm:text-sm">{column.title}</h3>
+                    <p className="text-xs opacity-90">{column.items.length} itens</p>
                   </div>
                   <div className="space-y-2 min-h-[100px]">
                     {column.items.map((item) => (
