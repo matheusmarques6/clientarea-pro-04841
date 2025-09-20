@@ -130,7 +130,7 @@ const Returns = () => {
 
   const KanbanCard = ({ item }: { item: ReturnRequest }) => (
     <Card 
-      className="glass-card mb-3 animate-hover cursor-pointer transition-all duration-200 hover:shadow-hover" 
+      className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.02] mb-3" 
       onClick={() => handleReturnClick(item)}
     >
       <CardContent className="p-4">
@@ -166,7 +166,8 @@ const Returns = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -186,28 +187,28 @@ const Returns = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="kanban" className="space-y-4">
-        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full max-w-md">
-          <TabsTrigger value="kanban" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+      <Tabs defaultValue="kanban" className="space-y-6">
+        <TabsList className="inline-flex h-12 items-center justify-center rounded-md bg-muted border border-border p-1 text-muted-foreground w-full max-w-md">
+          <TabsTrigger value="kanban" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
             Kanban
           </TabsTrigger>
-          <TabsTrigger value="lista" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+          <TabsTrigger value="lista" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
             Lista
           </TabsTrigger>
-          <TabsTrigger value="resumo" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+          <TabsTrigger value="resumo" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
             Resumo
           </TabsTrigger>
           <TabsTrigger value="config" asChild>
             <Link 
               to={`/store/${storeId}/returns/setup`} 
-              className="px-3 py-1.5 text-sm font-medium transition-all hover:bg-background/50 hover:text-foreground rounded-sm"
+              className="px-4 py-2 text-sm font-medium transition-all hover:bg-background/50 hover:text-foreground rounded-sm"
             >
               Configurar
             </Link>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="kanban" className="space-y-4">
+        <TabsContent value="kanban" className="space-y-6">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="relative flex-1 max-w-full sm:max-w-sm">
@@ -216,10 +217,10 @@ const Returns = () => {
                 placeholder="Buscar por pedido, cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="pl-8 bg-background border-border"
               />
             </div>
-            <Button variant="outline" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto bg-background border-border">
               <Filter className="h-4 w-4 mr-2" />
               Filtros
             </Button>
@@ -227,20 +228,22 @@ const Returns = () => {
 
           {/* Kanban Board */}
           <div className="overflow-x-auto pb-4">
-            <div className="grid grid-cols-7 gap-2 sm:gap-4 min-h-[400px] sm:min-h-[600px] min-w-[1400px]">
+            <div className="grid grid-cols-7 gap-4 min-h-[70vh] min-w-[1400px]">
               {filteredColumns.map((column) => (
-                <div key={column.id} className="space-y-2 sm:space-y-3 min-w-[180px] sm:min-w-[200px]">
-                  <div className={`p-2 sm:p-3 rounded-lg text-center ${column.color}`}>
-                    <h3 className="font-semibold text-xs sm:text-sm">{column.title}</h3>
-                    <p className="text-xs opacity-90">{column.items.length} itens</p>
+                <div key={column.id} className="min-w-[200px] bg-muted/20 rounded-lg border border-border">
+                  {/* Header da coluna */}
+                  <div className={`p-4 rounded-t-lg border-b border-border ${column.color} bg-opacity-20`}>
+                    <h3 className="font-semibold text-sm text-center text-foreground">{column.title}</h3>
+                    <p className="text-xs text-center text-muted-foreground mt-1">{column.items.length} itens</p>
                   </div>
-                  <div className="space-y-2 min-h-[100px]">
+                  {/* Cards container */}
+                  <div className="p-3 space-y-3 min-h-[calc(70vh-80px)] max-h-[calc(70vh-80px)] overflow-y-auto">
                     {column.items.map((item) => (
                       <KanbanCard key={item.id} item={item} />
                     ))}
                     {column.items.length === 0 && (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-muted-foreground">Nenhum item</p>
+                      <div className="text-center py-12">
+                        <p className="text-sm text-muted-foreground">Nenhum item</p>
                       </div>
                     )}
                   </div>
@@ -250,7 +253,7 @@ const Returns = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="lista" className="space-y-4">
+        <TabsContent value="lista" className="space-y-6">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="relative flex-1 max-w-full sm:max-w-sm">
@@ -259,17 +262,17 @@ const Returns = () => {
                 placeholder="Buscar por pedido, cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="pl-8 bg-background border-border"
               />
             </div>
-            <Button variant="outline" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto bg-background border-border">
               <Filter className="h-4 w-4 mr-2" />
               Filtros
             </Button>
           </div>
 
           {/* Lista */}
-          <Card className="glass-card">
+          <Card className="bg-card border-border shadow-sm">{/* Card com fundo sólido */}
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -352,7 +355,7 @@ const Returns = () => {
 
         <TabsContent value="resumo" className="space-y-6">
           {/* Cards de Resumo */}
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="glass-card">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
@@ -365,7 +368,7 @@ const Returns = () => {
               </CardContent>
             </Card>
             
-            <Card className="glass-card">
+            <Card className="bg-card border-border shadow-sm">{/* Cards com fundo sólido */}
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 rounded-full bg-status-approved"></div>
@@ -481,6 +484,7 @@ const Returns = () => {
         returnRequest={selectedReturn}
         onStatusUpdate={handleStatusUpdate}
       />
+      </div>
     </div>
   );
 };
