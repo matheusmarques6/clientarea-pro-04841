@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import PublicReturns from "./pages/PublicReturns";
 import PublicRefunds from "./pages/PublicRefunds";
 import TrackingPortal from "./components/returns/TrackingPortal";
+import RefundStatus from "./pages/RefundStatus";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/" element={<PreDashboard />} />
             <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
             <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
+            <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
             <Route path="/tracking" element={<TrackingPortal />} />
             
             {/* Routes with sidebar */}
