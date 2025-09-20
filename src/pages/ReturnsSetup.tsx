@@ -59,10 +59,10 @@ const ReturnsSetup = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link to={`/store/${storeId}/returns`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -70,38 +70,38 @@ const ReturnsSetup = () => {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Configurar Link Público</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Configurar Link Público</h1>
             <p className="text-muted-foreground">Trocas & Devoluções • {store.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handlePreview}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handlePreview} className="w-full sm:w-auto">
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="w-full sm:w-auto">
             <Save className="h-4 w-4 mr-2" />
             Salvar
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Configuration */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* URL */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>URL do Portal Público</CardTitle>
+              <CardTitle className="text-foreground">URL do Portal Público</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input value={publicUrl} readOnly className="flex-1" />
-                <Button size="sm" onClick={handleCopyUrl}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Input value={publicUrl} readOnly className="flex-1 text-foreground" />
+                <Button size="sm" onClick={handleCopyUrl} className="w-full sm:w-auto">
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-foreground">
                 URL gerada automaticamente baseada no nome da loja
               </Badge>
             </CardContent>
@@ -110,35 +110,39 @@ const ReturnsSetup = () => {
           {/* Eligibility Rules */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Regras de Elegibilidade</CardTitle>
+              <CardTitle className="text-foreground">Regras de Elegibilidade</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="janela">Janela de devolução (dias)</Label>
+                <Label htmlFor="janela" className="text-foreground">Janela de devolução (dias)</Label>
                 <Select value={config.janelaDias.toString()} onValueChange={(value) => setConfig({...config, janelaDias: parseInt(value)})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">7 dias</SelectItem>
-                    <SelectItem value="15">15 dias</SelectItem>
-                    <SelectItem value="30">30 dias</SelectItem>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="7" className="text-foreground">7 dias</SelectItem>
+                    <SelectItem value="15" className="text-foreground">15 dias</SelectItem>
+                    <SelectItem value="30" className="text-foreground">30 dias</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="valorMinimo">Valor mínimo do pedido (R$)</Label>
+                <Label htmlFor="valorMinimo" className="text-foreground">Valor mínimo do pedido (R$)</Label>
                 <Input
                   type="number"
                   value={config.valorMinimo}
                   onChange={(e) => setConfig({...config, valorMinimo: parseFloat(e.target.value)})}
                   placeholder="50.00"
+                  className="text-foreground"
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="exigirFotos">Exigir fotos dos produtos</Label>
+                <div className="flex-1">
+                  <Label htmlFor="exigirFotos" className="text-foreground">Exigir fotos dos produtos</Label>
+                  <p className="text-sm text-muted-foreground">Obrigatório envio de fotos para análise</p>
+                </div>
                 <Switch
                   checked={config.exigirFotos}
                   onCheckedChange={(checked) => setConfig({...config, exigirFotos: checked})}
@@ -146,11 +150,11 @@ const ReturnsSetup = () => {
               </div>
 
               <div>
-                <Label>Categorias bloqueadas</Label>
+                <Label className="text-foreground">Categorias bloqueadas</Label>
                 <p className="text-sm text-muted-foreground mb-2">
                   Produtos destas categorias não poderão ser devolvidos
                 </p>
-                <Input placeholder="Digite categorias separadas por vírgula" />
+                <Input placeholder="Digite categorias separadas por vírgula" className="text-foreground" />
               </div>
             </CardContent>
           </Card>
@@ -158,12 +162,12 @@ const ReturnsSetup = () => {
           {/* Automation */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Automação</CardTitle>
+              <CardTitle className="text-foreground">Automação</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="aprovarAuto">Aprovação automática</Label>
+                <div className="flex-1">
+                  <Label htmlFor="aprovarAuto" className="text-foreground">Aprovação automática</Label>
                   <p className="text-sm text-muted-foreground">
                     Aprovar automaticamente se dentro da janela e com fotos
                   </p>
@@ -175,14 +179,14 @@ const ReturnsSetup = () => {
               </div>
 
               <div>
-                <Label>Logística reversa</Label>
+                <Label className="text-foreground">Logística reversa</Label>
                 <Select value={config.logisticaReversa} onValueChange={(value) => setConfig({...config, logisticaReversa: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="etiqueta">Gerar etiqueta (mock)</SelectItem>
-                    <SelectItem value="manual">Instruções manuais</SelectItem>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="etiqueta" className="text-foreground">Gerar etiqueta (mock)</SelectItem>
+                    <SelectItem value="manual" className="text-foreground">Instruções manuais</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -191,51 +195,54 @@ const ReturnsSetup = () => {
         </div>
 
         {/* Messages */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Mensagens Públicas</CardTitle>
+              <CardTitle className="text-foreground">Mensagens Públicas</CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="pt" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="pt">Português</TabsTrigger>
-                  <TabsTrigger value="en">English</TabsTrigger>
-                  <TabsTrigger value="es">Español</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 bg-muted">
+                  <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
+                  <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
+                  <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="pt" className="space-y-4">
                   <div>
-                    <Label>Mensagem de confirmação</Label>
+                    <Label className="text-foreground">Mensagem de confirmação</Label>
                     <Textarea
                       value={config.mensagemPt}
                       onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
                       placeholder="Mensagem exibida após a solicitação"
                       rows={4}
+                      className="text-foreground"
                     />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="en" className="space-y-4">
                   <div>
-                    <Label>Confirmation message</Label>
+                    <Label className="text-foreground">Confirmation message</Label>
                     <Textarea
                       value={config.mensagemEn}
                       onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
                       placeholder="Message displayed after request"
                       rows={4}
+                      className="text-foreground"
                     />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="es" className="space-y-4">
                   <div>
-                    <Label>Mensaje de confirmación</Label>
+                    <Label className="text-foreground">Mensaje de confirmación</Label>
                     <Textarea
                       value={config.mensagemEs}
                       onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
                       placeholder="Mensaje mostrado después de la solicitud"
                       rows={4}
+                      className="text-foreground"
                     />
                   </div>
                 </TabsContent>
@@ -246,7 +253,7 @@ const ReturnsSetup = () => {
           {/* Preview Card */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Preview do Portal</CardTitle>
+              <CardTitle className="text-foreground">Preview do Portal</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="bg-muted/50 rounded-lg p-4 space-y-3">

@@ -136,24 +136,24 @@ const Returns = () => {
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="font-semibold text-sm">{item.id}</p>
+            <p className="font-semibold text-sm text-foreground">{item.id}</p>
             <p className="text-xs text-muted-foreground">{item.pedido}</p>
           </div>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            <MoreHorizontal className="h-3 w-3" />
+            <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
           </Button>
         </div>
         
         <div className="space-y-1">
-          <p className="text-sm font-medium">{item.cliente}</p>
+          <p className="text-sm font-medium text-foreground">{item.cliente}</p>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs text-foreground border-border">
               {item.tipo}
             </Badge>
             <span className="text-xs text-muted-foreground">{item.motivo}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-semibold text-foreground">
               R$ {item.valor.toFixed(2)}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -222,14 +222,19 @@ const Returns = () => {
             <div className="grid grid-cols-7 gap-2 sm:gap-4 min-h-[400px] sm:min-h-[600px] min-w-[1400px]">
               {filteredColumns.map((column) => (
                 <div key={column.id} className="space-y-2 sm:space-y-3 min-w-[180px] sm:min-w-[200px]">
-                  <div className={`p-2 sm:p-3 rounded-lg text-white text-center ${column.color}`}>
-                    <h3 className="font-semibold text-xs sm:text-sm">{column.title}</h3>
-                    <p className="text-xs opacity-80">{column.items.length} itens</p>
+                  <div className={`p-2 sm:p-3 rounded-lg text-center ${column.color}`}>
+                    <h3 className="font-semibold text-xs sm:text-sm text-white">{column.title}</h3>
+                    <p className="text-xs opacity-80 text-white">{column.items.length} itens</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-h-[100px]">
                     {column.items.map((item) => (
                       <KanbanCard key={item.id} item={item} />
                     ))}
+                    {column.items.length === 0 && (
+                      <div className="text-center py-4">
+                        <p className="text-xs text-muted-foreground">Nenhum item</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -237,22 +242,225 @@ const Returns = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="lista">
+        <TabsContent value="lista" className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="relative flex-1 max-w-full sm:max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por pedido, cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+            </Button>
+          </div>
+
+          {/* Lista */}
           <Card className="glass-card">
-            <CardContent className="p-6">
-              <p className="text-center text-muted-foreground py-8">
-                Lista em desenvolvimento...
-              </p>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border">
+                    <tr className="text-left">
+                      <th className="p-4 font-semibold text-foreground">ID</th>
+                      <th className="p-4 font-semibold text-foreground">Pedido</th>
+                      <th className="p-4 font-semibold text-foreground">Cliente</th>
+                      <th className="p-4 font-semibold text-foreground">Tipo</th>
+                      <th className="p-4 font-semibold text-foreground">Status</th>
+                      <th className="p-4 font-semibold text-foreground">Valor</th>
+                      <th className="p-4 font-semibold text-foreground">Data</th>
+                      <th className="p-4 font-semibold text-foreground">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {returns
+                      .filter(item => 
+                        item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        item.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((item) => (
+                        <tr 
+                          key={item.id} 
+                          className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
+                          onClick={() => handleReturnClick(item)}
+                        >
+                          <td className="p-4">
+                            <span className="font-medium text-foreground">{item.id}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-foreground">{item.pedido}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-foreground">{item.cliente}</span>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant="outline" className="text-foreground border-border">
+                              {item.tipo}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                              {item.status}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="font-semibold text-foreground">
+                              R$ {item.valor.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-muted-foreground">
+                              {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              {returns.filter(item => 
+                item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+              ).length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="resumo">
+        <TabsContent value="resumo" className="space-y-6">
+          {/* Cards de Resumo */}
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-status-new"></div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total de Solicitações</p>
+                    <p className="text-2xl font-bold text-foreground">{returns.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-status-approved"></div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Aprovadas</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {returns.filter(r => ['Aprovada', 'Concluída'].includes(r.status)).length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-status-analysis"></div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Em Análise</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {returns.filter(r => r.status === 'Em análise').length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-primary"></div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      R$ {returns.reduce((sum, r) => sum + r.valor, 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Gráficos por Status */}
           <Card className="glass-card">
-            <CardContent className="p-6">
-              <p className="text-center text-muted-foreground py-8">
-                Resumo em desenvolvimento...
-              </p>
+            <CardHeader>
+              <CardTitle className="text-foreground">Distribuição por Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {columns.map((column) => {
+                  const percentage = returns.length > 0 ? (column.items.length / returns.length) * 100 : 0;
+                  return (
+                    <div key={column.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded ${column.color}`}></div>
+                        <span className="font-medium text-foreground">{column.title}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 bg-muted rounded-full h-2 w-32">
+                          <div 
+                            className={`h-2 rounded-full ${column.color}`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-semibold text-foreground w-12 text-right">
+                          {column.items.length}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tipos de Solicitação */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">Tipos de Solicitação</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {['Troca', 'Devolução'].map((tipo) => {
+                  const count = returns.filter(r => r.tipo === tipo).length;
+                  const percentage = returns.length > 0 ? (count / returns.length) * 100 : 0;
+                  return (
+                    <div key={tipo} className="flex items-center justify-between">
+                      <span className="font-medium text-foreground">{tipo}</span>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 bg-muted rounded-full h-2 w-32">
+                          <div 
+                            className="h-2 rounded-full bg-primary"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-semibold text-foreground w-12 text-right">
+                          {count}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -182,7 +182,7 @@ const PublicReturns = () => {
         {/* Form Card */}
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Package className="h-5 w-5" />
               Solicitar Troca ou Devolução
             </CardTitle>
@@ -195,22 +195,23 @@ const PublicReturns = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Dados do Pedido */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm">Dados do Pedido</h3>
+                <h3 className="font-semibold text-sm text-foreground">Dados do Pedido</h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="pedido">Número do Pedido *</Label>
+                    <Label htmlFor="pedido" className="text-foreground">Número do Pedido *</Label>
                     <Input
                       id="pedido"
                       placeholder="#12345"
                       value={formData.pedido}
                       onChange={(e) => setFormData({ ...formData, pedido: e.target.value })}
                       required
+                      className="text-foreground"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="email">E-mail do Pedido *</Label>
+                    <Label htmlFor="email" className="text-foreground">E-mail do Pedido *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -218,57 +219,59 @@ const PublicReturns = () => {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
+                      className="text-foreground"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="nome">Nome Completo *</Label>
+                  <Label htmlFor="nome" className="text-foreground">Nome Completo *</Label>
                   <Input
                     id="nome"
                     placeholder="Seu nome completo"
                     value={formData.nome}
                     onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     required
+                    className="text-foreground"
                   />
                 </div>
               </div>
 
               {/* Tipo de Solicitação */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm">Tipo de Solicitação</h3>
+                <h3 className="font-semibold text-sm text-foreground">Tipo de Solicitação</h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="tipo">Tipo *</Label>
+                    <Label htmlFor="tipo" className="text-foreground">Tipo *</Label>
                     <Select
                       value={formData.tipo}
                       onValueChange={(value) => setFormData({ ...formData, tipo: value })}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-foreground">
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Troca">Troca</SelectItem>
-                        <SelectItem value="Devolução">Devolução</SelectItem>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="Troca" className="text-foreground">Troca</SelectItem>
+                        <SelectItem value="Devolução" className="text-foreground">Devolução</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="motivo">Motivo *</Label>
+                    <Label htmlFor="motivo" className="text-foreground">Motivo *</Label>
                     <Select
                       value={formData.motivo}
                       onValueChange={(value) => setFormData({ ...formData, motivo: value })}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-foreground">
                         <SelectValue placeholder="Selecione o motivo" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-card border-border">
                         {motivosComuns.map((motivo) => (
-                          <SelectItem key={motivo} value={motivo}>
+                          <SelectItem key={motivo} value={motivo} className="text-foreground">
                             {motivo}
                           </SelectItem>
                         ))}
@@ -280,19 +283,19 @@ const PublicReturns = () => {
 
               {/* Observações */}
               <div>
-                <Label htmlFor="observacoes">Observações Adicionais</Label>
+                <Label htmlFor="observacoes" className="text-foreground">Observações Adicionais</Label>
                 <Textarea
                   id="observacoes"
                   placeholder="Descreva detalhadamente o problema ou motivo da solicitação..."
                   value={formData.observacoes}
                   onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  className="min-h-[100px]"
+                  className="min-h-[100px] text-foreground"
                 />
               </div>
 
               {/* Upload de Arquivos */}
               <div className="space-y-4">
-                <Label>Anexos (Opcional)</Label>
+                <Label className="text-foreground">Anexos (Opcional)</Label>
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
                   <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground mb-4">
@@ -320,7 +323,7 @@ const PublicReturns = () => {
                   <div className="space-y-2">
                     {formData.anexos.map((file, index) => (
                       <div key={index} className="flex items-center justify-between bg-muted p-3 rounded-lg">
-                        <span className="text-sm font-medium truncate">{file.name}</span>
+                        <span className="text-sm font-medium truncate text-foreground">{file.name}</span>
                         <Button
                           type="button"
                           variant="ghost"
