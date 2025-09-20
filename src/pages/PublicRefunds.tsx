@@ -109,14 +109,6 @@ const problemSolutions = [
     icon: Package,
     benefit: 'Entrega expressa',
     priority: 3
-  },
-  {
-    id: 'repair',
-    title: 'Reparo gratuito',
-    description: 'Consertamos sem custo',
-    icon: CheckCircle,
-    benefit: 'Produto como novo',
-    priority: 4
   }
 ];
 
@@ -145,7 +137,9 @@ export default function PublicRefunds() {
     pixKey: '',
     selectedSolution: '',
     agreeToPolicy: false,
-    confirmTruthfulness: false
+    confirmTruthfulness: false,
+    whyNotVoucher: '',
+    futureShop: ''
   });
   
   const [order, setOrder] = useState<typeof mockOrder | null>(null);
@@ -204,6 +198,38 @@ export default function PublicRefunds() {
           toast({
             title: "Motivo obrigatório",
             description: "Selecione o motivo do reembolso",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!formData.reasonNote.trim()) {
+          toast({
+            title: "Descrição obrigatória",
+            description: "Descreva detalhadamente o problema",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!formData.whyNotVoucher?.trim()) {
+          toast({
+            title: "Campo obrigatório",
+            description: "Explique por que não aceita o vale-compra",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!formData.futureShop) {
+          toast({
+            title: "Campo obrigatório",
+            description: "Informe se pretende comprar novamente",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!formData.agreeToPolicy || !formData.confirmTruthfulness) {
+          toast({
+            title: "Aceite os termos",
+            description: "É necessário aceitar todos os termos para continuar",
             variant: "destructive"
           });
           return false;
@@ -292,28 +318,28 @@ export default function PublicRefunds() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="w-full max-w-2xl mx-auto px-4 py-8">
         {/* Simple Header */}
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-            <MessageCircle className="w-10 h-10 text-white" />
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+            <MessageCircle className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Central de Soluções
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base text-gray-600">
             Encontre a melhor solução para seu pedido
           </p>
         </div>
 
         {/* Progress Steps - Only show when past step 1 */}
         {currentStep > 1 && (
-          <Card className="mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-6">
-              <div className="mb-6">
-                <Progress value={progressPercentage} className="h-3 mb-6" />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+            <CardContent className="p-4">
+              <div className="mb-4">
+                <Progress value={progressPercentage} className="h-2 mb-4" />
+                <div className="grid grid-cols-4 gap-2">
                   {steps.map((step) => {
                     const StepIcon = step.icon;
                     return (
@@ -327,17 +353,16 @@ export default function PublicRefunds() {
                             : 'text-gray-400'
                         }`}
                       >
-                        <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 transition-all duration-200 ${
+                        <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center mb-1 transition-all duration-200 ${
                           step.id === currentStep
                             ? 'bg-primary text-primary-foreground shadow-lg'
                             : step.id < currentStep
                             ? 'bg-green-100 text-green-600'
                             : 'bg-gray-100 text-gray-400'
                         }`}>
-                          <StepIcon className="w-5 h-5" />
+                          <StepIcon className="w-4 h-4" />
                         </div>
-                        <div className="font-medium text-sm">{step.title}</div>
-                        <div className="text-xs opacity-75">{step.description}</div>
+                        <div className="font-medium text-xs">{step.title}</div>
                       </div>
                     );
                   })}
@@ -348,8 +373,7 @@ export default function PublicRefunds() {
         )}
 
         {/* Main Content - Centered */}
-        <div className="max-w-2xl mx-auto">
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader className="pb-6 text-center">
               <CardTitle className="flex items-center justify-center gap-3 text-2xl">
                 <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
@@ -503,13 +527,23 @@ export default function PublicRefunds() {
                 </div>
               )}
 
-              {/* Step 3: Refund Request */}
+              {/* Step 3: Detailed Refund Form */}
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div className="text-center mb-6">
                     <CreditCard className="w-16 h-16 mx-auto text-red-500 mb-4" />
                     <h2 className="text-xl font-semibold mb-2">Solicitação de Reembolso</h2>
-                    <p className="text-muted-foreground">Conte-nos o que aconteceu para processar seu reembolso</p>
+                    <p className="text-muted-foreground">Precisamos de algumas informações para processar seu reembolso</p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                      <div className="text-yellow-800 text-sm">
+                        <p className="font-medium mb-1">Tem certeza que deseja reembolso?</p>
+                        <p>O vale-compra com 15% bônus é mais vantajoso e você pode usar quando quiser!</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-6">
@@ -520,7 +554,7 @@ export default function PublicRefunds() {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}
                       >
                         <SelectTrigger className="mt-2 h-12">
-                          <SelectValue placeholder="Selecione o motivo" />
+                          <SelectValue placeholder="Selecione o motivo principal" />
                         </SelectTrigger>
                         <SelectContent>
                           {reasons.map((reason) => (
@@ -538,22 +572,79 @@ export default function PublicRefunds() {
                     </div>
 
                     <div>
-                      <Label htmlFor="reasonNote" className="text-base font-medium">Descreva o problema (opcional)</Label>
+                      <Label htmlFor="reasonNote" className="text-base font-medium">Descreva detalhadamente o problema *</Label>
                       <Textarea
                         id="reasonNote"
-                        placeholder="Conte-nos mais detalhes sobre o que aconteceu..."
+                        placeholder="Por favor, descreva em detalhes o que aconteceu, quando aconteceu e por que você considera necessário o reembolso ao invés de outras soluções..."
                         value={formData.reasonNote}
                         onChange={(e) => setFormData(prev => ({ ...prev, reasonNote: e.target.value }))}
-                        className="mt-2 min-h-24"
+                        className="mt-2 min-h-32"
+                        required
                       />
                     </div>
 
                     <div>
-                      <Label className="text-base font-medium">Anexar fotos (opcional)</Label>
+                      <Label className="text-base font-medium">Fotos comprobatórias *</Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Para acelerar o processo, anexe fotos que comprovem o problema
+                      </p>
                       <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                         <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                         <p className="text-sm font-medium">Clique para adicionar fotos</p>
-                        <p className="text-xs text-muted-foreground">PNG, JPG até 5MB cada</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG até 5MB cada (obrigatório)</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="whyNotVoucher" className="text-base font-medium">Por que não aceita o vale-compra com 15% bônus? *</Label>
+                      <Textarea
+                        id="whyNotVoucher"
+                        placeholder="Explique por que prefere reembolso ao invés de vale-compra com 15% a mais de valor..."
+                        value={formData.whyNotVoucher || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, whyNotVoucher: e.target.value }))}
+                        className="mt-2 min-h-24"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="futureShop" className="text-base font-medium">Pretende comprar conosco novamente? *</Label>
+                      <Select
+                        value={formData.futureShop || ''}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, futureShop: value }))}
+                      >
+                        <SelectTrigger className="mt-2 h-12">
+                          <SelectValue placeholder="Selecione uma opção" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="yes">Sim, pretendo comprar novamente</SelectItem>
+                          <SelectItem value="maybe">Talvez, depende da resolução</SelectItem>
+                          <SelectItem value="no">Não, não pretendo mais comprar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox 
+                          id="agreeToPolicy" 
+                          checked={formData.agreeToPolicy}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToPolicy: !!checked }))}
+                        />
+                        <Label htmlFor="agreeToPolicy" className="text-sm leading-5">
+                          Aceito a política de reembolso e estou ciente de que o processo pode levar até 10 dias úteis *
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-start space-x-3">
+                        <Checkbox 
+                          id="confirmTruthfulness" 
+                          checked={formData.confirmTruthfulness}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, confirmTruthfulness: !!checked }))}
+                        />
+                        <Label htmlFor="confirmTruthfulness" className="text-sm leading-5">
+                          Confirmo que todas as informações fornecidas são verdadeiras e que tentei resolver de outras formas *
+                        </Label>
                       </div>
                     </div>
                   </div>
@@ -628,54 +719,56 @@ export default function PublicRefunds() {
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* FAQ Section - Below main content */}
-        <div className="mt-12">
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                <HelpCircle className="w-6 h-6 text-blue-600" />
-                Perguntas Frequentes
-              </CardTitle>
-              <p className="text-muted-foreground">Encontre respostas rápidas para as dúvidas mais comuns</p>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="space-y-3">
-                {faqData.map((item, index) => (
-                  <AccordionItem key={index} value={`item-${index}`} className="border border-border/50 rounded-lg px-4">
-                    <AccordionTrigger className="text-left font-medium hover:no-underline">
-                      {item.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground leading-relaxed">
-                      {item.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
-        </div>
+          {/* FAQ Section - Only show on step 1 */}
+          {currentStep === 1 && (
+            <div className="mt-8">
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="text-center">
+                  <CardTitle className="flex items-center justify-center gap-2 text-xl">
+                    <HelpCircle className="w-5 h-5 text-blue-600" />
+                    Perguntas Frequentes
+                  </CardTitle>
+                  <p className="text-muted-foreground text-sm">Encontre respostas rápidas para as dúvidas mais comuns</p>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="single" collapsible className="space-y-2">
+                    {faqData.map((item, index) => (
+                      <AccordionItem key={index} value={`item-${index}`} className="border border-border/50 rounded-lg px-3">
+                        <AccordionTrigger className="text-left font-medium hover:no-underline text-sm py-3">
+                          {item.question}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-muted-foreground leading-relaxed text-sm">
+                          {item.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-        {/* Contact Section */}
-        <div className="mt-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-            <CardContent className="p-8 text-center">
-              <MessageCircle className="w-16 h-16 mx-auto text-blue-600 mb-4" />
-              <h3 className="font-semibold text-blue-800 mb-3 text-xl">Ainda precisa de ajuda?</h3>
-              <p className="text-blue-600 mb-6 text-lg">Nossa equipe está pronta para resolver seu problema</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1">
-                  <Phone className="w-4 h-4 mr-2" />
-                  Ligar agora
-                </Button>
-                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat online
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Contact Section */}
+          <div className="mt-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <CardContent className="p-6 text-center">
+                <MessageCircle className="w-12 h-12 mx-auto text-blue-600 mb-3" />
+                <h3 className="font-semibold text-blue-800 mb-2 text-lg">Ainda precisa de ajuda?</h3>
+                <p className="text-blue-600 mb-4 text-base">Nossa equipe está pronta para resolver seu problema</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1 text-sm">
+                    <Phone className="w-4 h-4 mr-2" />
+                    Ligar agora
+                  </Button>
+                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1 text-sm">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat online
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
