@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Filter, Download, ExternalLink, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, CreditCard, Smartphone, Receipt, Gift, TrendingUp, Users, DollarSign } from "lucide-react";
 import { RefundDetailsModal } from "@/components/refunds/RefundDetailsModal";
@@ -283,6 +284,67 @@ export default function Refunds() {
     );
   };
 
+  const KanbanCard = ({ refund }: { refund: RefundItem }) => {
+    const StatusIcon = statusConfig[refund.status].icon;
+    const MethodIcon = methodConfig[refund.method].icon;
+
+    return (
+      <Card 
+        className="hover:shadow-md transition-all duration-200 cursor-pointer bg-white/90 backdrop-blur-sm border border-border/50" 
+        onClick={() => { setSelectedRefund(refund); setIsModalOpen(true); }}
+      >
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1">
+              <div className="font-semibold text-sm text-foreground">
+                {refund.protocol}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Pedido {refund.orderId}
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+              {formatDate(refund.createdAt).split(' ')[0]}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-foreground truncate">
+              {refund.customer.name}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-green-600">
+                {formatCurrency(refund.requestedAmount)}
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MethodIcon className="w-3 h-3" />
+                {methodConfig[refund.method].label}
+              </div>
+            </div>
+            
+            <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded truncate">
+              {refund.reason}
+            </div>
+            
+            <div className="flex justify-between items-center pt-1">
+              <div className="flex items-center gap-1">
+                {refund.attachments.length > 0 && (
+                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    📎 {refund.attachments.length}
+                  </span>
+                )}
+              </div>
+              <div className={`text-xs px-2 py-1 rounded-full font-medium ${getRiskColor(refund.riskScore)}`}>
+                {refund.riskScore}%
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -345,55 +407,105 @@ export default function Refunds() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar por cliente, protocolo ou pedido..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="REQUESTED">Solicitado</SelectItem>
-                <SelectItem value="UNDER_REVIEW">Em análise</SelectItem>
-                <SelectItem value="APPROVED">Aprovado</SelectItem>
-                <SelectItem value="PROCESSING">Processando</SelectItem>
-                <SelectItem value="COMPLETED">Concluído</SelectItem>
-                <SelectItem value="REJECTED">Recusado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Main Content with Tabs */}
+      <div className="space-y-6">
+        <Tabs defaultValue="kanban" className="w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <TabsList className="grid w-full grid-cols-2 max-w-md h-12 bg-muted/50 border border-border">
+              <TabsTrigger value="kanban" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
+                Kanban
+              </TabsTrigger>
+              <TabsTrigger value="list" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
+                Lista
+              </TabsTrigger>
+            </TabsList>
 
-      {/* Refunds List */}
-      <div className="grid gap-4">
-        {filteredRefunds.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="text-muted-foreground">
-                <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Nenhum reembolso encontrado</h3>
-                <p>Não há reembolsos que correspondam aos filtros selecionados.</p>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-80">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Buscar por cliente, protocolo ou pedido..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredRefunds.map((refund) => (
-            <RefundCard key={refund.id} refund={refund} />
-          ))
-        )}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="REQUESTED">Solicitado</SelectItem>
+                  <SelectItem value="UNDER_REVIEW">Em análise</SelectItem>
+                  <SelectItem value="APPROVED">Aprovado</SelectItem>
+                  <SelectItem value="PROCESSING">Processando</SelectItem>
+                  <SelectItem value="COMPLETED">Concluído</SelectItem>
+                  <SelectItem value="REJECTED">Recusado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Kanban View */}
+          <TabsContent value="kanban" className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {Object.entries(statusConfig).map(([statusKey, statusInfo]) => {
+                const StatusIcon = statusInfo.icon;
+                const columnRefunds = filteredRefunds.filter(refund => refund.status === statusKey);
+                
+                return (
+                  <Card key={statusKey} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader className="pb-3">
+                      <CardTitle className={`text-sm font-semibold rounded-lg px-3 py-2 text-center ${statusInfo.color}`}>
+                        <div className="flex items-center justify-center gap-2">
+                          <StatusIcon className="w-4 h-4" />
+                          <span>{statusInfo.label}</span>
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {columnRefunds.length}
+                          </Badge>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 min-h-96">
+                      {columnRefunds.map(refund => (
+                        <KanbanCard key={refund.id} refund={refund} />
+                      ))}
+                      {columnRefunds.length === 0 && (
+                        <div className="text-center py-8">
+                          <p className="text-xs text-muted-foreground">Nenhum item</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* List View */}
+          <TabsContent value="list" className="space-y-4">
+            <div className="grid gap-4">
+              {filteredRefunds.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <div className="text-muted-foreground">
+                      <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-medium mb-2">Nenhum reembolso encontrado</h3>
+                      <p>Não há reembolsos que correspondam aos filtros selecionados.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredRefunds.map((refund) => (
+                  <RefundCard key={refund.id} refund={refund} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Refund Details Modal */}
