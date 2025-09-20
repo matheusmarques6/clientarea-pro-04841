@@ -19,6 +19,7 @@ import StoreSettings from "./pages/StoreSettings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import PublicReturns from "./pages/PublicReturns";
+import PublicRefunds from "./pages/PublicRefunds";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
