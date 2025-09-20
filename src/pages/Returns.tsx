@@ -188,22 +188,22 @@ const Returns = () => {
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-6">
-        <TabsList className="inline-flex h-11 items-center justify-center rounded-lg bg-muted/30 backdrop-blur-sm border border-border/50 p-1 text-muted-foreground w-full max-w-md shadow-sm">{/* Design mais profissional */}
-          <TabsTrigger value="kanban" className="px-4 py-2 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-0 rounded-md hover:bg-background/50 hover:text-foreground">
-            Kanban
+        <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-background border border-border/80 p-1.5 text-muted-foreground w-full max-w-md shadow-lg shadow-black/5">{/* Design moderno e clean */}
+          <TabsTrigger value="kanban" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+            <span className="relative z-10">Kanban</span>
           </TabsTrigger>
-          <TabsTrigger value="lista" className="px-4 py-2 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-0 rounded-md hover:bg-background/50 hover:text-foreground">
-            Lista
+          <TabsTrigger value="lista" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+            <span className="relative z-10">Lista</span>
           </TabsTrigger>
-          <TabsTrigger value="resumo" className="px-4 py-2 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-0 rounded-md hover:bg-background/50 hover:text-foreground">
-            Resumo
+          <TabsTrigger value="resumo" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+            <span className="relative z-10">Resumo</span>
           </TabsTrigger>
           <TabsTrigger value="config" asChild>
             <Link 
               to={`/store/${storeId}/returns/setup`} 
-              className="px-4 py-2 text-sm font-medium transition-all duration-200 hover:bg-background/50 hover:text-foreground rounded-md"
+              className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg group"
             >
-              Configurar
+              <span className="relative z-10">Configurar</span>
             </Link>
           </TabsTrigger>
         </TabsList>
