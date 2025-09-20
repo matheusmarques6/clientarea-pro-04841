@@ -22,11 +22,11 @@ const PreDashboard = () => {
   const currentData = periodData[period as keyof typeof periodData];
 
   return (
-    <div className="min-h-[100dvh] grid place-items-center">
-      <div className="w-full max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center gap-4 sm:gap-6">
-          {/* Header */}
-          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/50 flex items-center justify-center">
+      <div className="w-full max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center text-center">
+        <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 w-full">
+          {/* Header - Centralizado */}
+          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
             {/* Logo */}
             <div className="flex-shrink-0">
               <img 
@@ -36,8 +36,8 @@ const PreDashboard = () => {
               />
             </div>
             
-            {/* Central Content */}
-            <div className="flex-1 text-center">
+            {/* Central Content - Priorizado no centro */}
+            <div className="flex-1 text-center order-first sm:order-none">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                 Olá, <span className="text-premium">João</span>
               </h1>
@@ -46,18 +46,18 @@ const PreDashboard = () => {
               </p>
             </div>
             
-            {/* Badge */}
-            <div className="flex-shrink-0">
+            {/* Badge - Centralizado */}
+            <div className="flex-shrink-0 order-last sm:order-none">
               <Badge variant="secondary" className="px-3 py-1 text-xs sm:text-sm">
                 Sincronizado há 5 min
               </Badge>
             </div>
           </div>
 
-          {/* Hero Card */}
+          {/* Hero Card - Perfeitamente centralizado */}
           <Card className="w-full max-w-[960px] mx-auto glass-card min-h-[140px] sm:min-h-[160px]">
-            <CardContent className="p-4 sm:p-6 lg:p-7">
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-4">
+            <CardContent className="p-4 sm:p-6 lg:p-7 flex items-center justify-center">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center justify-center gap-4 w-full text-center lg:text-left">
                 <div>
                   <h2 className="text-lg sm:text-xl font-semibold mb-2">
                     Seu faturamento dos{' '}
@@ -75,7 +75,7 @@ const PreDashboard = () => {
                     </Select>
                   </h2>
                 </div>
-                <div className="text-center lg:text-right">
+                <div className="text-center">
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-premium leading-none mb-2 lg:mb-3">
                     R$ {currentData.revenue.toLocaleString('pt-BR')}
                   </div>
@@ -91,8 +91,8 @@ const PreDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Channel Cards */}
-          <div className="w-full max-w-[1120px] mx-auto">
+          {/* Channel Cards - Centralizados */}
+          <div className="w-full max-w-[1120px] mx-auto flex justify-center">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {mockChannelRevenue.map((channel, index) => {
                 const icons = [Mail, MessageCircle, Smartphone];
@@ -127,8 +127,8 @@ const PreDashboard = () => {
             </div>
           </div>
 
-          {/* CTA */}
-          <div className="flex justify-center mt-6 sm:mt-8 w-full">
+          {/* CTA - Perfeitamente centralizado */}
+          <div className="flex justify-center items-center mt-6 sm:mt-8 w-full">
             <Button 
               asChild 
               size="lg" 
