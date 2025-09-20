@@ -188,20 +188,20 @@ const Returns = () => {
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-6">
-        <TabsList className="inline-flex h-12 items-center justify-center rounded-md bg-muted border border-border p-1 text-muted-foreground w-full max-w-md">
-          <TabsTrigger value="kanban" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
+        <TabsList className="inline-flex h-12 items-center justify-center rounded-md bg-card border-2 border-border shadow-sm p-1 text-muted-foreground w-full max-w-md">{/* Melhor contraste com border-2 e shadow */}
+          <TabsTrigger value="kanban" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border rounded-sm">
             Kanban
           </TabsTrigger>
-          <TabsTrigger value="lista" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
+          <TabsTrigger value="lista" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border rounded-sm">
             Lista
           </TabsTrigger>
-          <TabsTrigger value="resumo" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-sm">
+          <TabsTrigger value="resumo" className="px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border rounded-sm">
             Resumo
           </TabsTrigger>
           <TabsTrigger value="config" asChild>
             <Link 
               to={`/store/${storeId}/returns/setup`} 
-              className="px-4 py-2 text-sm font-medium transition-all hover:bg-background/50 hover:text-foreground rounded-sm"
+              className="px-4 py-2 text-sm font-medium transition-all hover:bg-background/80 hover:text-foreground hover:shadow-sm rounded-sm border border-transparent hover:border-border"
             >
               Configurar
             </Link>
