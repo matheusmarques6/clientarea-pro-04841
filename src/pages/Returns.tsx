@@ -188,13 +188,22 @@ const Returns = () => {
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-auto lg:flex">
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="lista" className="text-xs sm:text-sm">Lista</TabsTrigger>
-          <TabsTrigger value="resumo" className="text-xs sm:text-sm">Resumo</TabsTrigger>
-          <TabsTrigger value="config" asChild className="col-span-2 sm:col-span-1">
-            <Link to={`/store/${storeId}/returns/setup`} className="text-xs sm:text-sm">
-              Configurar Link Público
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full max-w-md">
+          <TabsTrigger value="kanban" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+            Kanban
+          </TabsTrigger>
+          <TabsTrigger value="lista" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+            Lista
+          </TabsTrigger>
+          <TabsTrigger value="resumo" className="px-3 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+            Resumo
+          </TabsTrigger>
+          <TabsTrigger value="config" asChild>
+            <Link 
+              to={`/store/${storeId}/returns/setup`} 
+              className="px-3 py-1.5 text-sm font-medium transition-all hover:bg-background/50 hover:text-foreground rounded-sm"
+            >
+              Configurar
             </Link>
           </TabsTrigger>
         </TabsList>
