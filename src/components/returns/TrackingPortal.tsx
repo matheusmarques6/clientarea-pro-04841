@@ -209,49 +209,51 @@ const TrackingPortal = () => {
   return (
     <div className={`h-[100svh] sm:h-[100dvh] bg-gradient-to-br from-background via-background to-muted/50 px-4 ${tracking ? 'flex flex-col pt-8' : 'grid place-content-center place-items-center'}`}>
       <div className="w-full max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Acompanhar Solicitação
-          </h1>
-          <p className="text-muted-foreground">
-            Digite o protocolo para acompanhar sua troca ou devolução
-          </p>
-        </div>
+        <div className={`${tracking ? '' : 'place-self-center w-full max-w-xl'}`}>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Acompanhar Solicitação
+            </h1>
+            <p className="text-muted-foreground">
+              Digite o protocolo para acompanhar sua troca ou devolução
+            </p>
+          </div>
 
-        <Card className="glass-card mb-8">
-          <CardContent className="py-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <Label htmlFor="protocol" className="text-foreground">Protocolo da Solicitação</Label>
-                <Input
-                  id="protocol"
-                  placeholder="Ex: TR-123456 ou DV-789012"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="text-foreground"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Digite o protocolo que você recebeu por e-mail
-                </p>
+          <Card className="glass-card mb-0">
+            <CardContent className="py-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="protocol" className="text-foreground">Protocolo da Solicitação</Label>
+                  <Input
+                    id="protocol"
+                    placeholder="Ex: TR-123456 ou DV-789012"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="text-foreground"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Digite o protocolo que você recebeu por e-mail
+                  </p>
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    onClick={handleSearch} 
+                    disabled={isLoading}
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Buscar
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleSearch} 
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Search className="h-4 w-4 mr-2" />
-                  )}
-                  Buscar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {tracking && (
           <div className="space-y-6">
