@@ -36,6 +36,7 @@ const App = () => (
             {/* Routes without sidebar */}
             <Route path="/" element={<PreDashboard />} />
             <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
+            <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
             
             {/* Routes with sidebar */}
             <Route element={<AppLayout />}>

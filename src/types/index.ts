@@ -7,6 +7,8 @@ export interface Store {
   integrationStatus: 'connected' | 'disconnected' | 'pending';
   shopifyUrl?: string;
   description?: string;
+  returnsLanguage?: string;
+  refundsLanguage?: string;
 }
 
 export interface ReturnRequest {

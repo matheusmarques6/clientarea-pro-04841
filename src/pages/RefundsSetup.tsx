@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { mockStores } from '@/lib/mockData';
+import { supportedLanguages } from '@/lib/translations';
 
 const RefundsSetup = () => {
   const { id: storeId } = useParams();
@@ -27,6 +28,7 @@ const RefundsSetup = () => {
   });
   
   const store = mockStores.find(s => s.id === storeId);
+  const [refundsLanguage, setRefundsLanguage] = useState(store?.refundsLanguage || 'pt');
   
   if (!store) {
     return <div>Loja não encontrada</div>;
@@ -102,6 +104,33 @@ const RefundsSetup = () => {
               <Badge variant="secondary">
                 URL gerada automaticamente baseada no nome da loja
               </Badge>
+            </CardContent>
+          </Card>
+
+          {/* Language Configuration */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Idioma do Portal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="refundsLanguage">Idioma para Reembolsos</Label>
+                <Select value={refundsLanguage} onValueChange={setRefundsLanguage}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {supportedLanguages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Define o idioma que será exibido no formulário público de reembolsos
+                </p>
+              </div>
             </CardContent>
           </Card>
 

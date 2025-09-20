@@ -9,7 +9,9 @@ export const mockStores: Store[] = [
     revenue30d: 126500,
     integrationStatus: 'connected',
     shopifyUrl: 'fashionbrasil.myshopify.com',
-    description: 'Moda feminina e masculina'
+    description: 'Moda feminina e masculina',
+    returnsLanguage: 'pt',
+    refundsLanguage: 'pt'
   },
   {
     id: '2',
@@ -19,7 +21,9 @@ export const mockStores: Store[] = [
     revenue30d: 89200,
     integrationStatus: 'connected',
     shopifyUrl: 'techstore.myshopify.com',
-    description: 'Produtos de tecnologia'
+    description: 'Produtos de tecnologia',
+    returnsLanguage: 'en',
+    refundsLanguage: 'en'
   },
   {
     id: '3',
@@ -29,7 +33,9 @@ export const mockStores: Store[] = [
     revenue30d: 67800,
     integrationStatus: 'pending',
     shopifyUrl: 'eurostyle.myshopify.com',
-    description: 'Moda europeia'
+    description: 'Moda europeia',
+    returnsLanguage: 'fr',
+    refundsLanguage: 'fr'
   },
   {
     id: '4',
@@ -38,7 +44,9 @@ export const mockStores: Store[] = [
     currency: 'GBP',
     revenue30d: 54300,
     integrationStatus: 'disconnected',
-    description: 'Eletrônicos premium'
+    description: 'Eletrônicos premium',
+    returnsLanguage: 'en',
+    refundsLanguage: 'en'
   }
 ];
 

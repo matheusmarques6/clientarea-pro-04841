@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { mockStores } from '@/lib/mockData';
+import { supportedLanguages } from '@/lib/translations';
 
 const ReturnsSetup = () => {
   const { id: storeId } = useParams();
@@ -29,7 +30,8 @@ const ReturnsSetup = () => {
   });
   
   const store = mockStores.find(s => s.id === storeId);
-  
+  const [returnsLanguage, setReturnsLanguage] = useState(store?.returnsLanguage || 'pt');
+
   if (!store) {
     return <div>Loja não encontrada</div>;
   }
@@ -104,6 +106,33 @@ const ReturnsSetup = () => {
               <Badge variant="secondary" className="text-foreground">
                 URL gerada automaticamente baseada no nome da loja
               </Badge>
+            </CardContent>
+          </Card>
+
+          {/* Language Configuration */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">Idioma do Portal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="returnsLanguage" className="text-foreground">Idioma para Trocas e Devoluções</Label>
+                <Select value={returnsLanguage} onValueChange={setReturnsLanguage}>
+                  <SelectTrigger className="text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {supportedLanguages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code} className="text-foreground">
+                        {lang.flag} {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Define o idioma que será exibido no formulário público de trocas e devoluções
+                </p>
+              </div>
             </CardContent>
           </Card>
 

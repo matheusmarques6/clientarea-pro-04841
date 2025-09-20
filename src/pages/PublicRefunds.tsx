@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Package, Upload, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { CreditCard, Upload, Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import convertfyLogo from '@/assets/convertfy-logo.png';
 import { mockStores } from '@/lib/mockData';
 import { getTranslation } from '@/lib/translations';
 
-const PublicReturns = () => {
+const PublicRefunds = () => {
   const { storeSlug } = useParams();
   const { toast } = useToast();
   const [step, setStep] = useState<'form' | 'success'>('form');
@@ -23,21 +23,20 @@ const PublicReturns = () => {
     s.name.toLowerCase().replace(/\s+/g, '-') === storeSlug
   );
   
-  const language = store?.returnsLanguage || 'pt';
+  const language = store?.refundsLanguage || 'pt';
   
   const [formData, setFormData] = useState({
     pedido: '',
     email: '',
     nome: '',
-    tipo: '',
+    valorReembolso: '',
+    metodoReembolso: '',
     motivo: '',
     observacoes: '',
     anexos: [] as File[]
   });
 
-  const t = (key: string): any => getTranslation('returns', language, key);
-
-  // Remove motivosComuns array - now using translations
+  const t = (key: string): any => getTranslation('refunds', language, key);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -61,7 +60,7 @@ const PublicReturns = () => {
     e.preventDefault();
     
     // Validação básica
-    if (!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo) {
+    if (!formData.pedido || !formData.email || !formData.nome || !formData.valorReembolso || !formData.metodoReembolso || !formData.motivo) {
       toast({
         title: t('requiredFields'),
         description: t('requiredFieldsDesc'),
@@ -86,7 +85,8 @@ const PublicReturns = () => {
       pedido: '',
       email: '',
       nome: '',
-      tipo: '',
+      valorReembolso: '',
+      metodoReembolso: '',
       motivo: '',
       observacoes: '',
       anexos: []
@@ -130,7 +130,7 @@ const PublicReturns = () => {
                 <div className="bg-muted/50 rounded-lg p-4">
                   <p className="text-sm font-medium mb-2">{t('protocolTitle')}</p>
                   <Badge variant="outline" className="text-base font-mono">
-                    RT-{Date.now().toString().slice(-6)}
+                    RF-{Date.now().toString().slice(-6)}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -185,7 +185,7 @@ const PublicReturns = () => {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              <Package className="h-5 w-5" />
+              <CreditCard className="h-5 w-5" />
               {t('formTitle')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -239,47 +239,63 @@ const PublicReturns = () => {
                 </div>
               </div>
 
-              {/* Tipo de Solicitação */}
+              {/* Informações do Reembolso */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm text-foreground">{t('requestTypeTitle')}</h3>
+                <h3 className="font-semibold text-sm text-foreground">{t('refundInfoTitle')}</h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="tipo" className="text-foreground">{t('type')} *</Label>
-                    <Select
-                      value={formData.tipo}
-                      onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                    <Label htmlFor="valorReembolso" className="text-foreground">{t('refundAmount')} *</Label>
+                    <Input
+                      id="valorReembolso"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.valorReembolso}
+                      onChange={(e) => setFormData({ ...formData, valorReembolso: e.target.value })}
                       required
-                    >
-                      <SelectTrigger className="text-foreground">
-                        <SelectValue placeholder={t('selectType')} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="Troca" className="text-foreground">{t('exchange')}</SelectItem>
-                        <SelectItem value="Devolução" className="text-foreground">{t('return')}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      className="text-foreground"
+                    />
                   </div>
                   
                   <div>
-                    <Label htmlFor="motivo" className="text-foreground">{t('reason')} *</Label>
+                    <Label htmlFor="metodoReembolso" className="text-foreground">{t('refundMethod')} *</Label>
                     <Select
-                      value={formData.motivo}
-                      onValueChange={(value) => setFormData({ ...formData, motivo: value })}
+                      value={formData.metodoReembolso}
+                      onValueChange={(value) => setFormData({ ...formData, metodoReembolso: value })}
                       required
                     >
                       <SelectTrigger className="text-foreground">
-                        <SelectValue placeholder={t('selectReason')} />
+                        <SelectValue placeholder={t('selectMethod')} />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
-                        {t('reasons').map((motivo: string, index: number) => (
-                          <SelectItem key={index} value={motivo} className="text-foreground">
-                            {motivo}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="card" className="text-foreground">{t('methods.card')}</SelectItem>
+                        <SelectItem value="pix" className="text-foreground">{t('methods.pix')}</SelectItem>
+                        <SelectItem value="boleto" className="text-foreground">{t('methods.boleto')}</SelectItem>
+                        <SelectItem value="voucher" className="text-foreground">{t('methods.voucher')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="motivo" className="text-foreground">{t('reason')} *</Label>
+                  <Select
+                    value={formData.motivo}
+                    onValueChange={(value) => setFormData({ ...formData, motivo: value })}
+                    required
+                  >
+                    <SelectTrigger className="text-foreground">
+                      <SelectValue placeholder={t('selectReason')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      {t('reasons').map((motivo: string, index: number) => (
+                        <SelectItem key={index} value={motivo} className="text-foreground">
+                          {motivo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -370,4 +386,4 @@ const PublicReturns = () => {
   );
 };
 
-export default PublicReturns;
+export default PublicRefunds;
