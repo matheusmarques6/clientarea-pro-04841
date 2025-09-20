@@ -129,14 +129,6 @@ const StoreDashboard = () => {
               <div className="text-sm text-muted-foreground">
                 {formatCurrency(stats.faturamentoConvertfy)} de {formatCurrency(stats.faturamentoTotal)}
               </div>
-              <div className="mt-3">
-                <div className="w-full bg-muted/30 rounded-full h-2 max-w-[240px] mx-auto lg:mx-0">
-                  <div 
-                    className="bg-gradient-hero h-2 rounded-full transition-all duration-500 ease-smooth" 
-                    style={{ width: `${(stats.faturamentoConvertfy / stats.faturamentoTotal) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>
