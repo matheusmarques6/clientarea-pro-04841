@@ -207,9 +207,8 @@ const TrackingPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Acompanhar Solicitação
@@ -219,7 +218,6 @@ const TrackingPortal = () => {
           </p>
         </div>
 
-        {/* Search */}
         <Card className="glass-card mb-8">
           <CardContent className="py-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -255,10 +253,8 @@ const TrackingPortal = () => {
           </CardContent>
         </Card>
 
-        {/* Tracking Results */}
         {tracking && (
           <div className="space-y-6">
-            {/* Status Overview */}
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
@@ -298,7 +294,6 @@ const TrackingPortal = () => {
               </CardContent>
             </Card>
 
-            {/* Timeline */}
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle>Histórico da Solicitação</CardTitle>
@@ -344,7 +339,6 @@ const TrackingPortal = () => {
           </div>
         )}
 
-        {/* Help Text */}
         <div className="text-center mt-8">
           <p className="text-sm text-muted-foreground">
             Precisa de ajuda? Entre em contato conosco através do suporte
