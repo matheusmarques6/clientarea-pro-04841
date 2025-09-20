@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import PublicLayout from '@/components/layout/PublicLayout';
 
 // Mock order data
 const mockOrder = {
@@ -329,18 +330,18 @@ export default function PublicRefunds() {
   const storeTheme = 'default'; // Could be 'premium', 'elegant', 'nature', etc.
 
   return (
-    <div className="min-h-screen bg-gradient-premium flex items-center justify-center p-6">
-      <div className="w-full max-w-4xl mx-auto">
+    <PublicLayout>
+      <section className="relative w-full mx-auto max-w-[720px] py-6 lg:py-10">
         {/* Professional Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary text-primary-foreground shadow-lg mb-8 animate-fade-in">
             <MessageCircle className="w-12 h-12" />
           </div>
           <h1 className="heading-primary text-4xl lg:text-5xl mb-4 animate-slide-up">
-            Central de Atendimento
+            Resolvemos sua situação
           </h1>
           <p className="text-subtle text-xl max-w-2xl mx-auto leading-relaxed">
-            Resolvemos sua situação de forma rápida e profissional
+            Atendimento rápido e profissional
           </p>
         </div>
 
@@ -348,14 +349,16 @@ export default function PublicRefunds() {
         {currentStep > 1 && (
           <div className="mb-12 animate-fade-in">
             <div className="flex items-center justify-center mb-10">
-              <div className="w-96 bg-muted rounded-full h-2 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-primary transition-all duration-500 ease-out"
-                  style={{ width: `${progressPercentage}%` }}
-                />
+              <div className="w-full max-w-[640px]">
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-primary transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex justify-center items-center gap-16">
+            <div className="flex justify-center items-center gap-8 lg:gap-16">
               {steps.map((step) => {
                 const StepIcon = step.icon;
                 return (
@@ -365,16 +368,16 @@ export default function PublicRefunds() {
                       step.id === currentStep ? 'scale-110' : ''
                     }`}
                   >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-all duration-300 ${
+                    <div className={`w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center mb-3 transition-all duration-300 ${
                       step.id === currentStep
                         ? 'bg-primary text-primary-foreground shadow-lg'
                         : step.id < currentStep
                         ? 'bg-success text-success-foreground'
                         : 'bg-muted text-muted-foreground'
                     }`}>
-                      <StepIcon className="w-7 h-7" />
+                      <StepIcon className="w-6 h-6 lg:w-7 lg:h-7" />
                     </div>
-                    <span className={`text-sm font-medium transition-colors ${
+                    <span className={`text-sm font-medium transition-colors text-center ${
                       step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
                     }`}>
                       {step.title}
@@ -387,15 +390,15 @@ export default function PublicRefunds() {
         )}
 
         {/* Main Content Card */}
-        <div className="professional-card bg-card">
-          <div className="p-12">
+        <div className="glass-card w-full mx-auto">
+          <div className="p-6 lg:p-8">
             {/* Step 1: Identification */}
             {currentStep === 1 && (
-              <div className="max-w-lg mx-auto text-center space-y-10">
+              <div className="w-full max-w-md mx-auto text-center space-y-10">
                 <div className="animate-slide-up">
-                  <Search className="w-32 h-32 mx-auto text-primary mb-8" />
-                  <h2 className="heading-primary text-3xl mb-6">Consultar Pedido</h2>
-                  <p className="text-subtle text-xl leading-relaxed">
+                  <Search className="w-24 h-24 lg:w-32 lg:h-32 mx-auto text-primary mb-8" />
+                  <h2 className="heading-primary text-2xl lg:text-3xl mb-6">Consultar Pedido</h2>
+                  <p className="text-subtle text-lg lg:text-xl leading-relaxed">
                     Digite seu e-mail ou número do pedido para começar
                   </p>
                 </div>
@@ -410,13 +413,13 @@ export default function PublicRefunds() {
                       placeholder="maria@email.com ou #0001"
                       value={formData.identifier}
                       onChange={(e) => setFormData(prev => ({ ...prev, identifier: e.target.value }))}
-                      className="form-input h-16 text-lg text-center focus-ring"
+                      className="form-input h-14 lg:h-16 text-lg text-center focus-ring"
                     />
                   </div>
 
                   <div className="bg-accent/50 border border-border rounded-xl p-6">
                     <div className="flex items-start gap-4">
-                      <HelpCircle className="w-6 h-6 text-primary mt-0.5" />
+                      <HelpCircle className="w-6 h-6 text-primary mt-0.5 flex-shrink-0" />
                       <div className="text-foreground">
                         <p className="font-medium mb-2">Exemplo para teste</p>
                         <p className="text-sm text-subtle">
@@ -429,7 +432,7 @@ export default function PublicRefunds() {
                   <Button 
                     onClick={handleNext}
                     disabled={isLoading || !formData.identifier}
-                    className="btn-primary w-full h-16 text-lg font-medium focus-ring"
+                    className="btn-primary w-full h-14 lg:h-16 text-lg font-medium focus-ring"
                   >
                     {isLoading ? 'Consultando...' : 'Consultar Pedido'}
                   </Button>
@@ -441,16 +444,16 @@ export default function PublicRefunds() {
             {currentStep === 2 && order && !showSolutions && (
               <div className="space-y-10 animate-fade-in">
                 <div className="text-center">
-                  <h2 className="heading-primary text-3xl mb-4">Pedido Encontrado</h2>
+                  <h2 className="heading-primary text-2xl lg:text-3xl mb-4">Pedido Encontrado</h2>
                   <p className="text-subtle text-lg">Aqui estão os detalhes da sua compra</p>
                 </div>
 
                 <OrderStatus />
 
-                <div className="bg-warning/10 border-2 border-warning/30 rounded-xl p-8">
+                <div className="bg-warning/10 border-2 border-warning/30 rounded-xl p-6 lg:p-8">
                   <div className="text-center">
-                    <Star className="w-16 h-16 text-warning mx-auto mb-6" />
-                    <h3 className="heading-primary text-2xl mb-4">Oferta Especial!</h3>
+                    <Star className="w-12 h-12 lg:w-16 lg:h-16 text-warning mx-auto mb-6" />
+                    <h3 className="heading-primary text-xl lg:text-2xl mb-4">Oferta Especial!</h3>
                     <p className="text-foreground text-lg mb-8 leading-relaxed">
                       Resolva com <strong>vale-compra + 15% bônus</strong><br />
                       Mais vantajoso que reembolso tradicional!
@@ -459,7 +462,7 @@ export default function PublicRefunds() {
                       <Button 
                         onClick={() => setShowSolutions(true)}
                         size="lg"
-                        className="btn-primary text-lg px-12 py-4 font-medium"
+                        className="btn-primary text-lg px-8 lg:px-12 py-3 lg:py-4 font-medium"
                       >
                         Ver Soluções Disponíveis
                       </Button>
@@ -482,8 +485,8 @@ export default function PublicRefunds() {
             {currentStep === 2 && showSolutions && (
               <div className="space-y-10 animate-fade-in">
                 <div className="text-center">
-                  <CheckCircle className="w-20 h-20 text-success mx-auto mb-6" />
-                  <h2 className="heading-primary text-3xl mb-4">Escolha sua Solução</h2>
+                  <CheckCircle className="w-16 h-16 lg:w-20 lg:h-20 text-success mx-auto mb-6" />
+                  <h2 className="heading-primary text-2xl lg:text-3xl mb-4">Escolha sua Solução</h2>
                   <p className="text-subtle text-lg">Ofertas especiais para resolver rapidamente</p>
                 </div>
 
@@ -500,28 +503,28 @@ export default function PublicRefunds() {
                         }`}
                         onClick={() => handleSolutionSelect(solution.id)}
                       >
-                        <div className="p-8">
-                          <div className="flex items-center gap-6">
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                        <div className="p-6 lg:p-8">
+                          <div className="flex items-center gap-4 lg:gap-6">
+                            <div className={`w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
                               solution.priority === 1 
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted text-muted-foreground'
                             }`}>
-                              <SolutionIcon className="w-8 h-8" />
+                              <SolutionIcon className="w-7 h-7 lg:w-8 lg:h-8" />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-4 mb-3">
-                                <h3 className="heading-primary text-xl">{solution.title}</h3>
+                                <h3 className="heading-primary text-lg lg:text-xl">{solution.title}</h3>
                                 {solution.priority === 1 && (
-                                  <Badge className="bg-primary text-primary-foreground px-3 py-1">
+                                  <Badge className="bg-primary text-primary-foreground px-3 py-1 flex-shrink-0">
                                     RECOMENDADO
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-subtle mb-3 text-lg">{solution.description}</p>
+                              <p className="text-subtle mb-3 text-base lg:text-lg">{solution.description}</p>
                               <p className="text-success font-medium">{solution.benefit}</p>
                             </div>
-                            <ArrowRight className="w-8 h-8 text-muted-foreground" />
+                            <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 text-muted-foreground flex-shrink-0" />
                           </div>
                         </div>
                       </div>
@@ -545,21 +548,21 @@ export default function PublicRefunds() {
             {currentStep === 3 && (
               <div className="space-y-10 animate-fade-in">
                 <div className="text-center">
-                  <AlertCircle className="w-20 h-20 text-warning mx-auto mb-6" />
-                  <h2 className="heading-primary text-3xl mb-4">Solicitação de Reembolso</h2>
+                  <AlertCircle className="w-16 h-16 lg:w-20 lg:h-20 text-warning mx-auto mb-6" />
+                  <h2 className="heading-primary text-2xl lg:text-3xl mb-4">Solicitação de Reembolso</h2>
                   <p className="text-subtle text-lg">Precisamos de algumas informações adicionais</p>
                 </div>
 
-                <div className="space-y-8 max-w-2xl mx-auto">
+                <div className="space-y-8 w-full max-w-2xl mx-auto">
                   <div>
                     <Label className="text-lg font-medium text-foreground block mb-4">
                       Motivo do reembolso
                     </Label>
                     <Select onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}>
-                      <SelectTrigger className="form-input h-14 focus-ring">
+                      <SelectTrigger className="form-input h-12 lg:h-14 focus-ring">
                         <SelectValue placeholder="Selecione o motivo" />
                       </SelectTrigger>
-                      <SelectContent className="bg-popover border border-border shadow-lg">
+                      <SelectContent className="bg-popover border border-border shadow-lg max-h-60 overflow-y-auto">
                         {reasons.map((reason) => (
                           <SelectItem 
                             key={reason.code} 
@@ -584,7 +587,7 @@ export default function PublicRefunds() {
                       placeholder="Descreva detalhadamente o que aconteceu..."
                       value={formData.reasonNote}
                       onChange={(e) => setFormData(prev => ({ ...prev, reasonNote: e.target.value }))}
-                      className="form-input min-h-32 focus-ring"
+                      className="form-input min-h-32 focus-ring resize-none"
                     />
                   </div>
 
@@ -596,7 +599,7 @@ export default function PublicRefunds() {
                       placeholder="Explique por que prefere reembolso ao invés do vale-compra..."
                       value={formData.whyNotVoucher}
                       onChange={(e) => setFormData(prev => ({ ...prev, whyNotVoucher: e.target.value }))}
-                      className="form-input bg-background focus-ring"
+                      className="form-input bg-background focus-ring resize-none"
                     />
                   </div>
 
@@ -605,7 +608,7 @@ export default function PublicRefunds() {
                       Pretende comprar novamente futuramente?
                     </Label>
                     <Select onValueChange={(value) => setFormData(prev => ({ ...prev, futureShop: value }))}>
-                      <SelectTrigger className="form-input h-14 focus-ring">
+                      <SelectTrigger className="form-input h-12 lg:h-14 focus-ring">
                         <SelectValue placeholder="Selecione uma opção" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border border-border shadow-lg">
@@ -628,7 +631,7 @@ export default function PublicRefunds() {
                         id="policy"
                         checked={formData.agreeToPolicy}
                         onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToPolicy: !!checked }))}
-                        className="mt-1"
+                        className="mt-1 flex-shrink-0"
                       />
                       <Label htmlFor="policy" className="text-sm leading-relaxed text-foreground">
                         Concordo com os termos da política de reembolso e entendo que o prazo pode ser de até 10 dias úteis
@@ -640,7 +643,7 @@ export default function PublicRefunds() {
                         id="truthfulness"
                         checked={formData.confirmTruthfulness}
                         onCheckedChange={(checked) => setFormData(prev => ({ ...prev, confirmTruthfulness: !!checked }))}
-                        className="mt-1"
+                        className="mt-1 flex-shrink-0"
                       />
                       <Label htmlFor="truthfulness" className="text-sm leading-relaxed text-foreground">
                         Declaro que todas as informações fornecidas são verdadeiras
@@ -648,17 +651,17 @@ export default function PublicRefunds() {
                     </div>
                   </div>
 
-                  <div className="flex gap-6 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 pt-4">
                     <Button 
                       variant="outline" 
                       onClick={handleBack} 
-                      className="flex-1 btn-secondary h-14 text-lg"
+                      className="flex-1 btn-secondary h-12 lg:h-14 text-lg"
                     >
                       Voltar
                     </Button>
                     <Button 
                       onClick={handleNext} 
-                      className="flex-1 btn-primary h-14 text-lg"
+                      className="flex-1 btn-primary h-12 lg:h-14 text-lg"
                     >
                       Solicitar Reembolso
                     </Button>
@@ -671,17 +674,17 @@ export default function PublicRefunds() {
             {currentStep === 4 && protocol && (
               <div className="text-center space-y-10 animate-fade-in">
                 <div>
-                  <CheckCircle className="w-32 h-32 text-success mx-auto mb-8" />
-                  <h2 className="heading-primary text-4xl mb-6">Solicitação Enviada!</h2>
-                  <p className="text-subtle text-xl leading-relaxed">
+                  <CheckCircle className="w-24 h-24 lg:w-32 lg:h-32 text-success mx-auto mb-8" />
+                  <h2 className="heading-primary text-3xl lg:text-4xl mb-6">Solicitação Enviada!</h2>
+                  <p className="text-subtle text-lg lg:text-xl leading-relaxed">
                     Sua solicitação foi registrada com sucesso
                   </p>
                 </div>
 
-                <div className="status-success max-w-md mx-auto rounded-xl p-8">
+                <div className="status-success max-w-sm mx-auto rounded-xl p-6 lg:p-8">
                   <div className="text-center">
                     <p className="text-sm font-medium mb-3">Protocolo de atendimento</p>
-                    <p className="text-3xl font-bold">{protocol}</p>
+                    <p className="text-2xl lg:text-3xl font-bold">{protocol}</p>
                   </div>
                 </div>
 
@@ -692,7 +695,7 @@ export default function PublicRefunds() {
                   
                   <Button 
                     onClick={() => window.location.reload()}
-                    className="btn-secondary w-full h-14 text-lg"
+                    className="btn-secondary w-full h-12 lg:h-14 text-lg"
                   >
                     Nova Consulta
                   </Button>
@@ -703,9 +706,9 @@ export default function PublicRefunds() {
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-20 max-w-4xl mx-auto animate-fade-in">
-          <div className="text-center mb-12">
-            <h3 className="heading-primary text-3xl mb-6">Perguntas Frequentes</h3>
+        <div className="mt-16 lg:mt-20 w-full animate-fade-in">
+          <div className="text-center mb-8 lg:mb-12">
+            <h3 className="heading-primary text-2xl lg:text-3xl mb-6">Perguntas Frequentes</h3>
             <p className="text-subtle text-lg">Tire suas dúvidas mais comuns</p>
           </div>
           
@@ -714,19 +717,19 @@ export default function PublicRefunds() {
               <AccordionItem 
                 key={index} 
                 value={`item-${index}`} 
-                className="professional-card border px-8"
+                className="professional-card border px-6 lg:px-8"
               >
-                <AccordionTrigger className="text-left font-medium py-6 text-lg hover:text-primary">
+                <AccordionTrigger className="text-left font-medium py-4 lg:py-6 text-base lg:text-lg hover:text-primary">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-subtle pb-6 text-base leading-relaxed">
+                <AccordionContent className="text-subtle pb-4 lg:pb-6 text-sm lg:text-base leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
         </div>
-      </div>
-    </div>
+      </section>
+    </PublicLayout>
   );
 }

@@ -2,11 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Reset básico para centralização perfeita */
+/* Perfect centering and overflow control */
 html, body, #root, #__next {
+  width: 100%;              /* NOT 100vw */
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;       /* avoid horizontal scroll */
   box-sizing: border-box;
   background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   background-attachment: fixed;
