@@ -22,9 +22,33 @@ const PreDashboard = () => {
   const currentData = periodData[period as keyof typeof periodData];
 
   return (
-    <div className="w-screen h-screen flex flex-col justify-center items-center bg-gradient-to-br from-background via-background to-muted/50 p-0 m-0 box-border">
-      <div className="w-full max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center text-center h-full">
-        <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 w-full max-h-full overflow-auto py-4">
+    <div 
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        margin: 0,
+        padding: 0,
+        boxSizing: 'border-box'
+      }}
+      className="bg-gradient-to-br from-background via-background to-muted/50"
+    >
+      <div 
+        style={{
+          width: '100%',
+          maxWidth: '1120px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          padding: '0 1rem'
+        }}
+      >
+        <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 w-full">
           {/* Header - Centralizado */}
           <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
             {/* Logo */}
