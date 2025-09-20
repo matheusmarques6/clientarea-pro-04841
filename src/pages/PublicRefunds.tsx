@@ -52,10 +52,10 @@ const mockOrder = {
 };
 
 const steps = [
-  { id: 1, title: 'Identificação', description: 'Encontrar seu pedido', icon: Search },
-  { id: 2, title: 'Status', description: 'Verificar situação', icon: Package },
-  { id: 3, title: 'Solução', description: 'Resolver problema', icon: CheckCircle },
-  { id: 4, title: 'Reembolso', description: 'Se necessário', icon: CreditCard }
+  { id: 1, title: 'Identificação', icon: Search },
+  { id: 2, title: 'Status', icon: Package },
+  { id: 3, title: 'Solução', icon: CheckCircle },
+  { id: 4, title: 'Finalização', icon: CreditCard }
 ];
 
 const faqData = [
@@ -287,30 +287,38 @@ export default function PublicRefunds() {
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
 
   const OrderStatus = () => (
-    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+    <Card className="border-0 bg-gradient-to-br from-emerald-50 to-green-50">
       <CardContent className="p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <Truck className="w-6 h-6 text-green-600" />
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-7 h-7 text-emerald-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-green-800">Pedido Entregue</h3>
-            <p className="text-green-600">Entregue em {formatDate(order?.deliveredAt || '')}</p>
+            <h3 className="text-xl font-semibold text-emerald-800">Pedido Entregue</h3>
+            <p className="text-emerald-600 text-sm">Entregue em {formatDate(order?.deliveredAt || '')}</p>
           </div>
         </div>
         
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Código de rastreamento:</span>
-            <span className="font-medium">{order?.trackingCode}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Pedido:</span>
+              <span className="font-medium">{order?.id}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Rastreamento:</span>
+              <span className="font-medium">{order?.trackingCode}</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Endereço de entrega:</span>
-            <span className="font-medium text-right">{order?.shippingAddress}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total do pedido:</span>
-            <span className="font-bold text-lg">{formatCurrency(order?.total || 0)}</span>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Cliente:</span>
+              <span className="font-medium">{order?.customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total:</span>
+              <span className="font-bold text-lg text-emerald-700">{formatCurrency(order?.total || 0)}</span>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -318,458 +326,361 @@ export default function PublicRefunds() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-      <div className="w-full max-w-2xl mx-auto px-4 py-8">
-        {/* Simple Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-            <MessageCircle className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl mx-auto">
+        {/* Clean Professional Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary shadow-lg mb-6">
+            <MessageCircle className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Central de Soluções
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            Central de Atendimento
           </h1>
-          <p className="text-base text-gray-600">
-            Encontre a melhor solução para seu pedido
+          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+            Resolvemos sua situação de forma rápida e eficiente
           </p>
         </div>
 
-        {/* Progress Steps - Only show when past step 1 */}
+        {/* Progress Steps */}
         {currentStep > 1 && (
-          <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-4">
-              <div className="mb-4">
-                <Progress value={progressPercentage} className="h-2 mb-4" />
-                <div className="grid grid-cols-4 gap-2">
-                  {steps.map((step) => {
-                    const StepIcon = step.icon;
-                    return (
-                      <div
-                        key={step.id}
-                        className={`text-center transition-all duration-200 ${
-                          step.id === currentStep
-                            ? 'text-primary scale-105'
-                            : step.id < currentStep
-                            ? 'text-green-600'
-                            : 'text-gray-400'
-                        }`}
-                      >
-                        <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center mb-1 transition-all duration-200 ${
-                          step.id === currentStep
-                            ? 'bg-primary text-primary-foreground shadow-lg'
-                            : step.id < currentStep
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-gray-100 text-gray-400'
-                        }`}>
-                          <StepIcon className="w-4 h-4" />
-                        </div>
-                        <div className="font-medium text-xs">{step.title}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mb-8">
+            <div className="flex items-center justify-center mb-8">
+              <Progress value={progressPercentage} className="w-80 h-2" />
+            </div>
+            <div className="flex justify-center items-center gap-12">
+              {steps.map((step) => {
+                const StepIcon = step.icon;
+                return (
+                  <div
+                    key={step.id}
+                    className={`flex flex-col items-center transition-all duration-300 ${
+                      step.id === currentStep ? 'scale-110' : ''
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-all duration-300 ${
+                      step.id === currentStep
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : step.id < currentStep
+                        ? 'bg-emerald-100 text-emerald-600'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <StepIcon className="w-6 h-6" />
+                    </div>
+                    <span className={`text-sm font-medium ${
+                      step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {step.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
-        {/* Main Content - Centered */}
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="pb-6 text-center">
-              <CardTitle className="flex items-center justify-center gap-3 text-2xl">
-                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                  {currentStep > 1 ? currentStep : ''}
+        {/* Main Content Card */}
+        <Card className="border-0 shadow-2xl bg-white">
+          <CardContent className="p-10">
+            {/* Step 1: Identification */}
+            {currentStep === 1 && (
+              <div className="max-w-md mx-auto text-center space-y-8">
+                <div>
+                  <Search className="w-24 h-24 mx-auto text-primary mb-6" />
+                  <h2 className="text-3xl font-semibold mb-4">Consultar Pedido</h2>
+                  <p className="text-muted-foreground text-lg">
+                    Digite seu e-mail ou número do pedido
+                  </p>
                 </div>
-                <span>{currentStep === 1 ? 'Consultar Pedido' : steps[currentStep - 1]?.title}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Step 1: Identification */}
-              {currentStep === 1 && (
+
                 <div className="space-y-6">
-                  <div className="text-center">
-                    <Search className="w-20 h-20 mx-auto text-blue-500 mb-6" />
-                    <h2 className="text-2xl font-semibold mb-3">Vamos encontrar seu pedido</h2>
-                    <p className="text-muted-foreground text-lg">Informe seu e-mail ou número do pedido</p>
+                  <div>
+                    <Label htmlFor="identifier" className="text-lg font-medium">E-mail ou Número do Pedido</Label>
+                    <Input
+                      id="identifier"
+                      placeholder="maria@email.com ou #0001"
+                      value={formData.identifier}
+                      onChange={(e) => setFormData(prev => ({ ...prev, identifier: e.target.value }))}
+                      className="mt-3 h-14 text-lg text-center border-2"
+                    />
                   </div>
 
-                  <div className="max-w-md mx-auto space-y-6">
-                    <div>
-                      <Label htmlFor="identifier" className="text-lg font-medium">E-mail ou Número do Pedido</Label>
-                      <Input
-                        id="identifier"
-                        placeholder="maria@email.com ou #0001"
-                        value={formData.identifier}
-                        onChange={(e) => setFormData(prev => ({ ...prev, identifier: e.target.value }))}
-                        className="mt-3 h-14 text-lg text-center"
-                      />
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                      <div className="flex items-start gap-3">
-                        <HelpCircle className="w-6 h-6 text-blue-600 mt-0.5" />
-                        <div className="text-blue-800">
-                          <p className="font-medium mb-2">Não lembra o número do pedido?</p>
-                          <p className="text-sm">Use o e-mail que você usou na compra. Exemplo: <strong>#0001</strong></p>
-                        </div>
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                    <div className="flex items-start gap-3">
+                      <HelpCircle className="w-6 h-6 text-blue-600 mt-0.5" />
+                      <div className="text-blue-800">
+                        <p className="font-medium mb-2">Exemplo de teste</p>
+                        <p className="text-sm">Use: <strong>#0001</strong> ou <strong>maria@email.com</strong></p>
                       </div>
                     </div>
                   </div>
+
+                  <Button 
+                    onClick={handleNext}
+                    disabled={isLoading || !formData.identifier}
+                    className="w-full h-14 text-lg"
+                  >
+                    {isLoading ? 'Consultando...' : 'Consultar Pedido'}
+                  </Button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Step 2: Order Status */}
-              {currentStep === 2 && order && !showSolutions && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <Package className="w-16 h-16 mx-auto text-green-500 mb-4" />
-                    <h2 className="text-xl font-semibold mb-2">Encontramos seu pedido!</h2>
-                    <p className="text-muted-foreground">Vamos verificar se está tudo certo com sua entrega</p>
-                  </div>
+            {/* Step 2: Order Status */}
+            {currentStep === 2 && order && !showSolutions && (
+              <div className="space-y-8">
+                <div className="text-center">
+                  <h2 className="text-2xl font-semibold mb-4">Pedido Encontrado</h2>
+                  <p className="text-muted-foreground">Aqui estão os detalhes da sua compra</p>
+                </div>
 
-                  <OrderStatus />
+                <OrderStatus />
 
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6">
-                    <div className="flex items-start gap-4">
-                      <AlertCircle className="w-8 h-8 text-amber-600 mt-0.5" />
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-xl p-8">
+                  <div className="text-center">
+                    <Star className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold text-amber-800 mb-4">Oferta Especial!</h3>
+                    <p className="text-amber-700 text-lg mb-6">
+                      Resolva com <strong>vale-compra + 15% bônus</strong><br />
+                      Mais vantajoso que reembolso!
+                    </p>
+                    <div className="space-y-4">
+                      <Button 
+                        onClick={() => setShowSolutions(true)}
+                        size="lg"
+                        className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white text-lg px-8 py-3"
+                      >
+                        Ver Soluções Disponíveis
+                      </Button>
                       <div>
-                        <h3 className="font-semibold text-amber-800 mb-3 text-lg">Oferta Especial!</h3>
-                        <p className="text-amber-700 mb-4 text-base">Que tal resolver com um vale-compra de <strong>15% bônus</strong>? É mais vantajoso que o reembolso!</p>
                         <Button 
-                          onClick={() => setShowSolutions(true)}
-                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          variant="ghost" 
+                          onClick={() => setCurrentStep(3)}
+                          className="text-muted-foreground hover:text-foreground"
                         >
-                          Ver vale-compra com 15% bônus
+                          Prefiro solicitar reembolso mesmo assim
                         </Button>
                       </div>
                     </div>
                   </div>
-
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Mesmo assim quer solicitar reembolso?
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setCurrentStep(3)}
-                      className="border-2"
-                    >
-                      Continuar com reembolso
-                    </Button>
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Step 2.5: Solutions */}
-              {currentStep === 2 && showSolutions && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <CheckCircle className="w-16 h-16 mx-auto text-purple-500 mb-4" />
-                    <h2 className="text-xl font-semibold mb-2">Escolha a melhor solução</h2>
-                    <p className="text-muted-foreground">Soluções rápidas e vantajosas para você</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6">
-                    {problemSolutions
-                      .sort((a, b) => a.priority - b.priority)
-                      .map((solution, index) => {
-                        const SolutionIcon = solution.icon;
-                        const isVoucher = solution.id === 'voucher';
-                        return (
-                          <Card
-                            key={solution.id}
-                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 border-2 ${
-                              isVoucher 
-                                ? 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-amber-50 ring-2 ring-yellow-200' 
-                                : 'border-gray-200 hover:border-primary/50'
-                            }`}
-                            onClick={() => handleSolutionSelect(solution.id)}
-                          >
-                            <CardContent className="p-6">
-                              <div className="flex items-center gap-4">
-                                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                                  isVoucher ? 'bg-yellow-100' : 'bg-purple-100'
-                                }`}>
-                                  <SolutionIcon className={`w-8 h-8 ${
-                                    isVoucher ? 'text-yellow-600' : 'text-purple-600'
-                                  }`} />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="font-semibold text-lg">{solution.title}</h3>
-                                    {isVoucher && (
-                                      <Badge className="bg-yellow-500 text-white text-xs">RECOMENDADO</Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-muted-foreground mb-3">{solution.description}</p>
-                                  <Badge 
-                                    variant="secondary" 
-                                    className={isVoucher ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}
-                                  >
-                                    {solution.benefit}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                  </div>
-
-                  <div className="text-center pt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setCurrentStep(3)}
-                      className="border-2"
-                    >
-                      Nenhuma solução me atende, quero reembolso
-                    </Button>
-                  </div>
+            {/* Solutions Display */}
+            {currentStep === 2 && showSolutions && (
+              <div className="space-y-8">
+                <div className="text-center">
+                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <h2 className="text-2xl font-semibold mb-2">Escolha sua Solução</h2>
+                  <p className="text-muted-foreground">Ofertas especiais para resolver rapidamente</p>
                 </div>
-              )}
 
-              {/* Step 3: Detailed Refund Form */}
-              {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <CreditCard className="w-16 h-16 mx-auto text-red-500 mb-4" />
-                    <h2 className="text-xl font-semibold mb-2">Solicitação de Reembolso</h2>
-                    <p className="text-muted-foreground">Precisamos de algumas informações para processar seu reembolso</p>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                      <div className="text-yellow-800 text-sm">
-                        <p className="font-medium mb-1">Tem certeza que deseja reembolso?</p>
-                        <p>O vale-compra com 15% bônus é mais vantajoso e você pode usar quando quiser!</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <Label htmlFor="reason" className="text-base font-medium">Motivo do reembolso *</Label>
-                      <Select
-                        value={formData.reason}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}
+                <div className="grid gap-6">
+                  {problemSolutions.map((solution) => {
+                    const SolutionIcon = solution.icon;
+                    return (
+                      <Card 
+                        key={solution.id}
+                        className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
+                          solution.priority === 1 ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleSolutionSelect(solution.id)}
                       >
-                        <SelectTrigger className="mt-2 h-12">
-                          <SelectValue placeholder="Selecione o motivo principal" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {reasons.map((reason) => (
-                            <SelectItem key={reason.code} value={reason.code}>
-                              <div className="py-2">
-                                <div className="font-medium">{reason.label}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {reason.description}
-                                </div>
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                              solution.priority === 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                            }`}>
+                              <SolutionIcon className="w-7 h-7" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-xl font-semibold">{solution.title}</h3>
+                                {solution.priority === 1 && (
+                                  <Badge className="bg-primary text-primary-foreground">RECOMENDADO</Badge>
+                                )}
                               </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="reasonNote" className="text-base font-medium">Descreva detalhadamente o problema *</Label>
-                      <Textarea
-                        id="reasonNote"
-                        placeholder="Por favor, descreva em detalhes o que aconteceu, quando aconteceu e por que você considera necessário o reembolso ao invés de outras soluções..."
-                        value={formData.reasonNote}
-                        onChange={(e) => setFormData(prev => ({ ...prev, reasonNote: e.target.value }))}
-                        className="mt-2 min-h-32"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="text-base font-medium">Fotos comprobatórias *</Label>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Para acelerar o processo, anexe fotos que comprovem o problema
-                      </p>
-                      <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                        <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                        <p className="text-sm font-medium">Clique para adicionar fotos</p>
-                        <p className="text-xs text-muted-foreground">PNG, JPG até 5MB cada (obrigatório)</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="whyNotVoucher" className="text-base font-medium">Por que não aceita o vale-compra com 15% bônus? *</Label>
-                      <Textarea
-                        id="whyNotVoucher"
-                        placeholder="Explique por que prefere reembolso ao invés de vale-compra com 15% a mais de valor..."
-                        value={formData.whyNotVoucher || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, whyNotVoucher: e.target.value }))}
-                        className="mt-2 min-h-24"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="futureShop" className="text-base font-medium">Pretende comprar conosco novamente? *</Label>
-                      <Select
-                        value={formData.futureShop || ''}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, futureShop: value }))}
-                      >
-                        <SelectTrigger className="mt-2 h-12">
-                          <SelectValue placeholder="Selecione uma opção" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="yes">Sim, pretendo comprar novamente</SelectItem>
-                          <SelectItem value="maybe">Talvez, depende da resolução</SelectItem>
-                          <SelectItem value="no">Não, não pretendo mais comprar</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-3">
-                        <Checkbox 
-                          id="agreeToPolicy" 
-                          checked={formData.agreeToPolicy}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToPolicy: !!checked }))}
-                        />
-                        <Label htmlFor="agreeToPolicy" className="text-sm leading-5">
-                          Aceito a política de reembolso e estou ciente de que o processo pode levar até 10 dias úteis *
-                        </Label>
-                      </div>
-                      
-                      <div className="flex items-start space-x-3">
-                        <Checkbox 
-                          id="confirmTruthfulness" 
-                          checked={formData.confirmTruthfulness}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, confirmTruthfulness: !!checked }))}
-                        />
-                        <Label htmlFor="confirmTruthfulness" className="text-sm leading-5">
-                          Confirmo que todas as informações fornecidas são verdadeiras e que tentei resolver de outras formas *
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
+                              <p className="text-muted-foreground mb-2">{solution.description}</p>
+                              <p className="text-sm font-medium text-green-600">{solution.benefit}</p>
+                            </div>
+                            <ArrowRight className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
-              )}
 
-              {/* Step 4: Success/Protocol */}
-              {currentStep === 4 && protocol && (
-                <div className="text-center space-y-6">
-                  <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-10 h-10 text-green-600" />
-                  </div>
-                  
+                <div className="text-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setCurrentStep(3)}
+                    className="text-muted-foreground"
+                  >
+                    Ainda prefiro reembolso
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Refund Form */}
+            {currentStep === 3 && (
+              <div className="space-y-8">
+                <div className="text-center">
+                  <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                  <h2 className="text-2xl font-semibold mb-2">Solicitação de Reembolso</h2>
+                  <p className="text-muted-foreground">Precisamos de algumas informações adicionais</p>
+                </div>
+
+                <div className="space-y-6 max-w-2xl mx-auto">
                   <div>
-                    <h3 className="text-2xl font-bold text-green-600 mb-2">
-                      {formData.selectedSolution ? 'Solução aplicada!' : 'Reembolso solicitado!'}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {formData.selectedSolution 
-                        ? 'Entraremos em contato para finalizar sua solicitação'
-                        : 'Sua solicitação foi registrada e será analisada em breve'
-                      }
-                    </p>
+                    <Label className="text-lg font-medium">Motivo do reembolso</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}>
+                      <SelectTrigger className="mt-2 h-12">
+                        <SelectValue placeholder="Selecione o motivo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {reasons.map((reason) => (
+                          <SelectItem key={reason.code} value={reason.code}>
+                            <div>
+                              <div className="font-medium">{reason.label}</div>
+                              <div className="text-xs text-muted-foreground">{reason.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <p className="text-sm text-green-700 mb-2">Protocolo de acompanhamento</p>
-                    <p className="text-3xl font-bold text-green-800">{protocol}</p>
+
+                  <div>
+                    <Label className="text-lg font-medium">Descrição detalhada do problema</Label>
+                    <Textarea
+                      placeholder="Descreva detalhadamente o que aconteceu..."
+                      value={formData.reasonNote}
+                      onChange={(e) => setFormData(prev => ({ ...prev, reasonNote: e.target.value }))}
+                      className="mt-2 min-h-24"
+                    />
                   </div>
-                  
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-center gap-2">
-                      <Mail className="w-4 h-4 text-blue-600" />
-                      <span>E-mail de confirmação enviado</span>
+
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6">
+                    <h4 className="font-semibold text-amber-800 mb-4">Por que não aceita o vale-compra com 15% bônus?</h4>
+                    <Textarea
+                      placeholder="Explique por que prefere reembolso ao invés do vale-compra..."
+                      value={formData.whyNotVoucher}
+                      onChange={(e) => setFormData(prev => ({ ...prev, whyNotVoucher: e.target.value }))}
+                      className="bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-lg font-medium">Pretende comprar novamente futuramente?</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, futureShop: value }))}>
+                      <SelectTrigger className="mt-2 h-12">
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Sim, pretendo comprar novamente</SelectItem>
+                        <SelectItem value="maybe">Talvez, depende da experiência</SelectItem>
+                        <SelectItem value="no">Não, não pretendo comprar mais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="policy"
+                        checked={formData.agreeToPolicy}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToPolicy: !!checked }))}
+                      />
+                      <Label htmlFor="policy" className="text-sm leading-relaxed">
+                        Concordo com os termos da política de reembolso e entendo que o prazo pode ser de até 10 dias úteis
+                      </Label>
                     </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Phone className="w-4 h-4 text-blue-600" />
-                      <span>Entraremos em contato em até 24h</span>
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="truthfulness"
+                        checked={formData.confirmTruthfulness}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, confirmTruthfulness: !!checked }))}
+                      />
+                      <Label htmlFor="truthfulness" className="text-sm leading-relaxed">
+                        Declaro que todas as informações fornecidas são verdadeiras
+                      </Label>
                     </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <Button variant="outline" onClick={handleBack} className="flex-1">
+                      Voltar
+                    </Button>
+                    <Button onClick={handleNext} className="flex-1">
+                      Solicitar Reembolso
+                    </Button>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Navigation */}
-              {currentStep < 4 && (
-                <div className="flex justify-between pt-6 border-t">
-                  <Button
+            {/* Step 4: Success */}
+            {currentStep === 4 && protocol && (
+              <div className="text-center space-y-8">
+                <div>
+                  <CheckCircle className="w-24 h-24 text-green-500 mx-auto mb-6" />
+                  <h2 className="text-3xl font-semibold mb-4">Solicitação Enviada!</h2>
+                  <p className="text-muted-foreground text-lg">
+                    Sua solicitação foi registrada com sucesso
+                  </p>
+                </div>
+
+                <Card className="bg-green-50 border-2 border-green-200 max-w-md mx-auto">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <p className="text-sm text-green-700 mb-2">Protocolo de atendimento</p>
+                      <p className="text-2xl font-bold text-green-800">{protocol}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-4 max-w-lg mx-auto">
+                  <p className="text-muted-foreground">
+                    Entraremos em contato em até 24 horas através do e-mail cadastrado.
+                  </p>
+                  
+                  <Button 
+                    onClick={() => window.location.reload()}
                     variant="outline"
-                    onClick={handleBack}
-                    disabled={currentStep === 1}
-                    className="flex items-center gap-2"
+                    className="w-full"
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    Voltar
-                  </Button>
-                  
-                  <Button
-                    onClick={handleNext}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 min-w-32"
-                  >
-                    {isLoading ? (
-                      <Clock className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        Continuar
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
+                    Nova Consulta
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* FAQ Section - Only show on step 1 */}
-          {currentStep === 1 && (
-            <div className="mt-8">
-              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="text-center">
-                  <CardTitle className="flex items-center justify-center gap-2 text-xl">
-                    <HelpCircle className="w-5 h-5 text-blue-600" />
-                    Perguntas Frequentes
-                  </CardTitle>
-                  <p className="text-muted-foreground text-sm">Encontre respostas rápidas para as dúvidas mais comuns</p>
-                </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="space-y-2">
-                    {faqData.map((item, index) => (
-                      <AccordionItem key={index} value={`item-${index}`} className="border border-border/50 rounded-lg px-3">
-                        <AccordionTrigger className="text-left font-medium hover:no-underline text-sm py-3">
-                          {item.question}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground leading-relaxed text-sm">
-                          {item.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Contact Section */}
-          <div className="mt-6">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-              <CardContent className="p-6 text-center">
-                <MessageCircle className="w-12 h-12 mx-auto text-blue-600 mb-3" />
-                <h3 className="font-semibold text-blue-800 mb-2 text-lg">Ainda precisa de ajuda?</h3>
-                <p className="text-blue-600 mb-4 text-base">Nossa equipe está pronta para resolver seu problema</p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
-                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1 text-sm">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Ligar agora
-                  </Button>
-                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-1 text-sm">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat online
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        {/* FAQ Section */}
+        <div className="mt-16 max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-semibold mb-4">Perguntas Frequentes</h3>
+            <p className="text-muted-foreground">Tire suas dúvidas mais comuns</p>
           </div>
+          
+          <Accordion type="single" collapsible className="space-y-4">
+            {faqData.map((faq, index) => (
+              <AccordionItem key={index} value={`item-${index}`} className="border border-border rounded-lg px-6">
+                <AccordionTrigger className="text-left font-medium py-4">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-4">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </div>
+    </div>
   );
 }
