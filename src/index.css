@@ -8,6 +8,8 @@ html, body, #root, #__next {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+  background-attachment: fixed;
 }
 
 *, *::before, *::after {
@@ -23,7 +25,8 @@ html, body, #root, #__next {
   margin: 0;
   box-sizing: border-box;
   width: 100%;
-  background: transparent;
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%) !important;
+  background-attachment: fixed;
 }
 
 #pre-dashboard .pre-dashboard-inner {
