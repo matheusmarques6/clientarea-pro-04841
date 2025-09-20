@@ -262,45 +262,59 @@ const Refunds = () => {
 
   const KanbanCard = ({ refund }: { refund: RefundItem }) => (
     <div 
-      className="p-3 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      className="p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-border/50 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group animate-hover glass-card"
       onClick={() => {
         setSelectedRefund(refund);
         setIsModalOpen(true);
       }}
     >
-      <div className="flex justify-between items-start mb-2">
-        <div className="font-medium text-sm">{refund.id}</div>
-        <div className="text-xs text-muted-foreground">{getDaysAgo(refund.createdAt)}</div>
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1">
+          <div className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+            {refund.id}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Pedido {refund.orderId}
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+          {getDaysAgo(refund.createdAt)}
+        </div>
       </div>
       
-      <div className="text-xs text-muted-foreground mb-1">Pedido {refund.orderId}</div>
-      <div className="text-sm font-medium mb-2">{refund.customer.name}</div>
-      
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-green-600">
-          {formatCurrency(refund.requestedAmount.value)}
-        </span>
-        <Badge variant="outline" className="text-xs">
-          {getMethodLabel(refund.method.type)}
-        </Badge>
-      </div>
-      
-      <div className="text-xs text-muted-foreground mb-2">
-        {getReasonLabel(refund.reason.code)}
-      </div>
-      
-      <div className="flex justify-between items-center">
-        {refund.attachments.length > 0 && (
-          <span className="text-xs text-blue-600">
-            📎 {refund.attachments.length}
-          </span>
-        )}
-        <div className={`text-xs px-2 py-1 rounded-full ${
-          refund.riskScore > 70 ? 'bg-red-100 text-red-800' :
-          refund.riskScore > 40 ? 'bg-yellow-100 text-yellow-800' :
-          'bg-green-100 text-green-800'
-        }`}>
-          Score: {refund.riskScore}
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-foreground truncate">
+          {refund.customer.name}
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold text-green-600">
+            {formatCurrency(refund.requestedAmount.value)}
+          </div>
+          <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted/30">
+            {getMethodLabel(refund.method.type)}
+          </Badge>
+        </div>
+        
+        <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
+          {getReasonLabel(refund.reason.code)}
+        </div>
+        
+        <div className="flex justify-between items-center pt-1">
+          <div className="flex items-center gap-1">
+            {refund.attachments.length > 0 && (
+              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                📎 {refund.attachments.length}
+              </span>
+            )}
+          </div>
+          <div className={`text-xs px-2 py-1 rounded-full font-medium ${
+            refund.riskScore > 70 ? 'bg-red-100 text-red-800' :
+            refund.riskScore > 40 ? 'bg-yellow-100 text-yellow-800' :
+            'bg-green-100 text-green-800'
+          }`}>
+            Score: {refund.riskScore}
+          </div>
         </div>
       </div>
     </div>
@@ -336,53 +350,56 @@ const Refunds = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div className="flex items-center gap-4">
             <Link to="/stores">
-              <Button variant="ghost" size="sm" className="hover:bg-muted">
+              <Button variant="outline" size="sm" className="hover:bg-muted/50 transition-colors">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Voltar para lojas</span>
                 <span className="sm:hidden">Voltar</span>
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Reembolsos</h1>
-              <p className="text-muted-foreground">Loja Premium Fashion</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reembolsos</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Loja Premium Fashion</p>
             </div>
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleCopyPublicLink}>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
               <Copy className="h-4 w-4 mr-2" />
-              Copiar link público
+              <span className="hidden sm:inline">Copiar link público</span>
+              <span className="sm:hidden">Copiar link</span>
             </Button>
             <Link to="/store/1/refunds/setup">
-              <Button variant="outline">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <Eye className="h-4 w-4 mr-2" />
-                Configurações
+                <span className="hidden sm:inline">Configurações</span>
+                <span className="sm:hidden">Config</span>
               </Button>
             </Link>
             <Link to="/store/1/refunds/new">
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
-                Nova solicitação
+                <span className="hidden sm:inline">Nova solicitação</span>
+                <span className="sm:hidden">Nova</span>
               </Button>
             </Link>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="kanban" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="kanban">Kanban</TabsTrigger>
-            <TabsTrigger value="list">Lista</TabsTrigger>
-            <TabsTrigger value="summary">Resumo</TabsTrigger>
+        <Tabs defaultValue="kanban" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-3 h-10 max-w-md">
+            <TabsTrigger value="kanban" className="text-xs sm:text-sm">Kanban</TabsTrigger>
+            <TabsTrigger value="list" className="text-xs sm:text-sm">Lista</TabsTrigger>
+            <TabsTrigger value="summary" className="text-xs sm:text-sm">Resumo</TabsTrigger>
           </TabsList>
 
           {/* Kanban View */}
-          <TabsContent value="kanban" className="space-y-6">
+          <TabsContent value="kanban" className="space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -410,28 +427,95 @@ const Refunds = () => {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 overflow-x-auto">
-              {columns.map(column => {
-                const columnRefunds = filteredRefunds.filter(refund => refund.status === column.id);
-                return (
-                  <div key={column.id} className={`rounded-lg border-2 ${column.color} min-h-[600px]`}>
-                    <div className="p-4 border-b bg-white/50 rounded-t-lg">
-                      <h3 className="font-semibold text-sm">{column.title}</h3>
-                      <p className="text-xs text-muted-foreground">{columnRefunds.length} reembolsos</p>
-                    </div>
-                    <div className="p-2 space-y-2">
-                      {columnRefunds.map(refund => (
-                        <KanbanCard key={refund.id} refund={refund} />
-                      ))}
-                    </div>
+            {/* Kanban Board - Responsive Grid */}
+            <div className="w-full">
+              {/* Mobile: Stacked Cards */}
+              <div className="block sm:hidden space-y-4">
+                {columns.map(column => {
+                  const columnRefunds = filteredRefunds.filter(refund => refund.status === column.id);
+                  if (columnRefunds.length === 0) return null;
+                  
+                  return (
+                    <Card key={column.id} className="glass-card">
+                      <CardHeader className="pb-3">
+                        <CardTitle className={`text-sm rounded-lg px-3 py-2 text-center ${column.color}`}>
+                          {column.title} ({columnRefunds.length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {columnRefunds.map(refund => (
+                          <KanbanCard key={refund.id} refund={refund} />
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Tablet: 2 Columns */}
+              <div className="hidden sm:block lg:hidden">
+                <div className="grid grid-cols-2 gap-4">
+                  {columns.map(column => {
+                    const columnRefunds = filteredRefunds.filter(refund => refund.status === column.id);
+                    return (
+                      <Card key={column.id} className={`glass-card ${column.color.includes('bg-') ? '' : 'border-l-4'} ${column.color}`}>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-semibold text-center">
+                            {column.title}
+                            <span className="ml-2 text-xs opacity-75">({columnRefunds.length})</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 min-h-[200px]">
+                          {columnRefunds.map(refund => (
+                            <KanbanCard key={refund.id} refund={refund} />
+                          ))}
+                          {columnRefunds.length === 0 && (
+                            <div className="text-center py-8">
+                              <p className="text-xs text-muted-foreground">Nenhum item</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desktop: Full Kanban */}
+              <div className="hidden lg:block">
+                <div className="overflow-x-auto pb-4">
+                  <div className="grid grid-cols-6 gap-4 min-h-[600px] min-w-[1200px]">
+                    {columns.map(column => {
+                      const columnRefunds = filteredRefunds.filter(refund => refund.status === column.id);
+                      return (
+                        <div key={column.id} className="min-w-[200px]">
+                          <div className={`rounded-lg border-2 ${column.color} min-h-[600px] glass-card`}>
+                            <div className="p-4 border-b bg-white/20 backdrop-blur-sm rounded-t-lg">
+                              <h3 className="font-semibold text-sm text-center">{column.title}</h3>
+                              <p className="text-xs text-center opacity-75 mt-1">{columnRefunds.length} reembolsos</p>
+                            </div>
+                            <div className="p-3 space-y-3">
+                              {columnRefunds.map(refund => (
+                                <KanbanCard key={refund.id} refund={refund} />
+                              ))}
+                              {columnRefunds.length === 0 && (
+                                <div className="text-center py-12">
+                                  <p className="text-xs text-muted-foreground">Nenhum item</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
           {/* List View */}
-          <TabsContent value="list" className="space-y-6">
+          <TabsContent value="list" className="space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -444,114 +528,151 @@ const Refunds = () => {
               </div>
             </div>
 
-            <Card>
+            <Card className="glass-card">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Protocolo</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Método</TableHead>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Score</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRefunds.map(refund => (
-                      <TableRow 
-                        key={refund.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => {
-                          setSelectedRefund(refund);
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        <TableCell className="font-medium">{refund.id}</TableCell>
-                        <TableCell>{refund.customer.name}</TableCell>
-                        <TableCell>{refund.orderId}</TableCell>
-                        <TableCell>{formatCurrency(refund.requestedAmount.value)}</TableCell>
-                        <TableCell>{getMethodLabel(refund.method.type)}</TableCell>
-                        <TableCell>{getReasonLabel(refund.reason.code)}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(refund.status)}>
-                            {refund.status.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className={`inline-block px-2 py-1 rounded text-xs ${
-                            refund.riskScore > 70 ? 'bg-red-100 text-red-800' :
-                            refund.riskScore > 40 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {refund.riskScore}
-                          </div>
-                        </TableCell>
-                        <TableCell>{formatDate(refund.createdAt)}</TableCell>
+                {/* Mobile Card View */}
+                <div className="block md:hidden">
+                  {filteredRefunds.map(refund => (
+                    <div
+                      key={refund.id}
+                      className="p-4 border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => {
+                        setSelectedRefund(refund);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-medium text-foreground">{refund.id}</div>
+                        <Badge className={getStatusColor(refund.status)}>
+                          {refund.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div><span className="text-muted-foreground">Cliente:</span> {refund.customer.name}</div>
+                        <div><span className="text-muted-foreground">Pedido:</span> {refund.orderId}</div>
+                        <div><span className="text-muted-foreground">Valor:</span> {formatCurrency(refund.requestedAmount.value)}</div>
+                        <div><span className="text-muted-foreground">Método:</span> {getMethodLabel(refund.method.type)}</div>
+                        <div><span className="text-muted-foreground">Motivo:</span> {getReasonLabel(refund.reason.code)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[100px]">Protocolo</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Pedido</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Método</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[80px]">Score</TableHead>
+                        <TableHead>Data</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRefunds.map(refund => (
+                        <TableRow 
+                          key={refund.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => {
+                            setSelectedRefund(refund);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <TableCell className="font-medium">{refund.id}</TableCell>
+                          <TableCell>{refund.customer.name}</TableCell>
+                          <TableCell>{refund.orderId}</TableCell>
+                          <TableCell>{formatCurrency(refund.requestedAmount.value)}</TableCell>
+                          <TableCell>{getMethodLabel(refund.method.type)}</TableCell>
+                          <TableCell>{getReasonLabel(refund.reason.code)}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(refund.status)}>
+                              {refund.status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className={`inline-block px-2 py-1 rounded text-xs ${
+                              refund.riskScore > 70 ? 'bg-red-100 text-red-800' :
+                              refund.riskScore > 40 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {refund.riskScore}
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(refund.createdAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {filteredRefunds.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Nenhum reembolso encontrado</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Summary View */}
-          <TabsContent value="summary" className="space-y-6">
+          <TabsContent value="summary" className="space-y-4 sm:space-y-6">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="glass-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Total Solicitado</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalRequested)}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{formatCurrency(totalRequested)}</div>
                   <p className="text-xs text-muted-foreground">+12% vs mês anterior</p>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="glass-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Aprovado</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalApproved)}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{formatCurrency(totalApproved)}</div>
                   <p className="text-xs text-muted-foreground">+5% vs mês anterior</p>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="glass-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Taxa de Aprovação</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{approvalRate.toFixed(1)}%</div>
+                  <div className="text-xl sm:text-2xl font-bold">{approvalRate.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground">-2% vs mês anterior</p>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="glass-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(avgTicket)}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{formatCurrency(avgTicket)}</div>
                   <p className="text-xs text-muted-foreground">+8% vs mês anterior</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Distribuição por Status</CardTitle>
+                  <CardTitle className="text-lg">Distribuição por Status</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={{}} className="h-64">
+                  <ChartContainer config={{}} className="h-48 sm:h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -559,7 +680,7 @@ const Refunds = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          outerRadius={80}
+                          outerRadius="80%"
                           fill="#8884d8"
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -575,12 +696,12 @@ const Refunds = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Métodos de Reembolso</CardTitle>
+                  <CardTitle className="text-lg">Métodos de Reembolso</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={{}} className="h-64">
+                  <ChartContainer config={{}} className="h-48 sm:h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -588,7 +709,7 @@ const Refunds = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          outerRadius={80}
+                          outerRadius="80%"
                           fill="#8884d8"
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}

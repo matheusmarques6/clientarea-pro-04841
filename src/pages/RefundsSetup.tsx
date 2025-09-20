@@ -78,89 +78,103 @@ const RefundsSetup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-6">
           <div className="flex items-center gap-4">
             <Link to="/store/1/refunds">
-              <Button variant="ghost" size="sm" className="hover:bg-muted">
+              <Button variant="outline" size="sm" className="hover:bg-muted/50 transition-colors">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Voltar para reembolsos</span>
                 <span className="sm:hidden">Voltar</span>
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Configurações de Reembolsos</h1>
-              <p className="text-muted-foreground">Configure o portal público e as regras de negócio</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Configurações de Reembolsos</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Configure o portal público e as regras de negócio</p>
             </div>
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleCopyPublicLink}>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
               <Copy className="h-4 w-4 mr-2" />
-              Copiar link
+              <span className="hidden sm:inline">Copiar link</span>
+              <span className="sm:hidden">Link</span>
             </Button>
-            <Button variant="outline" onClick={handlePreview}>
+            <Button variant="outline" onClick={handlePreview} className="w-full sm:w-auto">
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            <Button onClick={handleSave}>
-              Salvar configurações
+            <Button onClick={handleSave} className="w-full sm:w-auto">
+              <span className="hidden sm:inline">Salvar configurações</span>
+              <span className="sm:hidden">Salvar</span>
             </Button>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="criteria" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="criteria" className="flex items-center gap-2">
+        <Tabs defaultValue="criteria" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="criteria" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm">
               <Settings className="h-4 w-4" />
-              Critérios
+              <span className="hidden sm:inline">Critérios</span>
+              <span className="sm:hidden">Config</span>
             </TabsTrigger>
-            <TabsTrigger value="methods" className="flex items-center gap-2">
+            <TabsTrigger value="methods" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm">
               <Settings className="h-4 w-4" />
-              Métodos
+              <span className="hidden sm:inline">Métodos</span>
+              <span className="sm:hidden">Pagto</span>
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
+            <TabsTrigger value="appearance" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm">
               <Palette className="h-4 w-4" />
-              Aparência
+              <span className="hidden sm:inline">Aparência</span>
+              <span className="sm:hidden">Visual</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2">
+            <TabsTrigger value="messages" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm">
               <MessageSquare className="h-4 w-4" />
-              Mensagens
+              <span className="hidden sm:inline">Mensagens</span>
+              <span className="sm:hidden">Texto</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Critérios Tab */}
-          <TabsContent value="criteria" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+          <TabsContent value="criteria" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Janelas de Elegibilidade</CardTitle>
+                  <CardTitle className="text-lg">Janelas de Elegibilidade</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="arrependimentoDays">Arrependimento (dias após recebimento)</Label>
+                    <Label htmlFor="arrependimentoDays" className="text-sm font-medium">
+                      Arrependimento (dias após recebimento)
+                    </Label>
                     <Input
                       id="arrependimentoDays"
                       type="number"
                       value={config.arrependimentoDays}
                       onChange={(e) => handleConfigChange('arrependimentoDays', parseInt(e.target.value))}
+                      className="mt-1"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="defeitoDays">Defeito/Danificado (dias após recebimento)</Label>
+                    <Label htmlFor="defeitoDays" className="text-sm font-medium">
+                      Defeito/Danificado (dias após recebimento)
+                    </Label>
                     <Input
                       id="defeitoDays"
                       type="number"
                       value={config.defeitoDays}
                       onChange={(e) => handleConfigChange('defeitoDays', parseInt(e.target.value))}
+                      className="mt-1"
                     />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="requirePhotos">Exigir fotos para defeitos</Label>
+                  <div className="flex items-center justify-between py-2">
+                    <Label htmlFor="requirePhotos" className="text-sm font-medium">
+                      Exigir fotos para defeitos
+                    </Label>
                     <Switch
                       id="requirePhotos"
                       checked={config.requirePhotosForDefect}
@@ -170,27 +184,32 @@ const RefundsSetup = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Auto-aprovação</CardTitle>
+                  <CardTitle className="text-lg">Auto-aprovação</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="autoApproveLimit">Aprovar automaticamente até (R$)</Label>
+                    <Label htmlFor="autoApproveLimit" className="text-sm font-medium">
+                      Aprovar automaticamente até (R$)
+                    </Label>
                     <Input
                       id="autoApproveLimit"
                       type="number"
                       step="0.01"
                       value={config.autoApproveLimit}
                       onChange={(e) => handleConfigChange('autoApproveLimit', parseFloat(e.target.value))}
+                      className="mt-1"
                     />
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Valores acima disso vão para análise manual
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="prioritizeVoucher">Priorizar vale-compra</Label>
+                  <div className="flex items-center justify-between py-2">
+                    <Label htmlFor="prioritizeVoucher" className="text-sm font-medium">
+                      Priorizar vale-compra
+                    </Label>
                     <Switch
                       id="prioritizeVoucher"
                       checked={config.prioritizeVoucher}
@@ -200,12 +219,15 @@ const RefundsSetup = () => {
 
                   {config.prioritizeVoucher && (
                     <div>
-                      <Label htmlFor="voucherBonus">Bônus no vale-compra (%)</Label>
+                      <Label htmlFor="voucherBonus" className="text-sm font-medium">
+                        Bônus no vale-compra (%)
+                      </Label>
                       <Input
                         id="voucherBonus"
                         type="number"
                         value={config.voucherBonus}
                         onChange={(e) => handleConfigChange('voucherBonus', parseInt(e.target.value))}
+                        className="mt-1"
                       />
                     </div>
                   )}
@@ -289,29 +311,30 @@ const RefundsSetup = () => {
           </TabsContent>
 
           {/* Aparência Tab */}
-          <TabsContent value="appearance" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="appearance" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
               {/* Left Column - Settings */}
-              <div className="space-y-6">
-                <Card>
+              <div className="space-y-4 sm:space-y-6 order-2 xl:order-1">
+                <Card className="glass-card">
                   <CardHeader>
-                    <CardTitle>Identidade Visual</CardTitle>
+                    <CardTitle className="text-lg">Identidade Visual</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="storeLogo">Logo da loja (URL)</Label>
+                      <Label htmlFor="storeLogo" className="text-sm font-medium">Logo da loja (URL)</Label>
                       <Input
                         id="storeLogo"
                         value={config.storeLogo}
                         onChange={(e) => handleConfigChange('storeLogo', e.target.value)}
                         placeholder="https://exemplo.com/logo.png"
+                        className="mt-1"
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="primaryColor">Cor primária</Label>
-                        <div className="flex gap-2">
+                        <Label htmlFor="primaryColor" className="text-sm font-medium">Cor primária</Label>
+                        <div className="flex gap-2 mt-1">
                           <Input
                             id="primaryColor"
                             type="color"
@@ -328,8 +351,8 @@ const RefundsSetup = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="secondaryColor">Cor secundária</Label>
-                        <div className="flex gap-2">
+                        <Label htmlFor="secondaryColor" className="text-sm font-medium">Cor secundária</Label>
+                        <div className="flex gap-2 mt-1">
                           <Input
                             id="secondaryColor"
                             type="color"
@@ -348,18 +371,18 @@ const RefundsSetup = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
-                    <CardTitle>Layout</CardTitle>
+                    <CardTitle className="text-lg">Layout</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="formWidth">Largura do formulário</Label>
+                      <Label htmlFor="formWidth" className="text-sm font-medium">Largura do formulário</Label>
                       <Select
                         value={config.formWidth}
                         onValueChange={(value) => handleConfigChange('formWidth', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -370,12 +393,12 @@ const RefundsSetup = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="borderRadius">Raio de borda (px)</Label>
+                      <Label htmlFor="borderRadius" className="text-sm font-medium">Raio de borda (px)</Label>
                       <Select
                         value={config.borderRadius.toString()}
                         onValueChange={(value) => handleConfigChange('borderRadius', parseInt(value))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -387,8 +410,8 @@ const RefundsSetup = () => {
                       </Select>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="showSidebar">Mostrar sumário lateral</Label>
+                    <div className="flex items-center justify-between py-2">
+                      <Label htmlFor="showSidebar" className="text-sm font-medium">Mostrar sumário lateral</Label>
                       <Switch
                         id="showSidebar"
                         checked={config.showSidebar}
@@ -397,12 +420,12 @@ const RefundsSetup = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="colorMode">Modo de cor</Label>
+                      <Label htmlFor="colorMode" className="text-sm font-medium">Modo de cor</Label>
                       <Select
                         value={config.colorMode}
                         onValueChange={(value) => handleConfigChange('colorMode', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -417,14 +440,14 @@ const RefundsSetup = () => {
               </div>
 
               {/* Right Column - Preview */}
-              <div className="space-y-6">
-                <Card>
+              <div className="space-y-4 sm:space-y-6 order-1 xl:order-2">
+                <Card className="glass-card">
                   <CardHeader>
-                    <CardTitle>Preview ao Vivo</CardTitle>
+                    <CardTitle className="text-lg">Preview ao Vivo</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div 
-                      className="border rounded-lg p-6 space-y-4"
+                      className="border rounded-lg p-4 sm:p-6 space-y-4"
                       style={{
                         backgroundColor: config.backgroundColor,
                         color: config.textColor,
@@ -436,7 +459,7 @@ const RefundsSetup = () => {
                           <img 
                             src={config.storeLogo} 
                             alt="Logo" 
-                            className="h-12 mx-auto"
+                            className="h-8 sm:h-12 mx-auto"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
@@ -446,10 +469,10 @@ const RefundsSetup = () => {
                       )}
                       
                       <div className="text-center space-y-2">
-                        <h2 className="text-2xl font-bold" style={{ color: config.primaryColor }}>
+                        <h2 className="text-xl sm:text-2xl font-bold" style={{ color: config.primaryColor }}>
                           {config.welcomeTitle}
                         </h2>
-                        <p style={{ color: config.secondaryColor }}>
+                        <p className="text-sm sm:text-base" style={{ color: config.secondaryColor }}>
                           {config.welcomeSubtitle}
                         </p>
                       </div>
@@ -460,7 +483,7 @@ const RefundsSetup = () => {
                             Número do pedido
                           </label>
                           <div 
-                            className="w-full px-3 py-2 border rounded bg-white text-gray-900"
+                            className="w-full px-3 py-2 border rounded bg-white text-gray-900 text-sm"
                             style={{ borderRadius: `${config.borderRadius}px` }}
                           >
                             #12345
@@ -468,7 +491,7 @@ const RefundsSetup = () => {
                         </div>
 
                         <button
-                          className="w-full py-3 rounded font-medium text-white"
+                          className="w-full py-2 sm:py-3 rounded font-medium text-white text-sm"
                           style={{
                             backgroundColor: config.primaryColor,
                             borderRadius: `${config.borderRadius}px`

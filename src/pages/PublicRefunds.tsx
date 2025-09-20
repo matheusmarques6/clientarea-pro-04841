@@ -281,13 +281,13 @@ const PublicRefunds = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Solicitação de Reembolso
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               Preencha os dados abaixo para solicitar o reembolso
             </p>
           </div>
@@ -295,10 +295,10 @@ const PublicRefunds = () => {
       </div>
 
       {/* Progress Steps */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="mb-8">
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
+        <div className="mb-6 sm:mb-8">
           <Progress value={progressPercentage} className="mb-4" />
-          <div className="flex justify-between text-sm">
+          <div className="grid grid-cols-3 sm:flex sm:justify-between gap-2 text-xs sm:text-sm">
             {steps.map((step) => (
               <div
                 key={step.id}
@@ -310,26 +310,26 @@ const PublicRefunds = () => {
                     : 'text-gray-400'
                 }`}
               >
-                <div className="hidden sm:block">{step.title}</div>
+                <div className="hidden sm:block font-medium">{step.title}</div>
                 <div className="text-xs">{step.description}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <Card>
+            <Card className="glass-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                     {currentStep}
                   </div>
-                  {steps[currentStep - 1]?.title}
+                  <span className="truncate">{steps[currentStep - 1]?.title}</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6">
                 {/* Step 1: Identification */}
                 {currentStep === 1 && (
                   <div className="space-y-4">
@@ -345,28 +345,30 @@ const PublicRefunds = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="email">E-mail</Label>
+                        <Label htmlFor="email" className="text-sm font-medium">E-mail</Label>
                         <Input
                           id="email"
                           type="email"
                           placeholder="seu@email.com"
                           value={formData.email}
                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                          className="mt-1"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="phone">Telefone (opcional)</Label>
+                        <Label htmlFor="phone" className="text-sm font-medium">Telefone (opcional)</Label>
                         <Input
                           id="phone"
                           placeholder="+55 11 99999-9999"
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          className="mt-1"
                         />
                       </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
                       Informe o número do pedido e pelo menos um meio de contato
                     </p>
                   </div>
@@ -384,26 +386,26 @@ const PublicRefunds = () => {
                       const selectedQty = selectedItem?.quantity || 0;
 
                       return (
-                        <div key={item.id} className="border rounded-lg p-4">
-                          <div className="flex gap-4">
+                        <div key={item.id} className="border rounded-lg p-3 sm:p-4 glass-card">
+                          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                             <img
                               src={item.image}
                               alt={item.title}
-                              className="w-16 h-16 rounded object-cover"
+                              className="w-full sm:w-16 h-32 sm:h-16 rounded object-cover"
                             />
-                            <div className="flex-1">
-                              <h4 className="font-medium">{item.title}</h4>
-                              <p className="text-sm text-muted-foreground">{item.variant}</p>
+                            <div className="flex-1 space-y-2">
+                              <h4 className="font-medium text-sm sm:text-base">{item.title}</h4>
+                              <p className="text-xs sm:text-sm text-muted-foreground">{item.variant}</p>
                               <p className="text-sm font-medium text-green-600">
                                 {formatCurrency(item.price)} cada
                               </p>
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm text-muted-foreground mb-2">
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:text-right gap-2">
+                              <div className="text-xs sm:text-sm text-muted-foreground">
                                 Comprou: {item.quantity}
                               </div>
                               <div className="flex items-center gap-2">
-                                <Label htmlFor={`qty-${item.id}`} className="text-sm">
+                                <Label htmlFor={`qty-${item.id}`} className="text-xs sm:text-sm">
                                   Devolver:
                                 </Label>
                                 <Select
@@ -412,7 +414,7 @@ const PublicRefunds = () => {
                                     handleItemSelection(item.id, parseInt(value))
                                   }
                                 >
-                                  <SelectTrigger className="w-20">
+                                  <SelectTrigger className="w-16 h-8">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -750,11 +752,12 @@ const PublicRefunds = () => {
 
               {/* Navigation */}
               {currentStep < 6 && (
-                <div className="flex justify-between p-6 pt-0">
+                <div className="flex flex-col sm:flex-row justify-between gap-3 p-4 sm:p-6 pt-0 border-t">
                   <Button
                     variant="outline"
                     onClick={handleBack}
                     disabled={currentStep === 1}
+                    className="w-full sm:w-auto order-2 sm:order-1"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Voltar
@@ -764,6 +767,7 @@ const PublicRefunds = () => {
                     <Button
                       onClick={handleSubmit}
                       disabled={isLoading}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       {isLoading ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -774,6 +778,7 @@ const PublicRefunds = () => {
                     <Button
                       onClick={handleNext}
                       disabled={isLoading}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       {isLoading ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -792,8 +797,8 @@ const PublicRefunds = () => {
 
           {/* Sidebar Summary */}
           {order && currentStep > 1 && currentStep < 6 && (
-            <div className="lg:col-span-1">
-              <Card className="sticky top-6">
+            <div className="lg:col-span-1 order-first lg:order-last">
+              <Card className="glass-card sticky top-4 lg:top-6">
                 <CardHeader>
                   <CardTitle className="text-lg">Resumo</CardTitle>
                 </CardHeader>
