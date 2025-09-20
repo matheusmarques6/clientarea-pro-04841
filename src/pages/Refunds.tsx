@@ -349,8 +349,8 @@ const Refunds = () => {
   const avgTicket = refunds.length > 0 ? totalRequested / refunds.length : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
-      <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">{/* Fundo sólido e espaçamento melhor */}
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -380,12 +380,12 @@ const Refunds = () => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="kanban" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-10 max-w-md">
-            <TabsTrigger value="kanban" className="text-xs sm:text-sm">Kanban</TabsTrigger>
-            <TabsTrigger value="list" className="text-xs sm:text-sm">Lista</TabsTrigger>
-            <TabsTrigger value="summary" className="text-xs sm:text-sm">Resumo</TabsTrigger>
+        {/* Tabs - Melhorado */}
+        <Tabs defaultValue="kanban" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 h-12 max-w-md bg-muted/50 border border-border">
+            <TabsTrigger value="kanban" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">Kanban</TabsTrigger>
+            <TabsTrigger value="list" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">Lista</TabsTrigger>
+            <TabsTrigger value="summary" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">Resumo</TabsTrigger>
           </TabsList>
 
           {/* Kanban View */}
