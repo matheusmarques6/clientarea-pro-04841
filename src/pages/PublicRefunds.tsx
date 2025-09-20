@@ -771,6 +771,5 @@ export default function PublicRefunds() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
