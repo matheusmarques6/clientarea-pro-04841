@@ -20,6 +20,7 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import PublicReturns from "./pages/PublicReturns";
 import PublicRefunds from "./pages/PublicRefunds";
+import TrackingPortal from "./components/returns/TrackingPortal";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/" element={<PreDashboard />} />
             <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
             <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
+            <Route path="/tracking" element={<TrackingPortal />} />
             
             {/* Routes with sidebar */}
             <Route element={<AppLayout />}>

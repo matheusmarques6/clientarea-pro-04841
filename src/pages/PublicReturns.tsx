@@ -12,11 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import convertfyLogo from '@/assets/convertfy-logo.png';
 import { mockStores } from '@/lib/mockData';
 import { getTranslation } from '@/lib/translations';
+import { validateOrder, checkEligibility, generateProtocol, getStoreRules } from '@/lib/returnLogic';
 
 const PublicReturns = () => {
   const { storeSlug } = useParams();
   const { toast } = useToast();
-  const [step, setStep] = useState<'form' | 'success'>('form');
+  const [step, setStep] = useState<'form' | 'validation' | 'result' | 'success'>('form');
+  const [validationResult, setValidationResult] = useState<any>(null);
   
   // Find store by slug
   const store = mockStores.find(s => 
@@ -70,18 +72,49 @@ const PublicReturns = () => {
       return;
     }
 
-    // Simular envio
+    setStep('validation');
+
+    // Simular processamento
     setTimeout(() => {
-      setStep('success');
-      toast({
-        title: t('requestSent'),
-        description: t('requestSentDesc')
+      // Validar pedido
+      const orderValidation = validateOrder(formData.pedido, formData.email);
+      
+      if (!orderValidation.isValid) {
+        toast({
+          title: "Pedido não encontrado",
+          description: orderValidation.error,
+          variant: "destructive"
+        });
+        setStep('form');
+        return;
+      }
+
+      // Verificar elegibilidade
+      const storeRules = getStoreRules(store?.id || '1');
+      const eligibility = checkEligibility(
+        orderValidation.order,
+        storeRules,
+        formData.tipo as 'Troca' | 'Devolução',
+        formData.motivo,
+        formData.anexos.length > 0
+      );
+
+      const protocol = generateProtocol(formData.tipo as 'Troca' | 'Devolução');
+      
+      setValidationResult({
+        order: orderValidation.order,
+        eligibility,
+        protocol,
+        formData
       });
-    }, 1000);
+
+      setStep('result');
+    }, 2000);
   };
 
   const handleNewRequest = () => {
     setStep('form');
+    setValidationResult(null);
     setFormData({
       pedido: '',
       email: '',
@@ -92,6 +125,197 @@ const PublicReturns = () => {
       anexos: []
     });
   };
+
+  // Tela de validação (processando)
+  if (step === 'validation') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <img 
+              src={convertfyLogo} 
+              alt="Convertfy" 
+              className="h-12 w-auto mx-auto mb-4"
+            />
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {t('title')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('subtitle')} {storeSlug?.replace(/-/g, ' ')}
+            </p>
+          </div>
+
+          <Card className="glass-card text-center">
+            <CardContent className="py-12">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-foreground mb-4">
+                Processando Solicitação
+              </h2>
+              
+              <p className="text-muted-foreground mb-8">
+                Validando dados do pedido e verificando elegibilidade...
+              </p>
+              
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela de resultado (aprovado/negado)
+  if (step === 'result' && validationResult) {
+    const { order, eligibility, protocol, formData: requestData } = validationResult;
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <img 
+              src={convertfyLogo} 
+              alt="Convertfy" 
+              className="h-12 w-auto mx-auto mb-4"
+            />
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {t('title')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('subtitle')} {storeSlug?.replace(/-/g, ' ')}
+            </p>
+          </div>
+
+          <Card className="glass-card">
+            <CardContent className="py-8">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${
+                eligibility.isEligible 
+                  ? eligibility.autoApprove 
+                    ? 'bg-green-100' 
+                    : 'bg-yellow-100'
+                  : 'bg-red-100'
+              }`}>
+                {eligibility.isEligible ? (
+                  eligibility.autoApprove ? (
+                    <Check className="h-8 w-8 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-8 w-8 text-yellow-600" />
+                  )
+                ) : (
+                  <AlertCircle className="h-8 w-8 text-red-600" />
+                )}
+              </div>
+              
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  {eligibility.isEligible 
+                    ? eligibility.autoApprove 
+                      ? 'Solicitação Aprovada Automaticamente!'
+                      : 'Solicitação em Análise'
+                    : 'Solicitação Não Elegível'
+                  }
+                </h2>
+                
+                {eligibility.isEligible && (
+                  <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                    <p className="text-sm font-medium mb-2">Protocolo:</p>
+                    <Badge variant="outline" className="text-base font-mono">
+                      {protocol}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalhes do pedido */}
+              <div className="bg-muted/30 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold mb-3">Dados do Pedido</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Pedido:</span>
+                    <span className="ml-2 font-medium">{order.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Cliente:</span>
+                    <span className="ml-2 font-medium">{order.customerName}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Valor:</span>
+                    <span className="ml-2 font-medium">R$ {order.total.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Tipo:</span>
+                    <span className="ml-2 font-medium">{requestData.tipo}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Próximos passos */}
+              <div className="space-y-4">
+                {eligibility.isEligible ? (
+                  eligibility.autoApprove ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-800 mb-2">✅ Próximos Passos:</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Você receberá um e-mail com a etiqueta de devolução</li>
+                        <li>• Embale o produto com cuidado</li>
+                        <li>• Cole a etiqueta no pacote e poste nos Correios</li>
+                        <li>• Acompanhe o status pelo e-mail de confirmação</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">⏳ Em Análise:</h4>
+                      <p className="text-sm text-yellow-700 mb-2">
+                        Sua solicitação será analisada em até 2 dias úteis.
+                      </p>
+                      {eligibility.warnings.length > 0 && (
+                        <ul className="text-sm text-yellow-700 space-y-1">
+                          {eligibility.warnings.map((warning, index) => (
+                            <li key={index}>• {warning}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-red-800 mb-2">❌ Motivos da Recusa:</h4>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {eligibility.reasons.map((reason, index) => (
+                        <li key={index}>• {reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+                <Button 
+                  variant="outline" 
+                  onClick={handleNewRequest}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('newRequest')}
+                </Button>
+                <Button onClick={() => window.close()}>
+                  {t('close')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="text-center mt-8 text-sm text-muted-foreground">
+            <p>{t('poweredBy')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'success') {
     return (
