@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, Copy, Filter, Search, MoreHorizontal } from 'lucide-react';
+import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -167,11 +167,26 @@ const Returns = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
+      {/* Header com botão voltar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Trocas & Devoluções</h1>
-          <p className="text-muted-foreground">{store.name}</p>
+        <div className="flex items-center gap-4">
+          {/* Botão Voltar para Lojas */}
+          <Button 
+            asChild 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2 hover:bg-muted/50"
+          >
+            <Link to="/stores">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Voltar</span>
+            </Link>
+          </Button>
+          
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Trocas & Devoluções</h1>
+            <p className="text-muted-foreground">{store.name}</p>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">

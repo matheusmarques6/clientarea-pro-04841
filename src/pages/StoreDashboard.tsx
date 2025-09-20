@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Percent, PiggyBank, RefreshCw, Package } from 'lucide-react';
+import { TrendingUp, DollarSign, Percent, PiggyBank, RefreshCw, Package, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,16 +26,33 @@ const StoreDashboard = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{store.name}</h1>
-          <p className="text-muted-foreground">
-            Dashboard • {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
-          </p>
+      {/* Header com botão de voltar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {/* Botão Voltar para Lojas */}
+          <Button 
+            asChild 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2 hover:bg-muted/50"
+          >
+            <Link to="/stores">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Voltar para Lojas</span>
+              <span className="sm:hidden">Voltar</span>
+            </Link>
+          </Button>
+          
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">{store.name}</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Dashboard • {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
+            </p>
+          </div>
         </div>
+        
         <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-32 sm:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

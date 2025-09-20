@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, Copy, Filter, Search, MoreHorizontal } from 'lucide-react';
+import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -118,18 +118,33 @@ const Refunds = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Reembolsos</h1>
-          <p className="text-muted-foreground">{store.name}</p>
+      {/* Header com botão voltar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {/* Botão Voltar para Lojas */}
+          <Button 
+            asChild 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2 hover:bg-muted/50"
+          >
+            <Link to="/stores">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Voltar</span>
+            </Link>
+          </Button>
+          
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Reembolsos</h1>
+            <p className="text-muted-foreground">{store.name}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleCopyPublicLink}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
             <Copy className="h-4 w-4 mr-2" />
             Copiar Link Público
           </Button>
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Novo Reembolso
           </Button>
