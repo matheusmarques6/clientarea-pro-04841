@@ -101,9 +101,9 @@ const PreDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Channel Revenue Cards - Grid Responsivo */}
-          <div className="w-full max-w-6xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          {/* Channel Revenue Cards - Mesma largura do Hero Card */}
+          <div className="w-full max-w-4xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {mockChannelRevenue.map((channel, index) => {
                 const icons = [Mail, MessageCircle, Smartphone];
                 const Icon = icons[index];
@@ -118,7 +118,7 @@ const PreDashboard = () => {
                     key={channel.channel} 
                     className="glass-card animate-hover transition-all duration-200 ease-smooth h-full"
                   >
-                    <CardContent className="p-4 sm:p-6 h-full min-h-[140px] flex flex-col justify-between">
+                    <CardContent className="p-4 sm:p-6 h-full min-h-[140px] flex flex-col justify-between w-full">
                       <div className="flex items-start gap-3 sm:gap-4 flex-1">
                         
                         {/* Icon */}
