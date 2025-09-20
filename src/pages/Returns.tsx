@@ -72,49 +72,49 @@ const Returns = () => {
       id: 'nova',
       title: 'Nova',
       status: 'Nova',
-      color: 'bg-slate-100 text-slate-800',
+      color: 'bg-slate-200 text-slate-900 border-slate-300',
       items: returns.filter(r => r.status === 'Nova')
     },
     {
       id: 'analise',
       title: 'Em análise',
       status: 'Em análise',
-      color: 'bg-yellow-100 text-yellow-800',
+      color: 'bg-yellow-200 text-yellow-900 border-yellow-300',
       items: returns.filter(r => r.status === 'Em análise')
     },
     {
       id: 'aprovada',
       title: 'Aprovada',
       status: 'Aprovada',
-      color: 'bg-green-100 text-green-800',
+      color: 'bg-green-200 text-green-900 border-green-300',
       items: returns.filter(r => r.status === 'Aprovada')
     },
     {
       id: 'postagem',
       title: 'Aguardando postagem',
       status: 'Aguardando postagem',
-      color: 'bg-blue-100 text-blue-800',
+      color: 'bg-blue-200 text-blue-900 border-blue-300',
       items: returns.filter(r => r.status === 'Aguardando postagem')
     },
     {
       id: 'recebida',
       title: 'Recebida em CD',
       status: 'Recebida em CD',
-      color: 'bg-purple-100 text-purple-800',
+      color: 'bg-purple-200 text-purple-900 border-purple-300',
       items: returns.filter(r => r.status === 'Recebida em CD')
     },
     {
       id: 'concluida',
       title: 'Concluída',
       status: 'Concluída',
-      color: 'bg-emerald-100 text-emerald-800',
+      color: 'bg-emerald-200 text-emerald-900 border-emerald-300',
       items: returns.filter(r => r.status === 'Concluída')
     },
     {
       id: 'recusada',
       title: 'Recusada',
       status: 'Recusada',
-      color: 'bg-red-100 text-red-800',
+      color: 'bg-red-200 text-red-900 border-red-300',
       items: returns.filter(r => r.status === 'Recusada')
     }
   ];
@@ -231,10 +231,10 @@ const Returns = () => {
             <div className="grid grid-cols-7 gap-4 min-h-[70vh] min-w-[1400px]">
               {filteredColumns.map((column) => (
                 <div key={column.id} className="min-w-[200px] bg-muted/20 rounded-lg border border-border">
-                  {/* Header da coluna */}
-                  <div className={`p-4 rounded-t-lg border-b border-border ${column.color} bg-opacity-20`}>
-                    <h3 className="font-semibold text-sm text-center text-foreground">{column.title}</h3>
-                    <p className="text-xs text-center text-muted-foreground mt-1">{column.items.length} itens</p>
+                  {/* Header da coluna com cores mais nítidas */}
+                  <div className={`p-4 rounded-t-lg border-b border-border ${column.color} font-semibold`}>
+                    <h3 className="text-sm text-center">{column.title}</h3>
+                    <p className="text-xs text-center opacity-80 mt-1">{column.items.length} itens</p>
                   </div>
                   {/* Cards container */}
                   <div className="p-3 space-y-3 min-h-[calc(70vh-80px)] max-h-[calc(70vh-80px)] overflow-y-auto">
