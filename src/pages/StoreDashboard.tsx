@@ -109,6 +109,39 @@ const StoreDashboard = () => {
         </Card>
       </div>
 
+      {/* Convertfy Impact Card */}
+      <Card className="glass-card bg-gradient-premium shadow-premium animate-hover relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5"></div>
+        <CardContent className="p-6 sm:p-8 relative">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="text-center lg:text-left">
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                Impacto da Convertfy no seu Faturamento
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Veja quanto a Convertfy representa do seu faturamento total no período
+              </p>
+            </div>
+            <div className="text-center lg:text-right">
+              <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
+                {((stats.faturamentoConvertfy / stats.faturamentoTotal) * 100).toFixed(1)}%
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatCurrency(stats.faturamentoConvertfy)} de {formatCurrency(stats.faturamentoTotal)}
+              </div>
+              <div className="mt-3">
+                <div className="w-full bg-muted/30 rounded-full h-2 max-w-[240px] mx-auto lg:mx-0">
+                  <div 
+                    className="bg-gradient-hero h-2 rounded-full transition-all duration-500 ease-smooth" 
+                    style={{ width: `${(stats.faturamentoConvertfy / stats.faturamentoTotal) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Line Chart */}
