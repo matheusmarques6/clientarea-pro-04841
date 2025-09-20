@@ -61,7 +61,8 @@ const ReturnsSetup = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="p-4 sm:p-6 space-y-6">{/* Mantendo mesmo padrão visual */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -92,7 +93,7 @@ const ReturnsSetup = () => {
         {/* Configuration */}
         <div className="space-y-4 sm:space-y-6">
           {/* URL */}
-          <Card className="glass-card">
+          <Card className="bg-card border-border shadow-sm">{/* Cards com fundo sólido */}
             <CardHeader>
               <CardTitle className="text-foreground">URL do Portal Público</CardTitle>
             </CardHeader>
@@ -110,7 +111,7 @@ const ReturnsSetup = () => {
           </Card>
 
           {/* Language Configuration */}
-          <Card className="glass-card">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader>
               <CardTitle className="text-foreground">Idioma do Portal</CardTitle>
             </CardHeader>
@@ -300,6 +301,9 @@ const ReturnsSetup = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
+    </div>
+  );
       </div>
     </div>
   );
