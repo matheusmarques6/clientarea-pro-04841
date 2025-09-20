@@ -207,7 +207,7 @@ const TrackingPortal = () => {
   };
 
   return (
-    <div className={`min-h-[100dvh] bg-gradient-to-br from-background via-background to-muted/50 px-4 ${
+    <div className={`min-h-[100svh] sm:min-h-[100dvh] bg-gradient-to-br from-background via-background to-muted/50 px-4 ${
       tracking ? 'flex flex-col pt-8' : 'grid place-items-center'
     }`}>
       <div className="w-full max-w-4xl mx-auto">
@@ -341,11 +341,13 @@ const TrackingPortal = () => {
           </div>
         )}
 
-        <div className="text-center mt-8">
-          <p className="text-sm text-muted-foreground">
-            Precisa de ajuda? Entre em contato conosco através do suporte
-          </p>
-        </div>
+        {tracking && (
+          <div className="text-center mt-8">
+            <p className="text-sm text-muted-foreground">
+              Precisa de ajuda? Entre em contato conosco através do suporte
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
