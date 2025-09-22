@@ -127,7 +127,7 @@ const StoreSelector = () => {
           {stores.length > 0 && (
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
               <Card className="max-w-2xl mx-auto bg-muted/30">
-              <CardContent className="text-center py-8 bg-white">
+              <CardContent className="text-center py-8 bg-white rounded-lg">
                 <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Precisa de ajuda?</h3>
                 <p className="text-muted-foreground mb-6">
