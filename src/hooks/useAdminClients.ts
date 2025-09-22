@@ -203,7 +203,8 @@ export const useAdminClients = () => {
     status?: string;
   }) => {
     try {
-      const { data, error } = await supabase
+      // First create the store
+      const { data: store, error: storeError } = await supabase
         .from('stores')
         .insert([{
           ...storeData,
@@ -213,14 +214,48 @@ export const useAdminClients = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (storeError) throw storeError;
+
+      // Get all users that belong to this client
+      const clientUsers = await getClientUsers(storeData.client_id);
+
+      // Add all client users to the new store via store_members
+      if (clientUsers.length > 0) {
+        const storeMembers = clientUsers.map(user => ({
+          user_id: user.id,
+          store_id: store.id,
+          role: user.role || 'viewer'
+        }));
+
+        const { error: membersError } = await supabase
+          .from('store_members')
+          .insert(storeMembers);
+
+        if (membersError) {
+          console.warn('Error adding store members:', membersError);
+        }
+
+        // Mirror access on v_user_stores for RLS
+        const vusRows = clientUsers.map(user => ({ 
+          user_id: user.id, 
+          store_id: store.id 
+        }));
+        
+        const { error: vusError } = await supabase
+          .from('v_user_stores')
+          .insert(vusRows);
+
+        if (vusError && (vusError as any).code !== '23505') {
+          console.warn('Error updating v_user_stores:', vusError);
+        }
+      }
 
       toast({
         title: "Loja adicionada",
-        description: "Loja adicionada ao cliente com sucesso!",
+        description: "Loja adicionada ao cliente e vinculada aos usuários com sucesso!",
       });
 
-      return { data, error: null };
+      return { data: store, error: null };
     } catch (error) {
       console.error('Error adding store to client:', error);
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
