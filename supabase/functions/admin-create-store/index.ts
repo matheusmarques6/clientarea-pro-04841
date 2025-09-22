@@ -98,8 +98,8 @@ serve(async (req: Request) => {
         name, 
         country: country ?? null, 
         currency, 
-        status: status ?? 'connected',
-        customer_id: client_id  // Set customer_id to client_id for permissions
+        status: status ?? 'connected'
+        // Note: customer_id is optional and can be null
       })
       .select()
       .single()

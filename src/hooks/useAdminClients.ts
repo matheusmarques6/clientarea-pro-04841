@@ -221,8 +221,8 @@ export const useAdminClients = () => {
         .from('stores')
         .insert([{
           ...storeFields,
-          status: storeData.status || 'connected',
-          customer_id: storeData.client_id  // Set customer_id to client_id for permissions
+          status: storeData.status || 'connected'
+          // Note: customer_id is optional and separate from client_id
         }])
         .select()
         .single();
