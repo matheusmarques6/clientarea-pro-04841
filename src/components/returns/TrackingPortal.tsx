@@ -207,8 +207,8 @@ const TrackingPortal = () => {
   };
 
   return (
-    <div className={`min-h-[100svh] sm:min-h-[100dvh] bg-gradient-to-br from-background via-background to-muted/50 px-4 flex ${tracking ? 'flex-col pt-8' : 'items-center justify-center'}`}>
-      <div className="w-full max-w-4xl mx-auto">
+    <div className={`layout-center bg-gradient-to-br from-background via-background to-muted/50 ${tracking ? '!justify-start !pt-8' : ''}`}>
+      <div className="layout-container">
         <div className={`${tracking ? '' : 'place-self-center w-full max-w-xl'}`}>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">

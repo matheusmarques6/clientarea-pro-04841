@@ -388,8 +388,8 @@ const PublicReturns = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 flex items-center justify-center py-8 px-4">
-      <div className="w-full max-w-2xl mx-auto">{/* Container centralizado */}
+    <div className="layout-center bg-gradient-to-br from-background via-background to-muted/50">
+      <div className="layout-container">{/* Container centralizado */}
         {/* Header */}
         <div className="text-center mb-8">
           <img 

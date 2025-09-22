@@ -24,11 +24,9 @@ const PreDashboard = () => {
   return (
     <section 
       id="pre-dashboard" 
-      className="center-screen"
+      className="layout-center"
       style={{
-        background: 'linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%)',
-        minHeight: '100vh',
-        width: '100%'
+        background: 'linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%)'
       }}
     >
       <div className="pre-dashboard-inner">

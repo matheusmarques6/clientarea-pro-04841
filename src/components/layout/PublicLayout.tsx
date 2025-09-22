@@ -19,7 +19,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
         {/* Main Content */}
         <main className="w-full">
-          <div className="mx-auto w-full max-w-[720px] px-5 py-6">
+          <div className="layout-container">
             {children}
           </div>
         </main>
