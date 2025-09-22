@@ -42,65 +42,25 @@ export const useAdminUsers = () => {
     password?: string;
   }) => {
     try {
-      console.log('useAdminUsers: Creating user with data:', userData);
-      
-      // Usar signup normal ao invés de admin.createUser
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password || crypto.randomUUID().substring(0, 8), // senha temporária se não fornecida
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
-        },
+      console.log('useAdminUsers: Creating user via edge function:', userData);
+
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: userData,
       });
 
-      if (authError) {
-        console.error('Error creating auth user:', authError);
-        throw authError;
-      }
+      if (error) throw error;
 
-      console.log('Auth user created:', authData);
-
-      if (!authData.user) {
-        throw new Error('Falha ao criar usuário - dados de autenticação não retornados');
-      }
-
-      // Depois, criar o registro na tabela users
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          id: authData.user.id, // usar o mesmo ID do usuário de auth
-          name: userData.name,
-          email: userData.email,
-          role: userData.role || 'viewer',
-          is_admin: false
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating user record:', error);
-        // Não tentar deletar o usuário de auth se falhar, deixar para que ele possa completar o cadastro
-        throw error;
-      }
-
-      await fetchUsers(); // Refresh the list
-      
+      await fetchUsers();
       toast({
-        title: "Usuário criado",
-        description: `Usuário criado com sucesso! ${!userData.password ? 'Uma senha temporária foi gerada.' : ''}`,
+        title: 'Usuário criado',
+        description: 'Usuário criado com sucesso!',
       });
 
       return { data, error: null };
-    } catch (error) {
-      console.error('Error creating user:', error);
-      const message = error instanceof Error ? error.message : 'Erro desconhecido';
-      
-      toast({
-        title: "Erro ao criar usuário",
-        description: message,
-        variant: "destructive",
-      });
-
+    } catch (error: any) {
+      console.error('Error creating user via function:', error);
+      const message = error?.message || 'Erro desconhecido';
+      toast({ title: 'Erro ao criar usuário', description: message, variant: 'destructive' });
       return { data: null, error: message };
     }
   };

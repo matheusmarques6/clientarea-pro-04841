@@ -51,14 +51,9 @@ export const useAdminStores = () => {
     status?: string;
   }) => {
     try {
-      const { data, error } = await supabase
-        .from('stores')
-        .insert([{
-          ...storeData,
-          status: storeData.status || 'active'
-        }])
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('admin-create-store', {
+        body: storeData,
+      });
 
       if (error) throw error;
 
@@ -70,9 +65,9 @@ export const useAdminStores = () => {
       });
 
       return { data, error: null };
-    } catch (error) {
-      console.error('Error creating store:', error);
-      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+    } catch (error: any) {
+      console.error('Error creating store via function:', error);
+      const message = error?.message || 'Erro desconhecido';
       
       toast({
         title: "Erro ao criar loja",
