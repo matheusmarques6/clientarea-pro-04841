@@ -38,7 +38,9 @@ const AppLayout = () => {
           </div>
         </header>
         <main className="flex-1 overflow-auto">
-          <Outlet />
+          <div className="layout-container">
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </div>

@@ -17,8 +17,10 @@ const AdminLayout = () => {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="flex-1 overflow-auto">
+          <div className="layout-container">
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </div>

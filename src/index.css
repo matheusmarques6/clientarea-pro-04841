@@ -348,4 +348,56 @@ html, body, #root, #__next {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
+
+  /* LAYOUT SYSTEM - Centralized Container System */
+  
+  /* For sidebar layouts - centers content within the main area */
+  .layout-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    width: 100%;
+  }
+
+  /* For standalone pages - full screen centering */
+  .layout-center {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* For narrow content like forms */
+  .layout-narrow {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    width: 100%;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .layout-container, .layout-center, .layout-narrow {
+      padding: 1rem;
+    }
+    
+    .layout-container {
+      max-width: 100%;
+    }
+    
+    .layout-center {
+      max-width: 100%;
+      min-height: auto;
+      justify-content: flex-start;
+      padding-top: 2rem;
+    }
+    
+    .layout-narrow {
+      max-width: 100%;
+    }
+  }
 }
