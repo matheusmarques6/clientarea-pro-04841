@@ -213,6 +213,8 @@ export const useAdminClients = () => {
     userIds?: string[];
   }) => {
     try {
+      console.log('addStoreToClient: Creating store with data:', storeData);
+      
       // First create the store
       const { userIds, ...storeFields } = storeData as any;
       const { data: store, error: storeError } = await supabase
@@ -226,11 +228,13 @@ export const useAdminClients = () => {
         .single();
 
       if (storeError) throw storeError;
+      console.log('addStoreToClient: Store created:', store);
 
-      // Use selected users or fallback to existing client users
+      // Get users to associate - prioritize selected users, fallback to all client users
       let usersToAdd = [];
       
       if (userIds && userIds.length > 0) {
+        console.log('addStoreToClient: Using selected users:', userIds);
         // Use specifically selected users
         const { data: selectedUsers, error: usersError } = await supabase
           .from('users')
@@ -240,44 +244,40 @@ export const useAdminClients = () => {
         if (usersError) throw usersError;
         usersToAdd = selectedUsers || [];
       } else {
+        console.log('addStoreToClient: No users selected, getting all client users');
         // Fallback to existing client users
         usersToAdd = await getClientUsers(storeData.client_id);
       }
 
-      // Add users to the new store via store_members
+      console.log('addStoreToClient: Users to add:', usersToAdd);
+
+      // Add users to the new store via store_members (trigger will handle v_user_stores)
       if (usersToAdd.length > 0) {
         const storeMembers = usersToAdd.map(user => ({
           user_id: user.id,
           store_id: store.id,
-          role: user.role || 'viewer'
+          role: user.role || 'owner'  // Default to owner for better access
         }));
 
+        console.log('addStoreToClient: Inserting store members:', storeMembers);
+        
         const { error: membersError } = await supabase
           .from('store_members')
           .insert(storeMembers);
 
         if (membersError) {
-          console.warn('Error adding store members:', membersError);
+          console.error('addStoreToClient: Error adding store members:', membersError);
+          throw membersError;
         }
 
-        // Mirror access on v_user_stores for RLS
-        const vusRows = usersToAdd.map(user => ({ 
-          user_id: user.id, 
-          store_id: store.id 
-        }));
-        
-        const { error: vusError } = await supabase
-          .from('v_user_stores')
-          .insert(vusRows);
-
-        if (vusError && (vusError as any).code !== '23505') {
-          console.warn('Error updating v_user_stores:', vusError);
-        }
+        console.log('addStoreToClient: Store members added successfully');
+      } else {
+        console.warn('addStoreToClient: No users found to associate with store');
       }
 
       toast({
         title: "Loja adicionada",
-        description: `Loja adicionada ao cliente com ${usersToAdd.length} usuário(s) vinculado(s)!`,
+        description: `Loja "${store.name}" criada com ${usersToAdd.length} usuário(s) vinculado(s)!`,
       });
 
       return { data: store, error: null };
