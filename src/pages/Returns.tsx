@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft, Settings, ExternalLink } from 'lucide-react';
+import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft, Settings, ExternalLink, User, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,34 +133,59 @@ const Returns = () => {
 
   const KanbanCard = ({ item }: { item: ReturnRequest }) => (
     <Card 
-      className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.02] mb-3" 
+      className="bg-white border border-border shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer group" 
       onClick={() => handleReturnClick(item)}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="font-semibold text-sm text-foreground">{item.id}</p>
-            <p className="text-xs text-muted-foreground">{item.pedido}</p>
+      <CardContent className="p-4 space-y-3">
+        {/* Header with ID and action */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="font-semibold text-brand-600 text-sm">{item.id}</p>
+            <p className="text-xs text-ink-3">{item.pedido}</p>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ExternalLink className="h-3 w-3 text-ink-3" />
           </Button>
         </div>
         
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">{item.cliente}</p>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs text-foreground border-border">
-              {item.tipo}
-            </Badge>
-            <span className="text-xs text-muted-foreground">{item.motivo}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">
-              R$ {item.valor.toFixed(2)}
+        {/* Customer */}
+        <div className="flex items-center gap-2">
+          <User className="h-3 w-3 text-ink-3" />
+          <span className="text-sm font-medium text-ink">{item.cliente}</span>
+        </div>
+        
+        {/* Type badge and reason */}
+        <div className="space-y-2">
+          <Badge 
+            className="bg-warning/10 text-warning border-warning/20 text-xs font-medium px-2 py-0.5"
+          >
+            {item.tipo}
+          </Badge>
+          <p className="text-xs text-ink-2 leading-relaxed">
+            Motivo: {item.motivo}
+          </p>
+        </div>
+        
+        {/* Value and date */}
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-ink-3">$</span>
+            <span className="text-sm font-semibold text-success">
+              R$ {item.valor.toFixed(2).replace('.', ',')}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+          </div>
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-ink-3" />
+            <span className="text-xs text-ink-3">
+              {new Date(item.createdAt).toLocaleDateString('pt-BR', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric' 
+              })}
             </span>
           </div>
         </div>
@@ -287,11 +312,15 @@ const Returns = () => {
           <div className="overflow-x-auto pb-4">
             <div className="grid grid-cols-7 gap-4 min-h-[70vh] min-w-[1400px]">
               {filteredColumns.map((column) => (
-                <div key={column.id} className="min-w-[200px] bg-muted/20 rounded-lg border border-border">
-                  {/* Header da coluna com cores mais nítidas */}
-                  <div className={`p-4 rounded-t-lg border-b border-border ${column.color} font-semibold`}>
-                    <h3 className="text-sm text-center">{column.title}</h3>
-                    <p className="text-xs text-center opacity-80 mt-1">{column.items.length} itens</p>
+                <div key={column.id} className="min-w-[200px] bg-white rounded-xl border border-border shadow-xs">
+                  {/* Header da coluna */}
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-ink">{column.title}</h3>
+                      <div className="flex items-center justify-center w-6 h-6 bg-ink-3/10 rounded-full">
+                        <span className="text-xs font-medium text-ink-2">{column.items.length}</span>
+                      </div>
+                    </div>
                   </div>
                   {/* Cards container */}
                   <div className="p-3 space-y-3 min-h-[calc(70vh-80px)] max-h-[calc(70vh-80px)] overflow-y-auto">
@@ -300,7 +329,7 @@ const Returns = () => {
                     ))}
                     {column.items.length === 0 && (
                       <div className="text-center py-12">
-                        <p className="text-sm text-muted-foreground">Nenhum item</p>
+                        <p className="text-sm text-ink-3">Nenhum item</p>
                       </div>
                     )}
                   </div>
