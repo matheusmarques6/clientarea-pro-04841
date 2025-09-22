@@ -11,8 +11,6 @@ import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard'; // Sempre ir para dashboard
-
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -22,7 +20,7 @@ const Auth = () => {
 
   // Redirect if already authenticated
   if (user) {
-    return <Navigate to={from} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSignIn = async (e: React.FormEvent) => {

@@ -70,9 +70,6 @@ export const useAuthState = () => {
         description: "Bem-vindo de volta!",
       });
 
-      // Redirecionar para PreDashboard após login
-      window.location.href = '/dashboard';
-
       return {};
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -124,9 +121,6 @@ export const useAuthState = () => {
         title: "Conta criada",
         description: "Cadastro realizado com sucesso!",
       });
-
-      // Redirecionar para PreDashboard após cadastro
-      window.location.href = '/dashboard';
 
       return {};
     } catch (error) {
