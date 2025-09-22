@@ -73,6 +73,94 @@ export type Database = {
         }
         Relationships: []
       }
+      integrations: {
+        Row: {
+          created_at: string | null
+          extra: Json | null
+          id: string
+          key_public: string | null
+          key_secret_encrypted: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          status: Database["public"]["Enums"]["integration_status"] | null
+          store_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          extra?: Json | null
+          id?: string
+          key_public?: string | null
+          key_secret_encrypted?: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          extra?: Json | null
+          id?: string
+          key_public?: string | null
+          key_secret_encrypted?: string | null
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          channel_attrib:
+            | Database["public"]["Enums"]["channel_attribution"]
+            | null
+          code: string
+          created_at: string | null
+          currency: string | null
+          id: string
+          store_id: string | null
+          total: number
+        }
+        Insert: {
+          channel_attrib?:
+            | Database["public"]["Enums"]["channel_attribution"]
+            | null
+          code: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          store_id?: string | null
+          total?: number
+        }
+        Update: {
+          channel_attrib?:
+            | Database["public"]["Enums"]["channel_attribution"]
+            | null
+          code?: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          store_id?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_costs: {
         Row: {
           cost_brl: number | null
@@ -126,6 +214,44 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          product_id_ext: string | null
+          store_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          product_id_ext?: string | null
+          store_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          product_id_ext?: string | null
+          store_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_links: {
         Row: {
           auto_rules: Json | null
@@ -163,6 +289,79 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refund_events: {
+        Row: {
+          created_at: string | null
+          from_status: Database["public"]["Enums"]["refund_status"] | null
+          id: string
+          reason: string | null
+          refund_id: string | null
+          to_status: Database["public"]["Enums"]["refund_status"]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_status?: Database["public"]["Enums"]["refund_status"] | null
+          id?: string
+          reason?: string | null
+          refund_id?: string | null
+          to_status: Database["public"]["Enums"]["refund_status"]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          from_status?: Database["public"]["Enums"]["refund_status"] | null
+          id?: string
+          reason?: string | null
+          refund_id?: string | null
+          to_status?: Database["public"]["Enums"]["refund_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_events_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refund_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          method: string
+          refund_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          method: string
+          refund_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          method?: string
+          refund_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_payments_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "refunds"
             referencedColumns: ["id"]
           },
         ]
@@ -229,6 +428,44 @@ export type Database = {
           },
         ]
       }
+      return_events: {
+        Row: {
+          created_at: string | null
+          from_status: Database["public"]["Enums"]["return_status"] | null
+          id: string
+          reason: string | null
+          return_id: string | null
+          to_status: Database["public"]["Enums"]["return_status"]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_status?: Database["public"]["Enums"]["return_status"] | null
+          id?: string
+          reason?: string | null
+          return_id?: string | null
+          to_status: Database["public"]["Enums"]["return_status"]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          from_status?: Database["public"]["Enums"]["return_status"] | null
+          id?: string
+          reason?: string | null
+          return_id?: string | null
+          to_status?: Database["public"]["Enums"]["return_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_events_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_items: {
         Row: {
           id: string
@@ -260,6 +497,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_labels: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          provider: string
+          return_id: string | null
+          url: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          provider?: string
+          return_id?: string | null
+          url?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          provider?: string
+          return_id?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_labels_return_id_fkey"
             columns: ["return_id"]
             isOneToOne: false
             referencedRelation: "returns"
@@ -399,6 +671,129 @@ export type Database = {
           },
         ]
       }
+      variant_cost_audit: {
+        Row: {
+          created_at: string | null
+          field: string
+          id: string
+          new_value: number | null
+          old_value: number | null
+          user_id: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          field: string
+          id?: string
+          new_value?: number | null
+          old_value?: number | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          field?: string
+          id?: string
+          new_value?: number | null
+          old_value?: number | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_cost_audit_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      variant_costs: {
+        Row: {
+          cost_brl: number | null
+          cost_eur: number | null
+          cost_gbp: number | null
+          cost_usd: number | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          cost_brl?: number | null
+          cost_eur?: number | null
+          cost_gbp?: number | null
+          cost_usd?: number | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          cost_brl?: number | null
+          cost_eur?: number | null
+          cost_gbp?: number | null
+          cost_usd?: number | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_costs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: true
+            referencedRelation: "variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      variants: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          price: number
+          product_id: string | null
+          sku: string
+          title: string
+          updated_at: string | null
+          variant_id_ext: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          price?: number
+          product_id?: string | null
+          sku: string
+          title: string
+          updated_at?: string | null
+          variant_id_ext?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          price?: number
+          product_id?: string | null
+          sku?: string
+          title?: string
+          updated_at?: string | null
+          variant_id_ext?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       v_user_stores: {
@@ -429,6 +824,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      channel_attribution: "email" | "sms" | "whatsapp" | "none"
+      integration_provider: "shopify" | "klaviyo" | "sms" | "whatsapp"
+      integration_status: "connected" | "error" | "disconnected"
       refund_status:
         | "requested"
         | "review"
@@ -572,6 +970,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      channel_attribution: ["email", "sms", "whatsapp", "none"],
+      integration_provider: ["shopify", "klaviyo", "sms", "whatsapp"],
+      integration_status: ["connected", "error", "disconnected"],
       refund_status: [
         "requested",
         "review",
