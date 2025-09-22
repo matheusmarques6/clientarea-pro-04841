@@ -4,12 +4,12 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { mockStores } from '@/lib/mockData';
+import { useStore } from '@/hooks/useStores';
 
 const AppLayout = () => {
   const { id: storeId } = useParams();
   const { signOut } = useAuth();
-  const store = mockStores.find(s => s.id === storeId);
+  const { store } = useStore(storeId!);
 
   return (
     <div className="min-h-screen flex w-full">

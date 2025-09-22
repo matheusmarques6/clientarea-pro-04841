@@ -5,17 +5,46 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockStores, mockDashboardStats, mockChannelRevenue, mockChartData } from '@/lib/mockData';
+import { mockDashboardStats, mockChannelRevenue, mockChartData } from '@/lib/mockData';
+import { useStore } from '@/hooks/useStores';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
   
-  const store = mockStores.find(s => s.id === id);
+  const { store, isLoading } = useStore(id!);
   const stats = mockDashboardStats;
 
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!store) {
-    return <div>Loja não encontrada</div>;
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loja não encontrada</h2>
+          <p className="text-muted-foreground mb-4">A loja solicitada não foi encontrada ou você não tem permissão para acessá-la.</p>
+          <Button asChild>
+            <Link to="/stores">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar às lojas
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const COLORS = ['#6366f1', '#10b981', '#f59e0b'];

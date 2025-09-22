@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { mockStores } from '@/lib/mockData';
+import { useStore } from '@/hooks/useStores';
 
 const NewReturn = () => {
   const { id: storeId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { store, isLoading } = useStore(storeId!);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1 - Identification
@@ -41,10 +42,32 @@ const NewReturn = () => {
     }
   });
   
-  const store = mockStores.find(s => s.id === storeId);
-  
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-96 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   if (!store) {
-    return <div>Loja não encontrada</div>;
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loja não encontrada</h2>
+          <p className="text-muted-foreground mb-4">A loja solicitada não foi encontrada ou você não tem permissão para acessá-la.</p>
+          <Button asChild>
+            <Link to="/stores">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar às lojas
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const mockOrderItems = [

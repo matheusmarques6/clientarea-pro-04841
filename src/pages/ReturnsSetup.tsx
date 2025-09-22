@@ -11,12 +11,13 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { mockStores } from '@/lib/mockData';
 import { supportedLanguages } from '@/lib/translations';
+import { useStore } from '@/hooks/useStores';
 
 const ReturnsSetup = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
+  const { store, isLoading } = useStore(storeId!);
   const [config, setConfig] = useState({
     janelaDias: 15,
     valorMinimo: 50,
@@ -29,11 +30,34 @@ const ReturnsSetup = () => {
     mensagemEs: 'Su solicitud de devolución/cambio ha sido recibida y está siendo revisada.'
   });
   
-  const store = mockStores.find(s => s.id === storeId);
-  const [returnsLanguage, setReturnsLanguage] = useState(store?.returnsLanguage || 'pt');
+  const [returnsLanguage, setReturnsLanguage] = useState('pt');
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-96 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!store) {
-    return <div>Loja não encontrada</div>;
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loja não encontrada</h2>
+          <p className="text-muted-foreground mb-4">A loja solicitada não foi encontrada ou você não tem permissão para acessá-la.</p>
+          <Button asChild>
+            <Link to="/stores">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar às lojas
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const publicUrl = `https://${store.name.toLowerCase().replace(/\s+/g, '-')}.convertfy.com/returns`;
