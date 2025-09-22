@@ -2,10 +2,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const StoreLoading = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full flex-1">
       {/* Header Loading */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="py-4 px-4 sm:px-6">
+        <div className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Skeleton className="h-8 w-32" />
