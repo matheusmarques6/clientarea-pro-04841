@@ -10,37 +10,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/useStores';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 const StoreSettings = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const { store, isLoading } = useStore(storeId!);
+  const { settings, setSettings, loading: settingsLoading, saveSettings } = useStoreSettings(storeId!);
   const [showTokens, setShowTokens] = useState(false);
-  const [settings, setSettings] = useState({
-    // Integrations
-    shopifyUrl: 'fashionbrasil.myshopify.com',
-    shopifyToken: '••••••••••••••••••••••••••••••••',
-    klaviyoPublicKey: 'pk_••••••••••••••••••••••••••••••••',
-    klaviyoPrivateKey: '••••••••••••••••••••••••••••••••',
-    smsApiKey: '••••••••••••••••••••••••••••••••',
-    whatsappApiKey: '••••••••••••••••••••••••••••••••',
-    
-    // Policies
-    devolucaoJanela: 15,
-    trocaJanela: 30,
-    reembolsoJanela: 7,
-    categoriasBloquadas: 'Produtos digitais, Produtos personalizados',
-    enderecoColeta: 'Rua das Flores, 123 - Centro - São Paulo/SP - 01234-567',
-    
-    // Templates
-    emailTrocaAprovada: 'Sua solicitação de troca foi aprovada! Em breve você receberá as instruções de postagem.',
-    emailDevolucaoAprovada: 'Sua solicitação de devolução foi aprovada! Em breve você receberá as instruções de postagem.',
-    emailReembolsoAprovado: 'Seu reembolso foi aprovado e está sendo processado. O valor será creditado em até 5 dias úteis.',
-    smsNotificacao: 'Convertfy: Sua solicitação #{id} foi atualizada para: {status}',
-    whatsappTemplate: 'Olá! Sua solicitação #{id} foi atualizada para: {status}. Acesse o link para mais detalhes.'
-  });
   
-  if (isLoading) {
+  if (isLoading || settingsLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -68,11 +47,8 @@ const StoreSettings = () => {
     );
   }
 
-  const handleSave = () => {
-    toast({
-      title: "Configurações salvas",
-      description: "Todas as configurações foram atualizadas com sucesso",
-    });
+  const handleSave = async () => {
+    await saveSettings(settings);
   };
 
   const toggleTokenVisibility = () => {
@@ -109,12 +85,12 @@ const StoreSettings = () => {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="shopifyUrl">URL da Loja</Label>
-                <Input
-                  id="shopifyUrl"
-                  value={settings.shopifyUrl}
-                  onChange={(e) => setSettings({...settings, shopifyUrl: e.target.value})}
-                  placeholder="minhaloja.myshopify.com"
-                />
+                  <Input
+                    id="shopifyUrl"
+                    value={settings.shopifyUrl || ''}
+                    onChange={(e) => setSettings({...settings, shopifyUrl: e.target.value})}
+                    placeholder="minhaloja.myshopify.com"
+                  />
               </div>
               <div>
                 <Label htmlFor="shopifyToken">Access Token</Label>
@@ -122,7 +98,7 @@ const StoreSettings = () => {
                   <Input
                     id="shopifyToken"
                     type={showTokens ? "text" : "password"}
-                    value={settings.shopifyToken}
+                    value={settings.shopifyToken || ''}
                     onChange={(e) => setSettings({...settings, shopifyToken: e.target.value})}
                     placeholder="shpat_..."
                   />
@@ -145,7 +121,7 @@ const StoreSettings = () => {
                 <Input
                   id="klaviyoPublic"
                   type={showTokens ? "text" : "password"}
-                  value={settings.klaviyoPublicKey}
+                  value={settings.klaviyoPublicKey || ''}
                   onChange={(e) => setSettings({...settings, klaviyoPublicKey: e.target.value})}
                   placeholder="pk_..."
                 />
@@ -155,7 +131,7 @@ const StoreSettings = () => {
                 <Input
                   id="klaviyoPrivate"
                   type={showTokens ? "text" : "password"}
-                  value={settings.klaviyoPrivateKey}
+                  value={settings.klaviyoPrivateKey || ''}
                   onChange={(e) => setSettings({...settings, klaviyoPrivateKey: e.target.value})}
                   placeholder="pk_..."
                 />
@@ -174,7 +150,7 @@ const StoreSettings = () => {
                 <Input
                   id="smsApi"
                   type={showTokens ? "text" : "password"}
-                  value={settings.smsApiKey}
+                  value={settings.smsApiKey || ''}
                   onChange={(e) => setSettings({...settings, smsApiKey: e.target.value})}
                   placeholder="API Key do provedor de SMS"
                 />
@@ -184,7 +160,7 @@ const StoreSettings = () => {
                 <Input
                   id="whatsappApi"
                   type={showTokens ? "text" : "password"}
-                  value={settings.whatsappApiKey}
+                  value={settings.whatsappApiKey || ''}
                   onChange={(e) => setSettings({...settings, whatsappApiKey: e.target.value})}
                   placeholder="API Key do WhatsApp Business"
                 />
@@ -206,7 +182,7 @@ const StoreSettings = () => {
                   <Input
                     id="devolucaoJanela"
                     type="number"
-                    value={settings.devolucaoJanela}
+                    value={settings.devolucaoJanela || 15}
                     onChange={(e) => setSettings({...settings, devolucaoJanela: parseInt(e.target.value)})}
                   />
                 </div>
@@ -215,7 +191,7 @@ const StoreSettings = () => {
                   <Input
                     id="trocaJanela"
                     type="number"
-                    value={settings.trocaJanela}
+                    value={settings.trocaJanela || 30}
                     onChange={(e) => setSettings({...settings, trocaJanela: parseInt(e.target.value)})}
                   />
                 </div>
@@ -224,7 +200,7 @@ const StoreSettings = () => {
                   <Input
                     id="reembolsoJanela"
                     type="number"
-                    value={settings.reembolsoJanela}
+                    value={settings.reembolsoJanela || 7}
                     onChange={(e) => setSettings({...settings, reembolsoJanela: parseInt(e.target.value)})}
                   />
                 </div>
@@ -242,7 +218,7 @@ const StoreSettings = () => {
                 <Label htmlFor="categoriasBloquadas">Categorias Bloqueadas</Label>
                 <Textarea
                   id="categoriasBloquadas"
-                  value={settings.categoriasBloquadas}
+                  value={settings.categoriasBloquadas || ''}
                   onChange={(e) => setSettings({...settings, categoriasBloquadas: e.target.value})}
                   placeholder="Liste as categorias que não permitem troca/devolução"
                   rows={3}
@@ -252,7 +228,7 @@ const StoreSettings = () => {
                 <Label htmlFor="enderecoColeta">Endereço de Coleta</Label>
                 <Textarea
                   id="enderecoColeta"
-                  value={settings.enderecoColeta}
+                  value={settings.enderecoColeta || ''}
                   onChange={(e) => setSettings({...settings, enderecoColeta: e.target.value})}
                   placeholder="Endereço completo para coleta dos produtos"
                   rows={2}
@@ -273,7 +249,7 @@ const StoreSettings = () => {
                 <Label htmlFor="emailTroca">Troca Aprovada</Label>
                 <Textarea
                   id="emailTroca"
-                  value={settings.emailTrocaAprovada}
+                  value={settings.emailTrocaAprovada || ''}
                   onChange={(e) => setSettings({...settings, emailTrocaAprovada: e.target.value})}
                   rows={3}
                 />
@@ -282,7 +258,7 @@ const StoreSettings = () => {
                 <Label htmlFor="emailDevolucao">Devolução Aprovada</Label>
                 <Textarea
                   id="emailDevolucao"
-                  value={settings.emailDevolucaoAprovada}
+                  value={settings.emailDevolucaoAprovada || ''}
                   onChange={(e) => setSettings({...settings, emailDevolucaoAprovada: e.target.value})}
                   rows={3}
                 />
@@ -291,7 +267,7 @@ const StoreSettings = () => {
                 <Label htmlFor="emailReembolso">Reembolso Aprovado</Label>
                 <Textarea
                   id="emailReembolso"
-                  value={settings.emailReembolsoAprovado}
+                  value={settings.emailReembolsoAprovado || ''}
                   onChange={(e) => setSettings({...settings, emailReembolsoAprovado: e.target.value})}
                   rows={3}
                 />
@@ -309,7 +285,7 @@ const StoreSettings = () => {
                 <Label htmlFor="smsTemplate">SMS Notificação</Label>
                 <Textarea
                   id="smsTemplate"
-                  value={settings.smsNotificacao}
+                  value={settings.smsNotificacao || ''}
                   onChange={(e) => setSettings({...settings, smsNotificacao: e.target.value})}
                   rows={2}
                 />
@@ -321,7 +297,7 @@ const StoreSettings = () => {
                 <Label htmlFor="whatsappTemplate">WhatsApp Template</Label>
                 <Textarea
                   id="whatsappTemplate"
-                  value={settings.whatsappTemplate}
+                  value={settings.whatsappTemplate || ''}
                   onChange={(e) => setSettings({...settings, whatsappTemplate: e.target.value})}
                   rows={3}
                 />

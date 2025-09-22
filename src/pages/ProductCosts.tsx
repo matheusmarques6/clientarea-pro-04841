@@ -6,17 +6,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { mockProducts, mockProductCosts, mockFxRates } from '@/lib/mockData';
 import { useStore } from '@/hooks/useStores';
+import { useProductCosts } from '@/hooks/useProductCosts';
+import { useProducts } from '@/hooks/useSupabaseData';
 
 const ProductCosts = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const { store, isLoading } = useStore(storeId!);
+  const { data: productCosts, loading: costsLoading, saveBulkCosts } = useProductCosts(storeId!);
+  const { data: products, loading: productsLoading } = useProducts(storeId);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCosts, setEditingCosts] = useState<{ [key: string]: any }>({});
   
-  if (isLoading) {
+  const mockFxRates = {
+    USD_BRL: 5.20,
+    EUR_BRL: 5.60,
+    GBP_BRL: 6.40
+  };
+  
+  if (isLoading || costsLoading || productsLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -62,30 +71,40 @@ const ProductCosts = () => {
     }));
   };
 
-  const handleSaveCosts = () => {
-    toast({
-      title: "Custos salvos",
-      description: "Custos de produtos atualizados com sucesso",
-    });
+  const handleSaveCosts = async () => {
+    await saveBulkCosts(editingCosts);
     setEditingCosts({});
   };
 
   const getCostForSku = (sku: string, currency: string) => {
-    return editingCosts[sku]?.[currency] ?? mockProductCosts[sku]?.costs[currency as keyof typeof mockProductCosts[typeof sku]['costs']] ?? '';
+    if (editingCosts[sku]?.[currency] !== undefined) {
+      return editingCosts[sku][currency];
+    }
+    
+    const costData = productCosts.find(cost => cost.sku === sku);
+    if (!costData) return '';
+    
+    switch (currency) {
+      case 'BRL': return costData.cost_brl || '';
+      case 'USD': return costData.cost_usd || '';
+      case 'EUR': return costData.cost_eur || '';
+      case 'GBP': return costData.cost_gbp || '';
+      default: return '';
+    }
   };
 
-  const allVariants = mockProducts.flatMap(product => 
-    product.variants.map(variant => ({
+  const allVariants = products.flatMap(product => 
+    product.variants?.map(variant => ({
       ...variant,
       productTitle: product.title,
-      productImage: product.image
-    }))
+      productImage: product.image_url
+    })) || []
   );
 
   const filteredVariants = allVariants.filter(variant => 
-    variant.productTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    variant.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    variant.title.toLowerCase().includes(searchTerm.toLowerCase())
+    variant.productTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    variant.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -129,7 +148,7 @@ const ProductCosts = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Com Custos</span>
             </div>
-            <p className="text-2xl font-bold">{Object.keys(mockProductCosts).length}</p>
+            <p className="text-2xl font-bold">{productCosts.length}</p>
           </CardContent>
         </Card>
         <Card className="glass-card">
@@ -192,7 +211,7 @@ const ProductCosts = () => {
               </thead>
               <tbody>
                 {filteredVariants.map((variant) => {
-                  const costData = mockProductCosts[variant.sku];
+                  const costData = productCosts.find(cost => cost.sku === variant.sku);
                   return (
                     <tr key={variant.id} className="border-b hover:bg-muted/50">
                       <td className="p-2">
@@ -214,7 +233,7 @@ const ProductCosts = () => {
                         {store.currency === 'USD' && '$ '}
                         {store.currency === 'EUR' && '€ '}
                         {store.currency === 'GBP' && '£ '}
-                        {variant.price.toFixed(2)}
+                        {variant.price?.toFixed(2)}
                       </td>
                       <td className="p-2">
                         <Input
@@ -259,8 +278,8 @@ const ProductCosts = () => {
                       <td className="p-2">
                         {costData && (
                           <div className="text-sm">
-                            <p>{new Date(costData.updatedAt).toLocaleDateString('pt-BR')}</p>
-                            <p className="text-muted-foreground">{costData.updatedBy}</p>
+                            <p>{new Date(costData.updated_at).toLocaleDateString('pt-BR')}</p>
+                            <p className="text-muted-foreground">{costData.updated_by || 'Sistema'}</p>
                           </div>
                         )}
                       </td>
