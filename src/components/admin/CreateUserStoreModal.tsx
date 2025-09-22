@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAdminStores } from '@/hooks/useAdminStores';
-import { useAdminUsers } from '@/hooks/useAdminUsers';
+import { useAdminClients } from '@/hooks/useAdminClients';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateUserStoreModalProps {
   onUserCreated: () => void;
@@ -29,52 +30,57 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { stores } = useAdminStores();
-  const { createUser, assignUserToStore } = useAdminUsers();
+  const { clients } = useAdminClients();
+  
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'viewer' as 'owner' | 'manager' | 'viewer',
-    store_id: '',
+    role: 'owner' as 'owner' | 'manager' | 'viewer',
+    client_id: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.store_id) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.client_id) {
       return;
     }
 
     setLoading(true);
     try {
-      console.log('CreateUserStoreModal: Creating user with data:', formData);
+      console.log('CreateUserStoreModal: Creating user and store with combined function');
       
-      // Primeiro criar o usuário
-      const { error } = await createUser({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
+      // Use the new combined function that creates user first, then store, then associates them
+      const { data, error } = await supabase.functions.invoke('admin-create-user-and-store', {
+        body: {
+          user_name: formData.name,
+          user_email: formData.email,
+          user_password: formData.password,
+          user_role: formData.role,
+          store_name: `Loja de ${formData.name}`, // Auto-generate store name
+          store_client_id: formData.client_id,
+          store_country: 'BR',
+          store_currency: 'BRL',
+        },
       });
 
-      if (!error) {
-        console.log('CreateUserStoreModal: User created successfully, now assigning to store');
-        // Depois associar à loja específica usando o email do usuário
-        await assignUserToStore(formData.email, formData.store_id, formData.role);
-        
-        setFormData({ 
-          name: '', 
-          email: '', 
-          password: '', 
-          role: 'viewer',
-          store_id: ''
-        });
-        setOpen(false);
-        onUserCreated();
-      } else {
-        console.error('CreateUserStoreModal: Error creating user:', error);
+      if (error) {
+        console.error('CreateUserStoreModal: Error:', error);
+        throw error;
       }
+
+      console.log('CreateUserStoreModal: User and store created successfully:', data);
+      
+      setFormData({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: 'owner',
+        client_id: ''
+      });
+      setOpen(false);
+      onUserCreated();
     } catch (error) {
       console.error('CreateUserStoreModal: Unexpected error:', error);
     } finally {
@@ -92,21 +98,21 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Criar Usuário para Loja</DialogTitle>
+          <DialogTitle>Criar Usuário e Loja para Cliente</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="store">Loja *</Label>
-            <Select value={formData.store_id} onValueChange={(value) => setFormData({ ...formData, store_id: value })}>
+            <Label htmlFor="client">Cliente *</Label>
+            <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione uma loja" />
+                <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                {stores.map((store) => (
-                  <SelectItem key={store.id} value={store.id}>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
                     <div className="flex items-center gap-2">
                       <Store className="w-4 h-4" />
-                      {store.name}
+                      {client.name}
                     </div>
                   </SelectItem>
                 ))}
@@ -170,7 +176,7 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.store_id}
+              disabled={loading || !formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.client_id}
             >
               {loading ? 'Criando...' : 'Criar Usuário'}
             </Button>
