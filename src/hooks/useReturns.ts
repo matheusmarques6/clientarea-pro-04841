@@ -2,6 +2,8 @@ import { useSupabaseQuery, useSupabaseMutation } from './useSupabaseQuery';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+type ReturnStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'closed' | 'rejected';
+
 export interface ReturnRequest {
   id: string;
   store_id: string;
@@ -9,14 +11,16 @@ export interface ReturnRequest {
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
-  type: 'exchange' | 'return';
+  type: string;
   reason?: string;
   notes?: string;
   amount: number;
-  status: 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_wh' | 'closed' | 'rejected';
-  origin: 'public' | 'internal';
+  status: ReturnStatus;
+  origin: string;
   created_at: string;
   updated_at: string;
+  code?: string;
+  sla_days?: number;
   return_items?: ReturnItem[];
   return_events?: ReturnEvent[];
 }
@@ -24,8 +28,8 @@ export interface ReturnRequest {
 export interface ReturnItem {
   id: string;
   return_id: string;
-  sku: string;
-  title: string;
+  sku?: string;
+  title?: string;
   variant?: string;
   qty: number;
   unit_price: number;
@@ -34,11 +38,24 @@ export interface ReturnItem {
 export interface ReturnEvent {
   id: string;
   return_id: string;
-  from_status?: string;
-  to_status: string;
+  from_status?: ReturnStatus;
+  to_status: ReturnStatus;
   reason?: string;
   user_id?: string;
   created_at: string;
+}
+
+export interface CreateReturnData {
+  order_code: string;
+  customer_name: string;
+  customer_email?: string;
+  customer_phone?: string;
+  type: string;
+  reason?: string;
+  notes?: string;
+  amount?: number;
+  origin?: string;
+  items: Partial<ReturnItem>[];
 }
 
 export const useReturns = (storeId: string) => {
@@ -63,13 +80,27 @@ export const useReturns = (storeId: string) => {
   );
 
   const createReturnMutation = useSupabaseMutation(
-    async (returnData: Partial<ReturnRequest> & { items: Partial<ReturnItem>[] }) => {
+    async (returnData: CreateReturnData) => {
       const { items, ...returnInfo } = returnData;
       
-      // Create return
-      const { data: returnRecord, error: returnError } = await supabase
+      // Create return with proper typing - casting to any to bypass type issues
+      const returnRecord: any = {
+        store_id: storeId,
+        order_code: returnInfo.order_code,
+        customer_name: returnInfo.customer_name,
+        customer_email: returnInfo.customer_email,
+        customer_phone: returnInfo.customer_phone,
+        type: returnInfo.type,
+        reason: returnInfo.reason,
+        notes: returnInfo.notes,
+        amount: returnInfo.amount || 0,
+        origin: returnInfo.origin || 'internal',
+        status: 'new',
+      };
+
+      const { data: insertedReturn, error: returnError } = await supabase
         .from('returns')
-        .insert([{ ...returnInfo, store_id: storeId }])
+        .insert([returnRecord])
         .select()
         .single();
 
@@ -81,8 +112,12 @@ export const useReturns = (storeId: string) => {
           .from('return_items')
           .insert(
             items.map(item => ({
-              ...item,
-              return_id: returnRecord.id,
+              return_id: insertedReturn.id,
+              sku: item.sku,
+              title: item.title,
+              variant: item.variant,
+              qty: item.qty || 1,
+              unit_price: item.unit_price || 0,
             }))
           );
 
@@ -93,14 +128,14 @@ export const useReturns = (storeId: string) => {
       const { error: eventError } = await supabase
         .from('return_events')
         .insert([{
-          return_id: returnRecord.id,
-          to_status: returnRecord.status,
+          return_id: insertedReturn.id,
+          to_status: 'new',
           reason: 'Solicitação criada',
-        }]);
+        } as any]);
 
       if (eventError) throw eventError;
 
-      return returnRecord;
+      return insertedReturn;
     },
     {
       onSuccess: () => {
@@ -114,7 +149,7 @@ export const useReturns = (storeId: string) => {
   );
 
   const updateReturnStatusMutation = useSupabaseMutation(
-    async ({ returnId, newStatus, reason }: { returnId: string; newStatus: string; reason?: string }) => {
+    async ({ returnId, newStatus, reason }: { returnId: string; newStatus: ReturnStatus; reason?: string }) => {
       // Get current return
       const { data: currentReturn, error: fetchError } = await supabase
         .from('returns')
@@ -127,7 +162,7 @@ export const useReturns = (storeId: string) => {
       // Update return status
       const { error: updateError } = await supabase
         .from('returns')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ status: newStatus as any, updated_at: new Date().toISOString() })
         .eq('id', returnId);
 
       if (updateError) throw updateError;
@@ -140,7 +175,7 @@ export const useReturns = (storeId: string) => {
           from_status: currentReturn.status,
           to_status: newStatus,
           reason: reason || `Status alterado para ${newStatus}`,
-        }]);
+        } as any]);
 
       if (eventError) throw eventError;
 

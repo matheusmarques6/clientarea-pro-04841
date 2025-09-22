@@ -2,6 +2,8 @@ import { useSupabaseQuery, useSupabaseMutation } from './useSupabaseQuery';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+type RefundStatus = 'requested' | 'review' | 'approved' | 'processing' | 'done' | 'rejected';
+
 export interface RefundRequest {
   id: string;
   store_id: string;
@@ -10,24 +12,35 @@ export interface RefundRequest {
   customer_email?: string;
   requested_amount: number;
   final_amount?: number;
-  method: 'card' | 'pix' | 'boleto' | 'store_credit';
+  method: string;
   reason?: string;
-  notes?: string;
-  status: 'requested' | 'review' | 'approved' | 'processing' | 'done' | 'rejected';
-  origin: 'public' | 'internal';
+  status: RefundStatus;
+  origin: string;
   created_at: string;
   updated_at: string;
+  code?: string;
+  transaction_id?: string;
   refund_events?: RefundEvent[];
 }
 
 export interface RefundEvent {
   id: string;
   refund_id: string;
-  from_status?: string;
-  to_status: string;
+  from_status?: RefundStatus;
+  to_status: RefundStatus;
   reason?: string;
   user_id?: string;
   created_at: string;
+}
+
+export interface CreateRefundData {
+  order_code: string;
+  customer_name: string;
+  customer_email?: string;
+  requested_amount: number;
+  method?: string;
+  reason?: string;
+  origin?: string;
 }
 
 export const useRefunds = (storeId: string) => {
@@ -51,11 +64,23 @@ export const useRefunds = (storeId: string) => {
   );
 
   const createRefundMutation = useSupabaseMutation(
-    async (refundData: Partial<RefundRequest>) => {
-      // Create refund
-      const { data: refundRecord, error: refundError } = await supabase
+    async (refundData: CreateRefundData) => {
+      // Create refund with proper typing
+      const refundRecord = {
+        store_id: storeId,
+        order_code: refundData.order_code,
+        customer_name: refundData.customer_name,
+        customer_email: refundData.customer_email,
+        requested_amount: refundData.requested_amount,
+        method: refundData.method || 'pix',
+        reason: refundData.reason,
+        origin: refundData.origin || 'internal',
+        status: 'requested' as RefundStatus,
+      };
+
+      const { data: insertedRefund, error: refundError } = await supabase
         .from('refunds')
-        .insert([{ ...refundData, store_id: storeId }])
+        .insert([refundRecord])
         .select()
         .single();
 
@@ -65,14 +90,14 @@ export const useRefunds = (storeId: string) => {
       const { error: eventError } = await supabase
         .from('refund_events')
         .insert([{
-          refund_id: refundRecord.id,
-          to_status: refundRecord.status,
+          refund_id: insertedRefund.id,
+          to_status: 'requested' as RefundStatus,
           reason: 'Solicitação criada',
         }]);
 
       if (eventError) throw eventError;
 
-      return refundRecord;
+      return insertedRefund;
     },
     {
       onSuccess: () => {
@@ -86,7 +111,7 @@ export const useRefunds = (storeId: string) => {
   );
 
   const updateRefundStatusMutation = useSupabaseMutation(
-    async ({ refundId, newStatus, reason }: { refundId: string; newStatus: string; reason?: string }) => {
+    async ({ refundId, newStatus, reason }: { refundId: string; newStatus: RefundStatus; reason?: string }) => {
       // Get current refund
       const { data: currentRefund, error: fetchError } = await supabase
         .from('refunds')
@@ -109,7 +134,7 @@ export const useRefunds = (storeId: string) => {
         .from('refund_events')
         .insert([{
           refund_id: refundId,
-          from_status: currentRefund.status,
+          from_status: currentRefund.status as RefundStatus,
           to_status: newStatus,
           reason: reason || `Status alterado para ${newStatus}`,
         }]);
