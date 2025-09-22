@@ -106,6 +106,9 @@ serve(async (req: Request) => {
       email: user_email,
       password: user_password,
       email_confirm: true,
+      user_metadata: {
+        name: user_name
+      }
     })
 
     if (authError) {
