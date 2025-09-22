@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Shield, Key } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { AdminUserWithStores } from '@/types/admin';
 import { UserEditModal } from '@/components/admin/UserEditModal';
 import { CreateUserStoreModal } from '@/components/admin/CreateUserStoreModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminUsers = () => {
   const { users, loading, createUser, updateUser, deleteUser, resetUserPassword, fetchUsers } = useAdminUsers();
@@ -39,6 +40,23 @@ const AdminUsers = () => {
     role: 'viewer' as 'owner' | 'manager' | 'viewer',
     password: ''
   });
+
+  const confirmedOnce = useRef(false);
+  useEffect(() => {
+    if (confirmedOnce.current) return;
+    confirmedOnce.current = true;
+    supabase.functions.invoke('admin-confirm-all-emails')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erro confirmando e-mails:', error);
+        } else {
+          const count = data?.data?.confirmed ?? 0;
+          if (count > 0) {
+            toast({ title: 'E-mails confirmados', description: `${count} usuário(s) atualizados` });
+          }
+        }
+      });
+  }, []);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
