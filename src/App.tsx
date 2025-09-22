@@ -19,6 +19,7 @@ import AdminClientCreate from "./pages/admin/AdminClientCreate";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStores from "./pages/admin/AdminStores";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminClientDetails from "./pages/admin/AdminClientDetails";
 import AdminLayout from "./components/admin/AdminLayout";
 
 // Pages
@@ -67,6 +68,8 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="clients" element={<AdminClients />} />
                 <Route path="clients/new" element={<AdminClientCreate />} />
+                <Route path="clients/:id" element={<AdminClientDetails />} />
+                <Route path="clients/:id/edit" element={<AdminClientDetails />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="stores" element={<AdminStores />} />
                 <Route path="audit" element={<AdminAudit />} />
