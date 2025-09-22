@@ -10,12 +10,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAdminClients } from '@/hooks/useAdminClients';
 import { useAdminStores } from '@/hooks/useAdminStores';
 import { useAdminUsers } from '@/hooks/useAdminUsers';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminClientCreate = () => {
   const navigate = useNavigate();
   const { createClient } = useAdminClients();
   const { createStore } = useAdminStores();
   const { createUser } = useAdminUsers();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
   const [createStoreWithClient, setCreateStoreWithClient] = useState(true);
@@ -79,13 +82,41 @@ const AdminClientCreate = () => {
       }
 
       // 3. Create user if requested
+      let newUserId: string | null = null;
       if (createUserWithClient && userData.name && userData.email) {
-        await createUser({
+        const userResult = await createUser({
           name: userData.name,
           email: userData.email,
           password: userData.password || undefined,
           role: 'owner',
         });
+
+        if (userResult.data) {
+          newUserId = userResult.data.id;
+          
+          // Se criou loja e usuário, associar o usuário à loja
+          if (newStoreId) {
+            console.log('AdminClientCreate: Associating user to store');
+            // Usar store_members para associar usuário à loja
+            const { error: memberError } = await supabase
+              .from('store_members')
+              .insert([{
+                user_id: newUserId,
+                store_id: newStoreId,
+                role: 'owner'
+              }]);
+            
+            if (memberError) {
+              console.error('Error associating user to store:', memberError);
+              // Não falhar o processo todo, apenas avisar
+              toast({
+                title: "Aviso",
+                description: "Usuário criado mas não foi possível associá-lo à loja automaticamente.",
+                variant: "destructive",
+              });
+            }
+          }
+        }
       }
 
       navigate('/admin/clients');

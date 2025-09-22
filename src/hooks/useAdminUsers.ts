@@ -42,25 +42,47 @@ export const useAdminUsers = () => {
     password?: string;
   }) => {
     try {
+      console.log('useAdminUsers: Creating user with data:', userData);
+      
+      // Primeiro, criar o usuário no sistema de autenticação do Supabase
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: userData.email,
+        password: userData.password || crypto.randomUUID().substring(0, 8), // senha temporária se não fornecida
+        email_confirm: true, // confirma email automaticamente
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        throw authError;
+      }
+
+      console.log('Auth user created:', authData);
+
+      // Depois, criar o registro na tabela users
       const { data, error } = await supabase
         .from('users')
         .insert([{
+          id: authData.user.id, // usar o mesmo ID do usuário de auth
           name: userData.name,
           email: userData.email,
           role: userData.role || 'viewer',
-          password_hash: userData.password ? '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' : null, // Mock hash
           is_admin: false
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating user record:', error);
+        // Se falhou ao criar o registro, tentar deletar o usuário de auth criado
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        throw error;
+      }
 
       await fetchUsers(); // Refresh the list
       
       toast({
         title: "Usuário criado",
-        description: "Usuário criado com sucesso!",
+        description: `Usuário criado com sucesso! ${!userData.password ? 'Senha temporária será enviada por email.' : ''}`,
       });
 
       return { data, error: null };
