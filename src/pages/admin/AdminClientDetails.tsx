@@ -10,7 +10,9 @@ import {
   X,
   AlertCircle,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -36,12 +49,23 @@ import {
 import { useAdminClients } from '@/hooks/useAdminClients';
 import { useToast } from '@/hooks/use-toast';
 import { Client, AdminStore, AdminUser } from '@/types/admin';
+import { AddStoreModal } from '@/components/admin/AddStoreModal';
+import { AddUserModal } from '@/components/admin/AddUserModal';
 
 const AdminClientDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getClientById, updateClient, getClientStores, getClientUsers } = useAdminClients();
+  const { 
+    getClientById, 
+    updateClient, 
+    getClientStores, 
+    getClientUsers,
+    addStoreToClient,
+    removeStoreFromClient,
+    addUserToClient,
+    removeUserFromClient
+  } = useAdminClients();
   
   const [client, setClient] = useState<Client | null>(null);
   const [stores, setStores] = useState<AdminStore[]>([]);
@@ -110,6 +134,21 @@ const AdminClientDetails = () => {
       }
     } catch (error) {
       console.error('Error updating client:', error);
+    }
+  };
+
+  const handleRemoveStore = async (storeId: string) => {
+    const { error } = await removeStoreFromClient(storeId);
+    if (!error) {
+      await fetchClientData();
+    }
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    if (!client?.id) return;
+    const { error } = await removeUserFromClient(userId, client.id);
+    if (!error) {
+      await fetchClientData();
     }
   };
 
@@ -332,37 +371,70 @@ const AdminClientDetails = () => {
         <TabsContent value="stores">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="w-5 h-5" />
-                Lojas do Cliente
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Store className="w-5 h-5" />
+                  Lojas do Cliente
+                </div>
+                {client && (
+                  <AddStoreModal
+                    clientId={client.id}
+                    onStoreAdded={fetchClientData}
+                    onAddStore={addStoreToClient}
+                  />
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {stores.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>País</TableHead>
-                        <TableHead>Moeda</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Criado em</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {stores.map((store) => (
-                        <TableRow key={store.id}>
-                          <TableCell className="font-medium">{store.name}</TableCell>
-                          <TableCell>{store.country || '-'}</TableCell>
-                          <TableCell>{store.currency}</TableCell>
-                          <TableCell>{getStatusBadge(store.status)}</TableCell>
-                          <TableCell>
-                            {new Date(store.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>País</TableHead>
+                          <TableHead>Moeda</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Criado em</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
+                      </TableHeader>
+                      <TableBody>
+                        {stores.map((store) => (
+                          <TableRow key={store.id}>
+                            <TableCell className="font-medium">{store.name}</TableCell>
+                            <TableCell>{store.country || '-'}</TableCell>
+                            <TableCell>{store.currency}</TableCell>
+                            <TableCell>{getStatusBadge(store.status)}</TableCell>
+                            <TableCell>
+                              {new Date(store.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover Loja</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover a loja "{store.name}"? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleRemoveStore(store.id)}>
+                                      Remover
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
                   </Table>
                 </div>
               ) : (
@@ -379,39 +451,72 @@ const AdminClientDetails = () => {
         <TabsContent value="users">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Usuários do Cliente
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Usuários do Cliente
+                </div>
+                {client && (
+                  <AddUserModal
+                    clientId={client.id}
+                    onUserAdded={fetchClientData}
+                    onAddUser={addUserToClient}
+                  />
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {users.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Função</TableHead>
-                        <TableHead>Criado em</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {user.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Função</TableHead>
+                          <TableHead>Criado em</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {user.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover o usuário "{user.name}" do cliente? Ele perderá acesso a todas as lojas deste cliente.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleRemoveUser(user.id)}>
+                                      Remover
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
                   </Table>
                 </div>
               ) : (

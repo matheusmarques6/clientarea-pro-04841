@@ -195,6 +195,178 @@ export const useAdminClients = () => {
     }
   };
 
+  const addStoreToClient = async (storeData: {
+    client_id: string;
+    name: string;
+    country?: string;
+    currency: string;
+    status?: string;
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .insert([{
+          ...storeData,
+          status: storeData.status || 'active'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Loja adicionada",
+        description: "Loja adicionada ao cliente com sucesso!",
+      });
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error adding store to client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao adicionar loja",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { data: null, error: message };
+    }
+  };
+
+  const removeStoreFromClient = async (storeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', storeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Loja removida",
+        description: "Loja removida do cliente com sucesso!",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error removing store from client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao remover loja",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { error: message };
+    }
+  };
+
+  const addUserToClient = async (userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'owner' | 'manager' | 'viewer';
+  }, clientId: string) => {
+    try {
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: userData.email,
+        password: userData.password,
+        email_confirm: true,
+      });
+
+      if (authError) throw authError;
+
+      // Create user in users table
+      const { data: userRecord, error: userError } = await supabase
+        .from('users')
+        .insert([{
+          id: authData.user.id,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+        }])
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      // Get client stores to add user to all of them
+      const clientStores = await getClientStores(clientId);
+      
+      if (clientStores.length > 0) {
+        const storeRoles = clientStores.map(store => ({
+          user_id: authData.user.id,
+          store_id: store.id,
+          role: userData.role,
+        }));
+
+        const { error: roleError } = await supabase
+          .from('user_store_roles')
+          .insert(storeRoles);
+
+        if (roleError) throw roleError;
+      }
+
+      toast({
+        title: "Usuário adicionado",
+        description: "Usuário adicionado ao cliente com sucesso!",
+      });
+
+      return { data: userRecord, error: null };
+    } catch (error) {
+      console.error('Error adding user to client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao adicionar usuário",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { data: null, error: message };
+    }
+  };
+
+  const removeUserFromClient = async (userId: string, clientId: string) => {
+    try {
+      // Get client stores
+      const clientStores = await getClientStores(clientId);
+      const storeIds = clientStores.map(store => store.id);
+
+      // Remove user store roles for this client's stores
+      if (storeIds.length > 0) {
+        const { error: roleError } = await supabase
+          .from('user_store_roles')
+          .delete()
+          .eq('user_id', userId)
+          .in('store_id', storeIds);
+
+        if (roleError) throw roleError;
+      }
+
+      toast({
+        title: "Usuário removido",
+        description: "Usuário removido do cliente com sucesso!",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error removing user from client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao remover usuário",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { error: message };
+    }
+  };
+
   return {
     clients,
     loading,
@@ -205,5 +377,9 @@ export const useAdminClients = () => {
     getClientById,
     getClientStores,
     getClientUsers,
+    addStoreToClient,
+    removeStoreFromClient,
+    addUserToClient,
+    removeUserFromClient,
   };
 };
