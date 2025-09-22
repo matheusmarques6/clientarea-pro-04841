@@ -207,7 +207,7 @@ export const useAdminClients = () => {
         .from('stores')
         .insert([{
           ...storeData,
-          status: storeData.status || 'active'
+          status: storeData.status || 'connected'
         }])
         .select()
         .single();
@@ -308,6 +308,14 @@ export const useAdminClients = () => {
           .insert(storeRoles);
 
         if (roleError) throw roleError;
+
+        // Mirror access on v_user_stores for RLS
+        const vusRows = clientStores.map(store => ({ user_id: authData.user.id, store_id: store.id }));
+        const { error: vusError } = await supabase
+          .from('v_user_stores')
+          .insert(vusRows);
+
+        if (vusError && (vusError as any).code !== '23505') throw vusError;
       }
 
       toast({
@@ -345,6 +353,15 @@ export const useAdminClients = () => {
           .in('store_id', storeIds);
 
         if (roleError) throw roleError;
+
+        // Mirror removal on v_user_stores
+        const { error: vusError } = await supabase
+          .from('v_user_stores')
+          .delete()
+          .eq('user_id', userId)
+          .in('store_id', storeIds);
+
+        if (vusError) throw vusError;
       }
 
       toast({

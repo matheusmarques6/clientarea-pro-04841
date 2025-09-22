@@ -181,6 +181,13 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
 
       if (error) throw error;
 
+      // Mirror access on v_user_stores for RLS
+      const { error: vusError } = await supabase
+        .from('v_user_stores')
+        .insert([{ user_id: user.id, store_id: storeId }]);
+
+      if (vusError && (vusError as any).code !== '23505') throw vusError;
+
       toast({ title: 'Acesso adicionado', description: 'O usuário foi adicionado à loja com sucesso.' });
       fetchUserStores();
     } catch (error) {
@@ -198,6 +205,15 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
         .eq('store_id', storeId);
 
       if (error) throw error;
+
+      // Mirror removal on v_user_stores
+      const { error: vusError } = await supabase
+        .from('v_user_stores')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('store_id', storeId);
+
+      if (vusError) throw vusError;
 
       toast({
         title: "Acesso removido",

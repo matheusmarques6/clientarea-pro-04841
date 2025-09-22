@@ -41,7 +41,7 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
     name: '',
     country: '',
     currency: 'BRL',
-    status: 'active',
+    status: 'connected',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,7 +68,7 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
 
       if (!error) {
         console.log('AddStoreModal: Store created successfully');
-        setFormData({ name: '', country: '', currency: 'BRL', status: 'active' });
+        setFormData({ name: '', country: '', currency: 'BRL', status: 'connected' });
         setOpen(false);
         onStoreAdded();
       } else {
@@ -137,6 +137,7 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="connected">Conectada</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
                 <SelectItem value="suspended">Suspenso</SelectItem>
               </SelectContent>

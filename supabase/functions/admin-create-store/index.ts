@@ -98,7 +98,7 @@ serve(async (req: Request) => {
         name, 
         country: country ?? null, 
         currency, 
-        status: status ?? 'active' 
+        status: status ?? 'connected' 
       })
       .select()
       .single()

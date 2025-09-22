@@ -88,7 +88,7 @@ serve(async (req: Request) => {
       store_client_id,
       store_country,
       store_currency,
-      store_status = 'active'
+      store_status = 'connected'
     } = body
 
     if (!user_name || !user_email || !user_password || !store_name || !store_client_id || !store_currency) {
