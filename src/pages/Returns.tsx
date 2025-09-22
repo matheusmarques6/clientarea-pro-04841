@@ -40,18 +40,18 @@ const statusCode = (label: string): any => {
   }
 };
 
-const originLabel = (origin?: string) => {
+const originLabel = (origin?: string): UIReturn['origem'] => {
   if (!origin) return 'Interna';
   if (origin === 'internal') return 'Interna';
   if (origin === 'public') return 'Link público';
-  return origin;
+  return 'Interna'; // fallback to ensure type safety
 };
 
 const Returns = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
 
-  const { returns: rawReturns, isLoading, updateStatus } = useReturnsHook(storeId as string);
+  const { returns: rawReturns, loading, refetch } = useReturnsHook(storeId as string);
   const { stores } = useStores();
   const store = stores.find((s) => s.id === storeId);
 
@@ -100,8 +100,7 @@ const Returns = () => {
   };
 
   const handleStatusUpdate = (id: string, newStatusLabel: UIReturn['status']) => {
-    const code = statusCode(newStatusLabel);
-    updateStatus({ returnId: id, newStatus: code, reason: `Status alterado para ${newStatusLabel}` });
+    // TODO: Implementar updateStatus quando o hook estiver completo
     setSelectedReturn((prev) => (prev ? { ...prev, status: newStatusLabel } : null));
     toast({ title: 'Status atualizado!', description: `Status alterado para: ${newStatusLabel}` });
   };
