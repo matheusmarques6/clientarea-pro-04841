@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { AdminUserWithStores } from '@/types/admin';
 import { UserEditModal } from '@/components/admin/UserEditModal';
+import { CreateUserStoreModal } from '@/components/admin/CreateUserStoreModal';
 
 const AdminUsers = () => {
   const { users, loading, createUser, updateUser, deleteUser, resetUserPassword, fetchUsers } = useAdminUsers();
@@ -51,7 +52,6 @@ const AdminUsers = () => {
       setFormData({ name: '', email: '', role: 'viewer', password: '' });
     }
   };
-
 
   const handleDeleteUser = async (userId: string) => {
     if (confirm('Tem certeza que deseja remover este usuário?')) {
@@ -118,74 +118,77 @@ const AdminUsers = () => {
             Gerencie usuários do sistema
           </p>
         </div>
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
-              <DialogDescription>
-                Adicione um novo usuário ao sistema
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nome completo"
-                />
+        <div className="flex gap-2">
+          <CreateUserStoreModal onUserCreated={fetchUsers} />
+          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Usuário Simples
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Usuário</DialogTitle>
+                <DialogDescription>
+                  Adicione um novo usuário ao sistema
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="role">Função</Label>
+                  <Select value={formData.role} onValueChange={(value: 'owner' | 'manager' | 'viewer') => setFormData(prev => ({ ...prev, role: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Visualizador</SelectItem>
+                      <SelectItem value="manager">Gerente</SelectItem>
+                      <SelectItem value="owner">Proprietário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="password">Senha Temporária</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Senha para primeiro acesso"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreateUser}>
+                    Criar Usuário
+                  </Button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Função</Label>
-                <Select value={formData.role} onValueChange={(value: 'owner' | 'manager' | 'viewer') => setFormData(prev => ({ ...prev, role: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viewer">Visualizador</SelectItem>
-                    <SelectItem value="manager">Gerente</SelectItem>
-                    <SelectItem value="owner">Proprietário</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="password">Senha Temporária</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Senha para primeiro acesso"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateUser}>
-                  Criar Usuário
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
