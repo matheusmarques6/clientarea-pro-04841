@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { mockReturns, mockStores } from '@/lib/mockData';
-import { ReturnRequest } from '@/types';
+import { useReturns } from '@/hooks/useReturns';
+import { useStores } from '@/hooks/useStores';
+import { ReturnRequest } from '@/hooks/useReturns';
 import ReturnDetailsModal from '@/components/returns/ReturnDetailsModal';
 
 const Returns = () => {
@@ -20,9 +21,10 @@ const Returns = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [returns, setReturns] = useState(mockReturns);
+  const { returns, loading } = useReturns(storeId);
+  const { stores } = useStores();
   
-  const store = mockStores.find(s => s.id === storeId);
+  const store = stores.find(s => s.id === storeId);
   
   if (!store) {
     return <div>Loja não encontrada</div>;

@@ -1,5 +1,4 @@
-import { useSupabaseQuery } from './useSupabaseQuery';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseData } from './useSupabaseData';
 
 export interface Store {
   id: string;
@@ -9,48 +8,35 @@ export interface Store {
   status?: string;
   created_at: string;
   customer_id?: string;
+  client_id?: string;
 }
 
 export const useStores = () => {
-  const storesQuery = useSupabaseQuery(
-    ['stores'],
-    async () => {
-      const { data, error } = await supabase
-        .from('stores')
-        .select('*')
-        .order('name');
+  const { data: stores, loading, error, refetch } = useSupabaseData<Store>('stores', `
+    *,
+    clients(
+      id,
+      name
+    )
+  `);
 
-      if (error) throw error;
-      return data as Store[];
-    }
-  );
-
-  return {
-    stores: storesQuery.data || [],
-    isLoading: storesQuery.isLoading,
-    error: storesQuery.error,
+  return { 
+    stores, 
+    loading, 
+    error,
+    refetch,
+    // Legacy compatibility
+    isLoading: loading
   };
 };
 
 export const useStore = (storeId: string) => {
-  const storeQuery = useSupabaseQuery(
-    ['store', storeId],
-    async () => {
-      const { data, error } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('id', storeId)
-        .single();
-
-      if (error) throw error;
-      return data as Store;
-    },
-    { enabled: !!storeId }
-  );
+  const { data: stores, loading, error } = useSupabaseData<Store>('stores', '*', [storeId]);
+  const store = stores?.find(s => s.id === storeId);
 
   return {
-    store: storeQuery.data,
-    isLoading: storeQuery.isLoading,
-    error: storeQuery.error,
+    store,
+    isLoading: loading,
+    error,
   };
 };

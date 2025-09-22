@@ -1,21 +1,25 @@
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Store, TrendingUp, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockStores } from '@/lib/mockData';
+import { useStores } from '@/hooks/useStores';
 
 const StoreSelector = () => {
-  const getStatusIcon = (status: string) => {
+  const navigate = useNavigate();
+  const { stores, loading } = useStores();
+
+  const getStatusVariant = (status: string) => {
     switch (status) {
       case 'connected':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'disconnected':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'active':
+        return 'default';
       case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return 'secondary';
+      case 'disconnected':
+        return 'destructive';
       default:
-        return null;
+        return 'outline';
     }
   };
 
@@ -23,27 +27,39 @@ const StoreSelector = () => {
     switch (status) {
       case 'connected':
         return 'Conectada';
-      case 'disconnected':
-        return 'Desconectada';
+      case 'active':
+        return 'Ativa';
       case 'pending':
         return 'Pendente';
+      case 'disconnected':
+        return 'Desconectada';
       default:
-        return status;
+        return 'Indefinido';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'connected':
-        return 'bg-green-100 text-green-700 hover:bg-green-100';
-      case 'disconnected':
-        return 'bg-red-100 text-red-700 hover:bg-red-100';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100';
-      default:
-        return 'bg-gray-100 text-gray-700 hover:bg-gray-100';
-    }
+  const formatRevenue = (revenue: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(revenue);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-muted rounded w-1/2 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-48 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -52,7 +68,7 @@ const StoreSelector = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold heading-primary">Suas Lojas</h1>
-            <p className="text-subtle">
+            <p className="text-muted-foreground">
               Selecione uma loja para acessar o dashboard
             </p>
           </div>
@@ -60,7 +76,7 @@ const StoreSelector = () => {
 
         {/* Stores Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockStores.map((store) => (
+          {stores.length > 0 ? stores.map((store) => (
             <Card key={store.id} className="glass-card animate-hover">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -71,33 +87,25 @@ const StoreSelector = () => {
                     <div>
                       <CardTitle className="text-lg">{store.name}</CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {store.country} • {store.currency}
+                        {store.country || 'Não informado'} • {store.currency || 'BRL'}
                       </p>
                     </div>
                   </div>
-                  <Badge className={getStatusColor(store.integrationStatus)}>
-                    {getStatusIcon(store.integrationStatus)}
-                    <span className="ml-1">{getStatusText(store.integrationStatus)}</span>
+                  <Badge variant={getStatusVariant(store.status || 'disconnected')}>
+                    {getStatusText(store.status || 'disconnected')}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {store.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {store.description}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-muted-foreground">Receita 30d:</span>
-                  <span className="font-semibold">
-                    {store.currency === 'BRL' && 'R$ '}
-                    {store.currency === 'USD' && '$ '}
-                    {store.currency === 'EUR' && '€ '}
-                    {store.currency === 'GBP' && '£ '}
-                    {store.revenue30d.toLocaleString()}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">País</span>
+                    <span>{store.country || 'Não informado'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Moeda</span>
+                    <span>{store.currency || 'BRL'}</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -124,7 +132,15 @@ const StoreSelector = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <div className="col-span-full text-center py-12">
+              <Store className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">Nenhuma loja encontrada</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Entre em contato com o suporte para configurar suas lojas
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

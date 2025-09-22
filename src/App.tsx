@@ -9,6 +9,18 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./components/auth/AuthProvider";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
+// Admin
+import { AdminAuthProvider } from "./components/admin/AdminAuthProvider";
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminClients from "./pages/admin/AdminClients";
+import AdminClientCreate from "./pages/admin/AdminClientCreate";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminStores from "./pages/admin/AdminStores";
+import AdminAudit from "./pages/admin/AdminAudit";
+import AdminLayout from "./components/admin/AdminLayout";
+
 // Pages
 import PreDashboard from "./pages/PreDashboard";
 import Auth from "./pages/Auth";
@@ -35,12 +47,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarProvider>
+    <AdminAuthProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <SidebarProvider>
             <Routes>
               {/* Public routes */}
               <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
@@ -49,9 +62,15 @@ const App = () => (
               <Route path="/tracking" element={<TrackingPortal />} />
               
               {/* Admin routes */}
-              <Route path="/admin/login" element={<div>Admin Login - Implementar</div>} />
-              <Route path="/admin" element={<div>Admin Dashboard - Implementar</div>} />
-              <Route path="/admin/clients" element={<div>Admin Clients - Implementar</div>} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="clients" element={<AdminClients />} />
+                <Route path="clients/new" element={<AdminClientCreate />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="stores" element={<AdminStores />} />
+                <Route path="audit" element={<AdminAudit />} />
+              </Route>
               
               {/* Auth route */}
               <Route path="/auth" element={<Auth />} />
@@ -84,6 +103,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
+    </AdminAuthProvider>
   </QueryClientProvider>
 );
 
