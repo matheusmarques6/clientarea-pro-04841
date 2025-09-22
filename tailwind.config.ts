@@ -19,6 +19,12 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        brand: {
+          400: "#6A86FF",
+          500: "#3E5BEE", 
+          600: "#2B46DF",
+          700: "#1E2A6E",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -57,10 +63,24 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        glass: {
-          card: "hsl(var(--glass-card))",
-          border: "hsl(var(--glass-border))",
+        ink: { 
+          DEFAULT: "#111827", 
+          2: "#374151", 
+          3: "#6B7280" 
         },
+        grayc: {
+          50: "#F7F9FC",
+          100: "#F5F7FA", 
+          200: "#E5E7EB",
+          300: "#DEE3EA",
+          400: "#CBD5E1",
+          500: "#94A3B8",
+          600: "#64748B",
+          700: "#475569",
+          800: "#334155",
+          900: "#111827"
+        },
+        info: "#3B82F6",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -76,12 +96,21 @@ export default {
         'gradient-premium': 'var(--gradient-premium)',
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-primary': 'var(--gradient-primary)',
+        'grad-blue': 'linear-gradient(90deg, #2B46DF 0%, #1E2A6E 100%)',
       },
       boxShadow: {
-        'sm': 'var(--shadow-sm)',
-        'md': 'var(--shadow-md)', 
-        'lg': 'var(--shadow-lg)',
-        'xl': 'var(--shadow-xl)',
+        'xs': '0 1px 2px rgba(17,24,39,.06)',
+        'sm': '0 2px 6px rgba(17,24,39,.08)',
+        'md': '0 6px 16px rgba(17,24,39,.10)',
+        'lg': '0 10px 25px rgba(17,24,39,.12)',
+        'xl': '0 20px 40px rgba(17,24,39,.15)',
+      },
+      borderRadius: { 
+        'xl': '14px', 
+        '2xl': '18px',
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       transitionTimingFunction: {
         'fast': 'var(--transition-fast)',
