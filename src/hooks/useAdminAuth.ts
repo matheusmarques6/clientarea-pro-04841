@@ -29,22 +29,25 @@ export const useAdminAuthState = () => {
   useEffect(() => {
     console.log('useAdminAuth: Setting up admin auth state listener');
     
-    // Check for existing admin session
-    checkAdminSession();
-    
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('useAdminAuth: Auth state changed', { event, user: session?.user });
         
         if (session?.user) {
-          await checkIfUserIsAdmin(session.user.id);
+          // Use setTimeout to defer Supabase calls and prevent deadlock
+          setTimeout(() => {
+            checkIfUserIsAdmin(session.user.id);
+          }, 0);
         } else {
           setAdminUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
+
+    // THEN check for existing session
+    checkAdminSession();
 
     return () => subscription.unsubscribe();
   }, []);
