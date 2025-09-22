@@ -47,12 +47,12 @@ const StoreSelector = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-        <div className="container mx-auto px-4 py-8 lg:py-12">
+      <div className="center-screen">
+        <div className="w-full max-w-7xl mx-auto px-4">
           <div className="space-y-8">
-            <div className="animate-pulse space-y-4">
-              <div className="h-10 bg-muted rounded-lg w-1/3"></div>
-              <div className="h-5 bg-muted rounded w-1/2"></div>
+            <div className="animate-pulse space-y-4 text-center">
+              <div className="h-10 bg-muted rounded-lg w-1/3 mx-auto"></div>
+              <div className="h-5 bg-muted rounded w-1/2 mx-auto"></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(6)].map((_, i) => (
@@ -66,8 +66,8 @@ const StoreSelector = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <div className="container mx-auto px-4 py-8 lg:py-12">
+    <div className="center-screen">
+      <div className="w-full max-w-7xl mx-auto px-4">
         <div className="space-y-8 lg:space-y-12">
           {/* Header Section */}
           <div className="text-center space-y-4">
