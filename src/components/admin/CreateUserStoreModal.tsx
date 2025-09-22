@@ -48,6 +48,8 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
 
     setLoading(true);
     try {
+      console.log('CreateUserStoreModal: Creating user with data:', formData);
+      
       // Primeiro criar o usuário
       const { error } = await createUser({
         name: formData.name,
@@ -57,7 +59,8 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
       });
 
       if (!error) {
-        // Depois associar à loja específica
+        console.log('CreateUserStoreModal: User created successfully, now assigning to store');
+        // Depois associar à loja específica usando o email do usuário
         await assignUserToStore(formData.email, formData.store_id, formData.role);
         
         setFormData({ 
@@ -69,7 +72,11 @@ export const CreateUserStoreModal: React.FC<CreateUserStoreModalProps> = ({
         });
         setOpen(false);
         onUserCreated();
+      } else {
+        console.error('CreateUserStoreModal: Error creating user:', error);
       }
+    } catch (error) {
+      console.error('CreateUserStoreModal: Unexpected error:', error);
     } finally {
       setLoading(false);
     }

@@ -50,6 +50,14 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
 
     setLoading(true);
     try {
+      console.log('AddStoreModal: Creating store with data:', {
+        client_id: clientId,
+        name: formData.name,
+        country: formData.country || undefined,
+        currency: formData.currency,
+        status: formData.status,
+      });
+      
       const { error } = await onAddStore({
         client_id: clientId,
         name: formData.name,
@@ -59,10 +67,15 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
       });
 
       if (!error) {
+        console.log('AddStoreModal: Store created successfully');
         setFormData({ name: '', country: '', currency: 'BRL', status: 'active' });
         setOpen(false);
         onStoreAdded();
+      } else {
+        console.error('AddStoreModal: Error creating store:', error);
       }
+    } catch (error) {
+      console.error('AddStoreModal: Unexpected error:', error);
     } finally {
       setLoading(false);
     }

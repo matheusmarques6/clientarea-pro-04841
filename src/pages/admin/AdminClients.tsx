@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit, Eye, MoreHorizontal, Building2 } from 'lucide-react';
+import { Plus, Search, Edit, Eye, MoreHorizontal, Building2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,7 +33,7 @@ import {
 import { useAdminClients } from '@/hooks/useAdminClients';
 
 const AdminClients = () => {
-  const { clients, loading } = useAdminClients();
+  const { clients, loading, deleteClient } = useAdminClients();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredClients = clients.filter(client =>
@@ -30,6 +41,13 @@ const AdminClients = () => {
     client.legal_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.tax_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    const { error } = await deleteClient(clientId);
+    if (!error) {
+      // A mensagem de sucesso já é mostrada no hook
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -147,6 +165,33 @@ const AdminClients = () => {
                                 Editar
                               </Link>
                             </DropdownMenuItem>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Remover
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o cliente "{client.name}"? 
+                                    Esta ação é irreversível e todos os dados associados serão perdidos, 
+                                    incluindo lojas e usuários.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteClient(client.id, client.name)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir Cliente
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

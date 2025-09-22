@@ -133,12 +133,28 @@ export const useAdminUsers = () => {
     }
   };
 
-  const assignUserToStore = async (userId: string, storeId: string, role: 'owner' | 'manager' | 'viewer') => {
+  const assignUserToStore = async (userEmail: string, storeId: string, role: 'owner' | 'manager' | 'viewer') => {
     try {
+      console.log('assignUserToStore: Looking up user by email:', userEmail);
+      
+      // Primeiro, buscar o usuário pelo email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (userError) {
+        console.error('Error finding user by email:', userError);
+        throw userError;
+      }
+
+      console.log('assignUserToStore: Found user:', userData);
+
       const { data, error } = await supabase
         .from('user_store_roles')
         .insert([{
-          user_id: userId,
+          user_id: userData.id,
           store_id: storeId,
           role
         }])
@@ -146,6 +162,8 @@ export const useAdminUsers = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('assignUserToStore: Role assigned successfully:', data);
 
       await fetchUsers(); // Refresh the list
 
