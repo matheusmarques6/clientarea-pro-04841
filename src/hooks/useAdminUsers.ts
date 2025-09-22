@@ -100,54 +100,21 @@ export const useAdminUsers = () => {
 
   const assignUserToStore = async (userEmail: string, storeId: string, role: 'owner' | 'manager' | 'viewer') => {
     try {
-      console.log('assignUserToStore: Looking up user by email:', userEmail);
-      
-      // Primeiro, buscar o usuário pelo email
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
+      console.log('assignUserToStore: invoking edge function for linking');
 
-      if (userError) {
-        console.error('Error finding user by email:', userError);
-        throw userError;
-      }
-
-      console.log('assignUserToStore: Found user:', userData);
-
-      const { data, error } = await supabase
-        .from('user_store_roles')
-        .insert([{
-          user_id: userData.id,
-          store_id: storeId,
-          role
-        }])
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('admin-link-user-to-store', {
+        body: { user_email: userEmail, store_id: storeId, role },
+      });
 
       if (error) throw error;
 
-      console.log('assignUserToStore: Role assigned successfully:', data);
-
-      await fetchUsers(); // Refresh the list
-
-      toast({
-        title: "Usuário atribuído",
-        description: "Usuário atribuído à loja com sucesso!",
-      });
-
+      await fetchUsers();
+      toast({ title: 'Usuário atribuído', description: 'Usuário atribuído à loja com sucesso!' });
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error assigning user to store:', error);
-      const message = error instanceof Error ? error.message : 'Erro desconhecido';
-      
-      toast({
-        title: "Erro ao atribuir usuário",
-        description: message,
-        variant: "destructive",
-      });
-
+      const message = error?.message || 'Erro desconhecido';
+      toast({ title: 'Erro ao atribuir usuário', description: message, variant: 'destructive' });
       return { data: null, error: message };
     }
   };

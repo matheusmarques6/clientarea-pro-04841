@@ -138,8 +138,13 @@ serve(async (req: Request) => {
             role: 'owner'
           })
 
-        if (associationError) {
-          console.error('admin-create-store: User association error:', associationError)
+        // Also ensure v_user_stores contains the mapping used by RLS
+        const { error: vusError } = await supabaseAdmin
+          .from('v_user_stores')
+          .insert({ user_id: userData.id, store_id: storeData.id })
+
+        if (associationError || vusError) {
+          console.error('admin-create-store: Association errors:', { associationError, vusError })
           // Don't fail the store creation, just log the error
           console.log('admin-create-store: Store created but user association failed')
         } else {

@@ -216,14 +216,19 @@ serve(async (req: Request) => {
         role: user_role
       })
 
-    if (associationError) {
-      console.error('admin-create-user-and-store: User association error:', associationError)
+    // Also ensure v_user_stores contains the mapping used by RLS
+    const { error: vusError } = await supabaseAdmin
+      .from('v_user_stores')
+      .insert({ user_id: authUserId, store_id: storeData.id })
+
+    if (associationError || vusError) {
+      console.error('admin-create-user-and-store: Association errors:', { associationError, vusError })
       // Rollback: delete store, user, and auth user
       await supabaseAdmin.from('stores').delete().eq('id', storeData.id)
       await supabaseAdmin.from('users').delete().eq('id', authUserId)
       await supabaseAdmin.auth.admin.deleteUser(authUserId)
       return new Response(
-        JSON.stringify({ error: associationError.message || 'Falha ao associar usuário à loja' }), 
+        JSON.stringify({ error: (associationError || vusError)?.message || 'Falha ao associar usuário à loja' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
