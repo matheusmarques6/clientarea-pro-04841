@@ -175,7 +175,7 @@ export const useAdminClients = () => {
         .from('users')
         .select(`
           *,
-          user_store_roles!inner(
+          store_members!inner(
             store_id,
             role,
             stores!inner(
@@ -185,7 +185,7 @@ export const useAdminClients = () => {
             )
           )
         `)
-        .eq('user_store_roles.stores.client_id', clientId);
+        .eq('store_members.stores.client_id', clientId);
 
       if (error) throw error;
       return (data || []) as AdminUser[];
@@ -304,7 +304,7 @@ export const useAdminClients = () => {
         }));
 
         const { error: roleError } = await supabase
-          .from('user_store_roles')
+          .from('store_members')
           .insert(storeRoles);
 
         if (roleError) throw roleError;
@@ -339,7 +339,7 @@ export const useAdminClients = () => {
       // Remove user store roles for this client's stores
       if (storeIds.length > 0) {
         const { error: roleError } = await supabase
-          .from('user_store_roles')
+          .from('store_members')
           .delete()
           .eq('user_id', userId)
           .in('store_id', storeIds);

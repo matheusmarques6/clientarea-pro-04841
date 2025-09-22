@@ -21,8 +21,7 @@ interface UserEditModalProps {
   onUserUpdated: () => void;
 }
 
-interface UserStoreRole {
-  id: string;
+interface UserStoreAccess {
   store_id: string;
   role: 'owner' | 'manager' | 'viewer';
   store: {
@@ -43,7 +42,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
   const { stores } = useAdminStores();
   
   const [loading, setLoading] = useState(false);
-  const [userStores, setUserStores] = useState<UserStoreRole[]>([]);
+  const [userStores, setUserStores] = useState<UserStoreAccess[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     role: 'viewer' as 'owner' | 'manager' | 'viewer',
@@ -66,9 +65,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     
     try {
       const { data, error } = await supabase
-        .from('user_store_roles')
+        .from('store_members')
         .select(`
-          id,
           store_id,
           role,
           stores (
@@ -81,9 +79,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
 
       if (error) throw error;
       
-      // Transform the data to match our interface
-      const transformedData = (data || []).map(item => ({
-        id: item.id,
+      const transformedData: UserStoreAccess[] = (data || []).map((item: any) => ({
         store_id: item.store_id,
         role: item.role as 'owner' | 'manager' | 'viewer',
         store: {
@@ -180,37 +176,26 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
 
     try {
       const { error } = await supabase
-        .from('user_store_roles')
-        .insert([{
-          user_id: user.id,
-          store_id: storeId,
-          role
-        }]);
+        .from('store_members')
+        .insert([{ user_id: user.id, store_id: storeId, role }]);
 
       if (error) throw error;
 
-      toast({
-        title: "Acesso adicionado",
-        description: "O usuário foi adicionado à loja com sucesso.",
-      });
-
+      toast({ title: 'Acesso adicionado', description: 'O usuário foi adicionado à loja com sucesso.' });
       fetchUserStores();
     } catch (error) {
       console.error('Error adding store access:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível adicionar acesso à loja.",
-        variant: "destructive",
-      });
+      toast({ title: 'Erro', description: 'Não foi possível adicionar acesso à loja.', variant: 'destructive' });
     }
   };
 
-  const handleRemoveStoreAccess = async (userStoreRoleId: string) => {
+  const handleRemoveStoreAccess = async (storeId: string) => {
     try {
       const { error } = await supabase
-        .from('user_store_roles')
+        .from('store_members')
         .delete()
-        .eq('id', userStoreRoleId);
+        .eq('user_id', user?.id)
+        .eq('store_id', storeId);
 
       if (error) throw error;
 
@@ -230,12 +215,13 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     }
   };
 
-  const handleUpdateStoreRole = async (userStoreRoleId: string, newRole: 'owner' | 'manager' | 'viewer') => {
+  const handleUpdateStoreRole = async (storeId: string, newRole: 'owner' | 'manager' | 'viewer') => {
     try {
       const { error } = await supabase
-        .from('user_store_roles')
+        .from('store_members')
         .update({ role: newRole })
-        .eq('id', userStoreRoleId);
+        .eq('user_id', user?.id)
+        .eq('store_id', storeId);
 
       if (error) throw error;
 
@@ -362,7 +348,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
                 {userStores.length > 0 ? (
                   <div className="space-y-3">
                     {userStores.map((userStore) => (
-                      <div key={userStore.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={userStore.store_id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium">{userStore.store.name}</p>
                           <p className="text-sm text-muted-foreground">ID: {userStore.store.id}</p>
@@ -371,7 +357,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
                           <Select 
                             value={userStore.role} 
                             onValueChange={(value: 'owner' | 'manager' | 'viewer') => 
-                              handleUpdateStoreRole(userStore.id, value)
+                              handleUpdateStoreRole(userStore.store_id, value)
                             }
                           >
                             <SelectTrigger className="w-32">
@@ -389,7 +375,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRemoveStoreAccess(userStore.id)}
+                            onClick={() => handleRemoveStoreAccess(userStore.store_id)}
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="w-4 h-4" />

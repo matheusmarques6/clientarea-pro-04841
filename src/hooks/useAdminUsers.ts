@@ -122,7 +122,7 @@ export const useAdminUsers = () => {
   const removeUserFromStore = async (userId: string, storeId: string) => {
     try {
       const { error } = await supabase
-        .from('user_store_roles')
+        .from('store_members')
         .delete()
         .eq('user_id', userId)
         .eq('store_id', storeId);
