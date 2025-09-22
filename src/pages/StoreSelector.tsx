@@ -31,7 +31,7 @@ const StoreSelector = () => {
     <div className="min-h-screen bg-background">
       {/* Modern Header - Full Width */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="px-6 py-4">
+        <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo & Title */}
             <div className="flex items-center gap-4">
@@ -63,8 +63,8 @@ const StoreSelector = () => {
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-12">
-        <div className="max-w-7xl mx-auto space-y-12">
+      <main className="w-full py-12">
+        <div className="w-full px-6 space-y-12">
           {/* Hero Section */}
           <div className="text-center space-y-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
