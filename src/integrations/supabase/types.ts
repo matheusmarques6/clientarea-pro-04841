@@ -55,6 +55,36 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          created_at: string | null
+          id: string
+          legal_name: string | null
+          name: string
+          status: string | null
+          tax_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          legal_name?: string | null
+          name: string
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          legal_name?: string | null
+          name?: string
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -635,6 +665,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          client_id: string | null
           country: string | null
           created_at: string | null
           currency: string | null
@@ -644,6 +675,7 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string | null
@@ -653,6 +685,7 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string | null
@@ -663,6 +696,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "stores_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stores_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -670,6 +710,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          name: string
+          password_hash: string | null
+          role: Database["public"]["Enums"]["role_type"] | null
+          twofa_secret: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          is_admin?: boolean | null
+          name: string
+          password_hash?: string | null
+          role?: Database["public"]["Enums"]["role_type"] | null
+          twofa_secret?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_admin?: boolean | null
+          name?: string
+          password_hash?: string | null
+          role?: Database["public"]["Enums"]["role_type"] | null
+          twofa_secret?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       variant_cost_audit: {
         Row: {
@@ -842,7 +918,13 @@ export type Database = {
         | "received_dc"
         | "done"
         | "rejected"
-      role_type: "owner" | "manager" | "viewer"
+      role_type:
+        | "owner"
+        | "manager"
+        | "viewer"
+        | "admin"
+        | "super_admin"
+        | "support"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -990,7 +1072,14 @@ export const Constants = {
         "done",
         "rejected",
       ],
-      role_type: ["owner", "manager", "viewer"],
+      role_type: [
+        "owner",
+        "manager",
+        "viewer",
+        "admin",
+        "super_admin",
+        "support",
+      ],
     },
   },
 } as const
