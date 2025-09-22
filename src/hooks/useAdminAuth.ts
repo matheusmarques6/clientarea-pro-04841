@@ -97,16 +97,70 @@ export const useAdminAuthState = () => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      
-      // First check if the user exists and is an admin
-      const { data: user, error: userError } = await supabase
+
+      // 1) Real authentication with Supabase
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Credenciais inválidas",
+          description: signInError.message || "Email ou senha incorretos.",
+          variant: "destructive",
+        });
+        return { error: signInError.message };
+      }
+
+      const authUser = signInData?.user;
+      if (!authUser) {
+        toast({
+          title: "Erro no login",
+          description: "Não foi possível obter a sessão do usuário.",
+          variant: "destructive",
+        });
+        return { error: "Sem sessão" };
+      }
+
+      // 2) Garantir que exista um perfil em public.users (o RLS permite inserir o próprio perfil)
+      const { data: existingProfile, error: fetchOwnError } = await supabase
+        .from('users')
+        .select('id, is_admin')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      if (fetchOwnError && fetchOwnError.code !== 'PGRST116') {
+        // PGRST116 = No rows found (acceptable for maybeSingle)
+        console.warn('Falha ao buscar perfil do próprio usuário:', fetchOwnError);
+      }
+
+      if (!existingProfile) {
+        const defaultName = authUser.email?.split('@')[0] || 'Administrador';
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            name: defaultName,
+            // is_admin será ajustado por trigger quando email === 'admin@convertfy.dev'
+            is_admin: false,
+          });
+        if (insertError) {
+          console.warn('Falha ao criar perfil do usuário:', insertError);
+        }
+      }
+
+      // 3) Verificar se é admin após garantir o perfil
+      const { data: adminRecord, error: adminCheckError } = await supabase
         .from('users')
         .select('*')
-        .eq('email', email)
+        .eq('id', authUser.id)
         .eq('is_admin', true)
         .single();
 
-      if (userError || !user) {
+      if (adminCheckError || !adminRecord) {
+        // Caso ainda não seja admin, negar acesso
         toast({
           title: "Acesso negado",
           description: "Esta conta não tem permissões de administrador.",
@@ -115,26 +169,12 @@ export const useAdminAuthState = () => {
         return { error: "Acesso negado" };
       }
 
-      // For demo purposes, we'll use a mock authentication
-      // In production, you'd verify the password hash
-      if (email === 'admin@convertfy.dev' && password === 'password123') {
-        // Create a mock session - in production, this would be handled by proper auth
-        setAdminUser(user as AdminUser);
-        
-        toast({
-          title: "Login realizado",
-          description: "Bem-vindo ao painel administrativo!",
-        });
-        
-        return {};
-      } else {
-        toast({
-          title: "Credenciais inválidas",
-          description: "Email ou senha incorretos.",
-          variant: "destructive",
-        });
-        return { error: "Credenciais inválidas" };
-      }
+      setAdminUser(adminRecord as AdminUser);
+      toast({
+        title: "Login realizado",
+        description: "Bem-vindo ao painel administrativo!",
+      });
+      return {};
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
