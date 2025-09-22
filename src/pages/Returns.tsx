@@ -40,7 +40,7 @@ const statusCode = (label: string): any => {
   }
 };
 
-const originLabel = (origin?: string): UIReturn['origem'] => {
+const originLabel = (origin?: string): 'Interna' | 'Link público' => {
   if (!origin) return 'Interna';
   if (origin === 'internal') return 'Interna';
   if (origin === 'public') return 'Link público';
@@ -67,8 +67,8 @@ const Returns = () => {
       id: r.id,
       pedido: r.order_code,
       cliente: r.customer_name,
-      tipo: r.type, // assume DB stores pt label; if not, map here e.g. r.type === 'exchange' ? 'Troca' : 'Devolução'
-      motivo: r.reason,
+      tipo: r.type === 'exchange' ? 'Troca' : 'Devolução', // Map DB values to UI labels
+      motivo: r.reason || 'Não informado',
       valor: Number(r.amount || 0),
       status: statusLabel(r.status),
       origem: originLabel(r.origin),
@@ -77,8 +77,8 @@ const Returns = () => {
       timeline: (r.return_events || []).map((e: any) => ({
         id: e.id,
         timestamp: e.created_at,
-        action: e.to_status,
-        description: e.reason,
+        action: statusLabel(e.to_status),
+        description: e.reason || 'Status alterado',
         user: e.user_id || 'Sistema',
       })),
     }));
