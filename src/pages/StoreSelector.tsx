@@ -93,7 +93,7 @@ const StoreSelector = () => {
 
           {/* Stores Grid */}
           <div className="w-full px-4 sm:px-6">
-            <div className="space-y-6">
+            <div className="space-y-6 px-[60px]">
               {stores.length > 0 ? (
                 <>
                   <h2 className="text-2xl font-semibold">Suas Lojas ({stores.length})</h2>
