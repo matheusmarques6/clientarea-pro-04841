@@ -63,7 +63,7 @@ const StoreSelector = () => {
       <div className="layout-center bg-gradient-to-br from-background via-background to-muted/20">
         {/* Header */}
         <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg w-full">
-          <div className="layout-container px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 <img src={convertfyLogo} alt="Convertfy" className="h-8 w-auto" />
@@ -77,12 +77,14 @@ const StoreSelector = () => {
         </header>
 
         {/* Content */}
-        <main className="layout-container px-4 sm:px-6 lg:px-8 py-12">
-          <div className="space-y-8">
+        <main className="w-full py-12">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             <div className="text-center space-y-4">
               <div className="h-12 bg-muted/50 rounded-lg w-1/3 mx-auto animate-pulse"></div>
               <div className="h-6 bg-muted/50 rounded w-2/3 mx-auto animate-pulse"></div>
             </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-96 bg-muted/50 rounded-2xl animate-pulse"></div>
@@ -98,7 +100,7 @@ const StoreSelector = () => {
     <div className="layout-center bg-gradient-to-br from-background via-background to-muted/20">
       {/* Modern Header */}
       <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg sticky top-0 z-50 w-full">
-        <div className="layout-container px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
@@ -131,9 +133,9 @@ const StoreSelector = () => {
       </header>
 
       {/* Main Content */}
-      <main className="layout-container px-4 sm:px-6 lg:px-8 py-12">
-        <div className="space-y-12">
-          {/* Hero Section */}
+      <main className="w-full py-12">
+        {/* Hero Section */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-6">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-3xl shadow-lg mb-6">
               <Store className="h-10 w-10 text-white" />
@@ -148,8 +150,11 @@ const StoreSelector = () => {
             </div>
           </div>
 
-          {/* Enhanced Stats Section */}
-          {stores.length > 0 && (
+        </div>
+        
+        {/* Enhanced Stats Section */}
+        {stores.length > 0 && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-3xl"></div>
               <Card className="relative bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl rounded-3xl overflow-hidden">
@@ -179,9 +184,11 @@ const StoreSelector = () => {
                 </CardContent>
               </Card>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Enhanced Stores Grid */}
+        {/* Enhanced Stores Grid */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {stores.length > 0 ? stores.map((store, index) => (
               <Card 
@@ -322,8 +329,11 @@ const StoreSelector = () => {
             )}
           </div>
 
-          {/* Enhanced Help Section */}
-          {stores.length > 0 && (
+        </div>
+
+        {/* Enhanced Help Section */}
+        {stores.length > 0 && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 rounded-3xl overflow-hidden">
                 <CardContent className="py-12">
@@ -342,8 +352,8 @@ const StoreSelector = () => {
                 </CardContent>
               </Card>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );
