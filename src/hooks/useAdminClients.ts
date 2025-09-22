@@ -1,0 +1,206 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Client, AdminUser, AdminStore } from '@/types/admin';
+
+export const useAdminClients = () => {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setClients((data || []) as Client[]);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      toast({
+        title: "Erro ao carregar clientes",
+        description: "Não foi possível carregar a lista de clientes.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const createClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([clientData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setClients(prev => [data as Client, ...prev]);
+      
+      toast({
+        title: "Cliente criado",
+        description: "Cliente criado com sucesso!",
+      });
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error creating client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao criar cliente",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { data: null, error: message };
+    }
+  };
+
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setClients(prev => prev.map(client => 
+        client.id === id ? { ...client, ...data as Client } : client
+      ));
+
+      toast({
+        title: "Cliente atualizado",
+        description: "Cliente atualizado com sucesso!",
+      });
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao atualizar cliente",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { data: null, error: message };
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setClients(prev => prev.filter(client => client.id !== id));
+
+      toast({
+        title: "Cliente removido",
+        description: "Cliente removido com sucesso!",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast({
+        title: "Erro ao remover cliente",
+        description: message,
+        variant: "destructive",
+      });
+
+      return { error: message };
+    }
+  };
+
+  const getClientById = async (id: string): Promise<Client | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data as Client;
+    } catch (error) {
+      console.error('Error fetching client:', error);
+      return null;
+    }
+  };
+
+  const getClientStores = async (clientId: string): Promise<AdminStore[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as AdminStore[];
+    } catch (error) {
+      console.error('Error fetching client stores:', error);
+      return [];
+    }
+  };
+
+  const getClientUsers = async (clientId: string): Promise<AdminUser[]> => {
+    try {
+      // Get users that have access to stores belonging to this client
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          user_store_roles!inner(
+            store_id,
+            role,
+            stores!inner(
+              id,
+              name,
+              client_id
+            )
+          )
+        `)
+        .eq('user_store_roles.stores.client_id', clientId);
+
+      if (error) throw error;
+      return (data || []) as AdminUser[];
+    } catch (error) {
+      console.error('Error fetching client users:', error);
+      return [];
+    }
+  };
+
+  return {
+    clients,
+    loading,
+    fetchClients,
+    createClient,
+    updateClient,
+    deleteClient,
+    getClientById,
+    getClientStores,
+    getClientUsers,
+  };
+};

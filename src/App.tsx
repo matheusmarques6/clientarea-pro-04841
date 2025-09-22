@@ -42,23 +42,28 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <Routes>
-              {/* Public routes - apenas páginas públicas sem auth */}
+              {/* Public routes */}
               <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
               <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
               <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
               <Route path="/tracking" element={<TrackingPortal />} />
               
-              {/* Auth route - página de login */}
+              {/* Admin routes */}
+              <Route path="/admin/login" element={<div>Admin Login - Implementar</div>} />
+              <Route path="/admin" element={<div>Admin Dashboard - Implementar</div>} />
+              <Route path="/admin/clients" element={<div>Admin Clients - Implementar</div>} />
+              
+              {/* Auth route */}
               <Route path="/auth" element={<Auth />} />
               
-              {/* Landing page redirect - redireciona para auth */}
+              {/* Landing page redirect */}
               <Route path="/" element={<Navigate to="/auth" replace />} />
               
-              {/* Protected routes - TODAS as páginas internas exigem login */}
+              {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><PreDashboard /></ProtectedRoute>} />
               <Route path="/stores" element={<ProtectedRoute><StoreSelector /></ProtectedRoute>} />
               
-              {/* Rotas da aplicação com sidebar - requer loja selecionada */}
+              {/* App routes with sidebar */}
               <Route path="/store/:id" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route index element={<StoreDashboard />} />
                 <Route path="returns" element={<Returns />} />
