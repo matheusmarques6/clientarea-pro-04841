@@ -1,13 +1,16 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Store, TrendingUp, CheckCircle, XCircle, Clock, ShoppingBag, BarChart3, DollarSign, Package } from 'lucide-react';
+import { ArrowLeft, Store, TrendingUp, CheckCircle, XCircle, Clock, ShoppingBag, BarChart3, DollarSign, Package, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useStores } from '@/hooks/useStores';
+import { useAuth } from '@/hooks/useAuth';
+import convertfyLogo from '@/assets/convertfy-logo.png';
 
 const StoreSelector = () => {
   const navigate = useNavigate();
   const { stores, loading } = useStores();
+  const { signOut, user } = useAuth();
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -45,131 +48,203 @@ const StoreSelector = () => {
     }).format(revenue);
   };
 
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="center-screen">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="space-y-8">
-            <div className="animate-pulse space-y-4 text-center">
-              <div className="h-10 bg-muted rounded-lg w-1/3 mx-auto"></div>
-              <div className="h-5 bg-muted rounded w-1/2 mx-auto"></div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        {/* Header */}
+        <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-3">
+                <img src={convertfyLogo} alt="Convertfy" className="h-8 w-auto" />
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-32 bg-muted/50 rounded animate-pulse"></div>
+                <div className="h-8 w-8 bg-muted/50 rounded-full animate-pulse"></div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <div className="h-12 bg-muted/50 rounded-lg w-1/3 mx-auto animate-pulse"></div>
+              <div className="h-6 bg-muted/50 rounded w-2/3 mx-auto animate-pulse"></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-80 bg-muted rounded-xl animate-pulse"></div>
+                <div key={i} className="h-96 bg-muted/50 rounded-2xl animate-pulse"></div>
               ))}
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="center-screen">
-      <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="space-y-8 lg:space-y-12">
-          {/* Header Section */}
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
-              <Store className="h-8 w-8 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Modern Header */}
+      <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <img src={convertfyLogo} alt="Convertfy" className="h-8 w-auto" />
+              <div className="hidden sm:block">
+                <span className="text-lg font-semibold text-foreground">Suas Lojas</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+
+            {/* User Menu */}
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">
+                  {user?.email?.split('@')[0] || 'Usuário'}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="space-y-12">
+          {/* Hero Section */}
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-3xl shadow-lg mb-6">
+              <Store className="h-10 w-10 text-white" />
+            </div>
+            <div className="space-y-4">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent leading-tight">
                 Suas Lojas
               </h1>
-              <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-                Selecione uma loja para acessar o dashboard e gerenciar suas operações
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Selecione uma loja para acessar o dashboard e gerenciar suas operações de forma centralizada
               </p>
             </div>
           </div>
 
-          {/* Stats Bar */}
+          {/* Enhanced Stats Section */}
           {stores.length > 0 && (
-            <div className="bg-white/50 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-lg">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-primary">
-                    {stores.length}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-3xl"></div>
+              <Card className="relative bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl rounded-3xl overflow-hidden">
+                <CardContent className="p-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                    <div className="text-center space-y-2">
+                      <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                        {stores.length}
+                      </div>
+                      <div className="text-sm sm:text-base text-muted-foreground font-medium">
+                        {stores.length === 1 ? 'Loja Ativa' : 'Lojas Ativas'}
+                      </div>
+                    </div>
+                    <div className="text-center space-y-2">
+                      <div className="text-3xl sm:text-4xl font-bold text-green-600">
+                        {stores.filter(s => s.status === 'connected').length}
+                      </div>
+                      <div className="text-sm sm:text-base text-muted-foreground font-medium">Conectadas</div>
+                    </div>
+                    <div className="text-center space-y-2">
+                      <div className="text-3xl sm:text-4xl font-bold text-orange-600">
+                        {stores.filter(s => s.status !== 'connected').length}
+                      </div>
+                      <div className="text-sm sm:text-base text-muted-foreground font-medium">Pendentes</div>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {stores.length === 1 ? 'Loja' : 'Lojas'} Ativa{stores.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                    {stores.filter(s => s.status === 'connected').length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Conectadas</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-orange-600">
-                    {stores.filter(s => s.status !== 'connected').length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Pendentes</div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* Stores Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Enhanced Stores Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {stores.length > 0 ? stores.map((store, index) => (
               <Card 
                 key={store.id} 
-                className="group relative overflow-hidden bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="group relative overflow-hidden bg-white/70 backdrop-blur-xl border border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 rounded-2xl animate-fade-in"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* Gradient overlays */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary/50 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur"></div>
                 
-                <CardHeader className="relative pb-4">
+                <CardHeader className="relative pb-6 space-y-4">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
-                          <Store className="h-6 w-6 text-white" />
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <Store className="h-7 w-7 text-white" />
                         </div>
-                        {/* Status indicator */}
-                        <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                        {/* Enhanced status indicator */}
+                        <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border-3 border-white shadow-lg ${
                           store.status === 'connected' ? 'bg-green-500' : 
                           store.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`} />
+                        }`}>
+                          <div className={`absolute inset-0 rounded-full animate-ping ${
+                            store.status === 'connected' ? 'bg-green-400' : 
+                            store.status === 'pending' ? 'bg-yellow-400' : 'bg-red-400'
+                          }`}></div>
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-foreground truncate">
+                        <CardTitle className="text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300 truncate">
                           {store.name}
                         </CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{store.country || 'BR'}</span>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <span className="font-medium">{store.country || 'BR'}</span>
                           <span>•</span>
-                          <span className="font-medium">{store.currency || 'BRL'}</span>
+                          <span className="font-semibold">{store.currency || 'BRL'}</span>
                         </div>
                       </div>
                     </div>
-                    <Badge 
-                      variant={getStatusVariant(store.status || 'disconnected')}
-                      className="shrink-0"
-                    >
-                      {getStatusText(store.status || 'disconnected')}
-                    </Badge>
                   </div>
+                  <Badge 
+                    variant={getStatusVariant(store.status || 'disconnected')}
+                    className="w-fit"
+                  >
+                    {getStatusText(store.status || 'disconnected')}
+                  </Badge>
                 </CardHeader>
 
-                <CardContent className="relative space-y-6">
-                  {/* Store Info */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm font-medium">Status da Integração</span>
+                <CardContent className="relative space-y-6 pb-8">
+                  {/* Enhanced Store Info */}
+                  <div className="bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">Status da Integração</span>
                       <div className="flex items-center gap-2">
                         {store.status === 'connected' ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <CheckCircle className="h-5 w-5 text-green-500" />
                         ) : store.status === 'pending' ? (
-                          <Clock className="h-4 w-4 text-yellow-500" />
+                          <Clock className="h-5 w-5 text-yellow-500" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
+                          <XCircle className="h-5 w-5 text-red-500" />
                         )}
-                        <span className="text-sm font-medium">
+                        <span className="text-sm font-bold">
                           {store.status === 'connected' ? 'Online' : 
                            store.status === 'pending' ? 'Aguardando' : 'Offline'}
                         </span>
@@ -177,32 +252,50 @@ const StoreSelector = () => {
                     </div>
                   </div>
 
-                  {/* Quick Actions */}
-                  <div className="space-y-3">
-                    <Button asChild className="w-full h-12 font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg">
-                      <Link to={`/store/${store.id}`} className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Dashboard
+                  {/* Enhanced Quick Actions */}
+                  <div className="space-y-4">
+                    <Button 
+                      asChild 
+                      className="w-full h-14 font-bold text-base bg-gradient-to-r from-primary via-primary/95 to-primary/90 hover:from-primary/90 hover:via-primary/85 hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+                    >
+                      <Link to={`/store/${store.id}`} className="flex items-center gap-3">
+                        <BarChart3 className="h-5 w-5" />
+                        Acessar Dashboard
                       </Link>
                     </Button>
                     
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button asChild size="sm" variant="outline" className="hover:bg-primary/10 hover:border-primary/20">
-                        <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-1 py-3 h-auto">
-                          <TrendingUp className="h-4 w-4" />
-                          <span className="text-xs">Trocas</span>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button 
+                        asChild 
+                        size="sm" 
+                        variant="outline" 
+                        className="hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300 rounded-xl"
+                      >
+                        <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-2 py-4 h-auto">
+                          <TrendingUp className="h-5 w-5" />
+                          <span className="text-xs font-semibold">Trocas</span>
                         </Link>
                       </Button>
-                      <Button asChild size="sm" variant="outline" className="hover:bg-primary/10 hover:border-primary/20">
-                        <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-1 py-3 h-auto">
-                          <DollarSign className="h-4 w-4" />
-                          <span className="text-xs">Reembolsos</span>
+                      <Button 
+                        asChild 
+                        size="sm" 
+                        variant="outline" 
+                        className="hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300 rounded-xl"
+                      >
+                        <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-2 py-4 h-auto">
+                          <DollarSign className="h-5 w-5" />
+                          <span className="text-xs font-semibold">Reembolsos</span>
                         </Link>
                       </Button>
-                      <Button asChild size="sm" variant="outline" className="hover:bg-primary/10 hover:border-primary/20">
-                        <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-1 py-3 h-auto">
-                          <Package className="h-4 w-4" />
-                          <span className="text-xs">Custos</span>
+                      <Button 
+                        asChild 
+                        size="sm" 
+                        variant="outline" 
+                        className="hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300 rounded-xl"
+                      >
+                        <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-2 py-4 h-auto">
+                          <Package className="h-5 w-5" />
+                          <span className="text-xs font-semibold">Custos</span>
                         </Link>
                       </Button>
                     </div>
@@ -211,16 +304,16 @@ const StoreSelector = () => {
               </Card>
             )) : (
               <div className="col-span-full">
-                <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg">
-                  <CardContent className="text-center py-16">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-muted/20 rounded-full mb-6">
-                      <Store className="w-10 h-10 text-muted-foreground" />
+                <Card className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-xl rounded-3xl overflow-hidden">
+                  <CardContent className="text-center py-20">
+                    <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-muted/30 to-muted/20 rounded-full mb-8">
+                      <Store className="w-12 h-12 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">Nenhuma loja encontrada</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      Ainda não há lojas configuradas em sua conta. Entre em contato com o suporte para começar.
+                    <h3 className="text-2xl font-bold mb-4">Nenhuma loja encontrada</h3>
+                    <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto leading-relaxed">
+                      Ainda não há lojas configuradas em sua conta. Entre em contato com nosso suporte para começar.
                     </p>
-                    <Button variant="outline" className="hover:bg-primary/10">
+                    <Button variant="outline" size="lg" className="hover:bg-primary/10 hover:border-primary/30">
                       Entrar em contato
                     </Button>
                   </CardContent>
@@ -229,20 +322,20 @@ const StoreSelector = () => {
             )}
           </div>
 
-          {/* Help Section */}
+          {/* Enhanced Help Section */}
           {stores.length > 0 && (
             <div className="text-center">
-              <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
-                <CardContent className="py-8">
-                  <h3 className="text-lg font-semibold mb-2">Precisa de ajuda?</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Nossa equipe está aqui para ajudar você a maximizar seus resultados
+              <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 rounded-3xl overflow-hidden">
+                <CardContent className="py-12">
+                  <h3 className="text-2xl font-bold mb-4">Precisa de ajuda?</h3>
+                  <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+                    Nossa equipe especializada está pronta para ajudar você a maximizar seus resultados e otimizar suas operações
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button variant="outline" className="hover:bg-primary/10">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button variant="outline" size="lg" className="hover:bg-primary/10 hover:border-primary/30">
                       Central de Ajuda
                     </Button>
-                    <Button variant="outline" className="hover:bg-primary/10">
+                    <Button size="lg" className="bg-gradient-to-r from-primary to-primary/90 shadow-lg">
                       Falar com Suporte
                     </Button>
                   </div>
@@ -251,7 +344,7 @@ const StoreSelector = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
