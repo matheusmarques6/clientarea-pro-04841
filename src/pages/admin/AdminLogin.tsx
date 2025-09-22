@@ -34,8 +34,8 @@ const AdminLogin = () => {
   };
 
   return (
-    <div id="admin-login-page" className="min-h-screen flex items-center justify-center bg-gradient-premium p-4">
-      <div className="w-full max-w-md">
+    <div className="layout-center bg-gradient-premium">
+      <div className="layout-narrow">
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-xl flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-white" />
