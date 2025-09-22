@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddStoreModalProps {
   clientId: string;
@@ -27,6 +29,7 @@ interface AddStoreModalProps {
     country?: string;
     currency: string;
     status?: string;
+    userIds?: string[];
   }) => Promise<{ data: any; error: string | null }>;
 }
 
@@ -37,12 +40,36 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     country: '',
     currency: 'BRL',
     status: 'connected',
   });
+
+  // Carregar usuários do sistema quando o modal abrir
+  useEffect(() => {
+    if (open) {
+      fetchUsers();
+    }
+  }, [open]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, role')
+        .neq('is_admin', true)
+        .order('name');
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +83,7 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
         country: formData.country || undefined,
         currency: formData.currency,
         status: formData.status,
+        userIds: selectedUserIds,
       });
       
       const { error } = await onAddStore({
@@ -64,11 +92,13 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
         country: formData.country || undefined,
         currency: formData.currency,
         status: formData.status,
+        userIds: selectedUserIds,
       });
 
       if (!error) {
         console.log('AddStoreModal: Store created successfully');
         setFormData({ name: '', country: '', currency: 'BRL', status: 'connected' });
+        setSelectedUserIds([]);
         setOpen(false);
         onStoreAdded();
       } else {
@@ -79,6 +109,14 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUserToggle = (userId: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
   };
 
   return (
@@ -142,6 +180,33 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 <SelectItem value="suspended">Suspenso</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Usuários com Acesso</Label>
+            <div className="border rounded-md p-3 max-h-32 overflow-y-auto">
+              {users.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum usuário encontrado</p>
+              ) : (
+                <div className="space-y-2">
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`user-${user.id}`}
+                        checked={selectedUserIds.includes(user.id)}
+                        onCheckedChange={() => handleUserToggle(user.id)}
+                      />
+                      <Label htmlFor={`user-${user.id}`} className="text-sm">
+                        {user.name} ({user.email})
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Selecione os usuários que terão acesso a esta loja
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

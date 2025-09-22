@@ -170,8 +170,8 @@ export const useAdminClients = () => {
 
   const getClientUsers = async (clientId: string): Promise<AdminUser[]> => {
     try {
-      // Get users that have access to stores belonging to this client
-      const { data, error } = await supabase
+      // First try to get users through existing store memberships
+      const { data: existingUsers, error: existingError } = await supabase
         .from('users')
         .select(`
           *,
@@ -187,8 +187,17 @@ export const useAdminClients = () => {
         `)
         .eq('store_members.stores.client_id', clientId);
 
-      if (error) throw error;
-      return (data || []) as AdminUser[];
+      if (existingError) throw existingError;
+
+      // If we found users through store memberships, return them
+      if (existingUsers && existingUsers.length > 0) {
+        return existingUsers as AdminUser[];
+      }
+
+      // If no users found through stores, we can't determine client users
+      // This should be handled by the calling function
+      console.log('No users found for client', clientId);
+      return [];
     } catch (error) {
       console.error('Error fetching client users:', error);
       return [];
@@ -201,6 +210,7 @@ export const useAdminClients = () => {
     country?: string;
     currency: string;
     status?: string;
+    userIds?: string[];
   }) => {
     try {
       // First create the store
@@ -216,12 +226,26 @@ export const useAdminClients = () => {
 
       if (storeError) throw storeError;
 
-      // Get all users that belong to this client
-      const clientUsers = await getClientUsers(storeData.client_id);
+      // Use selected users or fallback to existing client users
+      let usersToAdd = [];
+      
+      if (storeData.userIds && storeData.userIds.length > 0) {
+        // Use specifically selected users
+        const { data: selectedUsers, error: usersError } = await supabase
+          .from('users')
+          .select('id, role')
+          .in('id', storeData.userIds);
 
-      // Add all client users to the new store via store_members
-      if (clientUsers.length > 0) {
-        const storeMembers = clientUsers.map(user => ({
+        if (usersError) throw usersError;
+        usersToAdd = selectedUsers || [];
+      } else {
+        // Fallback to existing client users
+        usersToAdd = await getClientUsers(storeData.client_id);
+      }
+
+      // Add users to the new store via store_members
+      if (usersToAdd.length > 0) {
+        const storeMembers = usersToAdd.map(user => ({
           user_id: user.id,
           store_id: store.id,
           role: user.role || 'viewer'
@@ -236,7 +260,7 @@ export const useAdminClients = () => {
         }
 
         // Mirror access on v_user_stores for RLS
-        const vusRows = clientUsers.map(user => ({ 
+        const vusRows = usersToAdd.map(user => ({ 
           user_id: user.id, 
           store_id: store.id 
         }));
@@ -252,7 +276,7 @@ export const useAdminClients = () => {
 
       toast({
         title: "Loja adicionada",
-        description: "Loja adicionada ao cliente e vinculada aos usuários com sucesso!",
+        description: `Loja adicionada ao cliente com ${usersToAdd.length} usuário(s) vinculado(s)!`,
       });
 
       return { data: store, error: null };
