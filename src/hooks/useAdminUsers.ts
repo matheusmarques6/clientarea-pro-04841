@@ -201,20 +201,38 @@ export const useAdminUsers = () => {
     }
   };
 
-  const resetUserPassword = async (userId: string) => {
+  const resetUserPassword = async (userId: string, newPassword?: string) => {
     try {
-      // Generate a new token for password reset
-      const resetToken = crypto.randomUUID();
-      
-      // In a real implementation, you'd send an email with the reset link
-      // For now, we'll just show a mock token
-      
-      toast({
-        title: "Reset de senha",
-        description: `Token de reset gerado: ${resetToken}`,
-      });
+      if (newPassword) {
+        // Reset password with specific password using Supabase Admin API
+        const { error } = await supabase.auth.admin.updateUserById(userId, {
+          password: newPassword
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Senha alterada",
+          description: "A senha do usuário foi alterada com sucesso.",
+        });
+      } else {
+        // Generate a new random password
+        const temporaryPassword = crypto.randomUUID().substring(0, 12);
+        
+        const { error } = await supabase.auth.admin.updateUserById(userId, {
+          password: temporaryPassword
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Senha resetada",
+          description: `Nova senha temporária: ${temporaryPassword}`,
+          duration: 10000, // Show for 10 seconds so admin can copy
+        });
+      }
 
-      return { token: resetToken, error: null };
+      return { error: null };
     } catch (error) {
       console.error('Error resetting password:', error);
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -225,7 +243,7 @@ export const useAdminUsers = () => {
         variant: "destructive",
       });
 
-      return { token: null, error: message };
+      return { error: message };
     }
   };
 

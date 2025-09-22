@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { AdminUserWithStores } from '@/types/admin';
+import { UserEditModal } from '@/components/admin/UserEditModal';
 
 const AdminUsers = () => {
-  const { users, loading, createUser, updateUser, deleteUser, resetUserPassword } = useAdminUsers();
+  const { users, loading, createUser, updateUser, deleteUser, resetUserPassword, fetchUsers } = useAdminUsers();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -51,20 +52,6 @@ const AdminUsers = () => {
     }
   };
 
-  const handleUpdateUser = async () => {
-    if (!selectedUser) return;
-
-    const result = await updateUser(selectedUser.id, {
-      name: formData.name,
-      role: formData.role
-    });
-    
-    if (!result.error) {
-      setShowEditModal(false);
-      setSelectedUser(null);
-      setFormData({ name: '', email: '', role: 'viewer', password: '' });
-    }
-  };
 
   const handleDeleteUser = async (userId: string) => {
     if (confirm('Tem certeza que deseja remover este usuário?')) {
@@ -78,13 +65,13 @@ const AdminUsers = () => {
 
   const openEditModal = (user: AdminUserWithStores) => {
     setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      role: (user.role as 'owner' | 'manager' | 'viewer') || 'viewer',
-      password: ''
-    });
     setShowEditModal(true);
+  };
+
+  const handleUserUpdated = () => {
+    fetchUsers();
+    setShowEditModal(false);
+    setSelectedUser(null);
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -304,59 +291,13 @@ const AdminUsers = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>
-              Atualize as informações do usuário
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-name">Nome</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Nome completo"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-role">Função</Label>
-              <Select value={formData.role} onValueChange={(value: 'owner' | 'manager' | 'viewer') => setFormData(prev => ({ ...prev, role: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="viewer">Visualizador</SelectItem>
-                  <SelectItem value="manager">Gerente</SelectItem>
-                  <SelectItem value="owner">Proprietário</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowEditModal(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleUpdateUser}>
-                Salvar Alterações
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* User Edit Modal */}
+      <UserEditModal
+        user={selectedUser}
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        onUserUpdated={handleUserUpdated}
+      />
     </div>
   );
 };
