@@ -69,17 +69,17 @@ const StoreCard = ({ store, index }: StoreCardProps) => {
 
   return (
     <Card 
-      className="group relative overflow-hidden bg-card border hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+      className="group relative overflow-hidden bg-gradient-to-br from-card to-card/50 border border-border/50 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-2 animate-fade-in backdrop-blur-sm"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <Store className="h-6 w-6 text-primary-foreground" />
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                <Store className="h-7 w-7 text-primary-foreground" />
               </div>
-              <div className={`absolute -top-1 -right-1 w-4 h-4 ${getStatusColor(store.status || 'disconnected')} rounded-full border-2 border-background`} />
+              <div className={`absolute -top-1 -right-1 w-5 h-5 ${getStatusColor(store.status || 'disconnected')} rounded-full border-3 border-background shadow-sm animate-pulse`} />
             </div>
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
@@ -94,18 +94,18 @@ const StoreCard = ({ store, index }: StoreCardProps) => {
           </div>
         </div>
         
-        <Badge variant={getStatusVariant(store.status || 'disconnected')} className="w-fit">
+        <Badge variant={getStatusVariant(store.status || 'disconnected')} className="w-fit shadow-sm border-0 px-3 py-1">
           {getStatusText(store.status || 'disconnected')}
         </Badge>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 pt-2">
         {/* Status Info */}
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-          <span className="text-sm font-medium">Status</span>
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/30">
+          <span className="text-sm font-semibold text-muted-foreground">Status</span>
           <div className="flex items-center gap-2">
             {getStatusIcon(store.status || 'disconnected')}
-            <span className="text-sm font-medium">
+            <span className="text-sm font-semibold">
               {store.status === 'connected' ? 'Online' : 
                store.status === 'pending' ? 'Aguardando' : 'Offline'}
             </span>
@@ -114,30 +114,36 @@ const StoreCard = ({ store, index }: StoreCardProps) => {
 
         {/* Actions */}
         <div className="space-y-3">
-          <Button asChild className="w-full">
-            <Link to={`/store/${store.id}`} className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Acessar Dashboard
+          <Button asChild className="w-full h-12 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <Link to={`/store/${store.id}`} className="flex items-center gap-3">
+              <BarChart3 className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold">Acessar Dashboard</span>
             </Link>
           </Button>
           
-          <div className="grid grid-cols-3 gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-1 h-16">
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-xs">Trocas</span>
+          <div className="grid grid-cols-3 gap-3">
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
+              <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-2 h-18 p-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-xs font-medium">Trocas</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-1 h-16">
-                <DollarSign className="h-4 w-4" />
-                <span className="text-xs">Reembolsos</span>
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
+              <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-2 h-18 p-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-xs font-medium">Reembolsos</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-1 h-16">
-                <Package className="h-4 w-4" />
-                <span className="text-xs">Custos</span>
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
+              <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-2 h-18 p-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Package className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-xs font-medium">Custos</span>
               </Link>
             </Button>
           </div>
