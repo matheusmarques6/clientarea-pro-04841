@@ -51,8 +51,8 @@ const StoreSelector = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Suas Lojas</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold heading-primary">Suas Lojas</h1>
+            <p className="text-subtle">
               Selecione uma loja para acessar o dashboard
             </p>
           </div>
@@ -103,7 +103,7 @@ const StoreSelector = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <Button asChild size="sm" variant="default">
                     <Link to={`/store/${store.id}`}>
-                      Abrir
+                      Dashboard
                     </Link>
                   </Button>
                   <Button asChild size="sm" variant="outline">

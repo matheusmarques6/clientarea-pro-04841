@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 // Auth
@@ -42,30 +42,38 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <Routes>
-              {/* Public routes without auth */}
-              <Route path="/" element={<PreDashboard />} />
-              <Route path="/auth" element={<Auth />} />
+              {/* Public routes - apenas páginas públicas sem auth */}
               <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
               <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
               <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
               <Route path="/tracking" element={<TrackingPortal />} />
               
-              {/* Protected routes with sidebar */}
-              <Route element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }>
+              {/* Auth route - página de login */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Landing page redirect - redireciona para auth */}
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              
+              {/* Protected routes - TODAS as páginas internas exigem login */}
+              <Route element={<ProtectedRoute><div /></ProtectedRoute>}>
+                {/* PreDashboard - primeira página após login */}
+                <Route path="/dashboard" element={<PreDashboard />} />
+                
+                {/* Seleção de loja - segunda etapa */}
                 <Route path="/stores" element={<StoreSelector />} />
-                <Route path="/help" element={<Help />} />
-                <Route path="/store/:id" element={<StoreDashboard />} />
-                <Route path="/store/:id/returns" element={<Returns />} />
-                <Route path="/store/:id/returns/setup" element={<ReturnsSetup />} />
-                <Route path="/store/:id/returns/new" element={<NewReturn />} />
-                <Route path="/store/:id/refunds" element={<Refunds />} />
-                <Route path="/store/:id/refunds/setup" element={<RefundsSetup />} />
-                <Route path="/store/:id/costs" element={<ProductCosts />} />
-                <Route path="/store/:id/settings" element={<StoreSettings />} />
+                
+                {/* Rotas da aplicação com sidebar - requer loja selecionada */}
+                <Route element={<AppLayout />}>
+                  <Route path="/help" element={<Help />} />
+                  <Route path="/store/:id" element={<StoreDashboard />} />
+                  <Route path="/store/:id/returns" element={<Returns />} />
+                  <Route path="/store/:id/returns/setup" element={<ReturnsSetup />} />
+                  <Route path="/store/:id/returns/new" element={<NewReturn />} />
+                  <Route path="/store/:id/refunds" element={<Refunds />} />
+                  <Route path="/store/:id/refunds/setup" element={<RefundsSetup />} />
+                  <Route path="/store/:id/costs" element={<ProductCosts />} />
+                  <Route path="/store/:id/settings" element={<StoreSettings />} />
+                </Route>
               </Route>
               
               <Route path="*" element={<NotFound />} />

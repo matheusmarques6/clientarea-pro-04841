@@ -1,10 +1,14 @@
 import { Outlet, useParams } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { mockStores } from '@/lib/mockData';
 
 const AppLayout = () => {
   const { id: storeId } = useParams();
+  const { signOut } = useAuth();
   const store = mockStores.find(s => s.id === storeId);
 
   return (
@@ -12,7 +16,7 @@ const AppLayout = () => {
       <AppSidebar />
       <SidebarInset className="flex-1">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-2 px-4">
+          <div className="flex items-center gap-2 px-4 flex-1">
             <SidebarTrigger className="-ml-1" />
             {store && (
               <div className="flex items-center gap-2 ml-4">
@@ -20,6 +24,17 @@ const AppLayout = () => {
                 <span className="text-sm font-medium text-foreground">{store.name}</span>
               </div>
             )}
+          </div>
+          <div className="px-4">
+            <Button
+              variant="ghost" 
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
           </div>
         </header>
         <main className="flex-1 overflow-auto">

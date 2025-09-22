@@ -11,7 +11,7 @@ import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/stores';
+  const from = location.state?.from?.pathname || '/dashboard'; // Sempre ir para dashboard
 
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({

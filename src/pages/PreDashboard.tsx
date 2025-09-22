@@ -155,7 +155,7 @@ const PreDashboard = () => {
             </div>
           </div>
 
-          {/* CTA Buttons - Melhor estética mobile */}
+          {/* CTA Buttons - Navegação correta do fluxo */}
           <div className="w-full max-w-md mt-6 px-4 sm:px-0 space-y-4">
             <Button
               asChild 
@@ -163,17 +163,7 @@ const PreDashboard = () => {
               className="w-full bg-gradient-hero hover:opacity-90 text-lg font-semibold h-14 sm:h-14 rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20 shadow-lg hover:shadow-xl"
             >
               <Link to="/stores" className="font-semibold">
-                Ver minhas lojas
-              </Link>
-            </Button>
-            <Button
-              asChild 
-              size="lg" 
-              variant="outline"
-              className="w-full text-lg font-semibold h-14 sm:h-14 rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20"
-            >
-              <Link to="/auth" className="font-semibold">
-                Fazer Login
+                Selecionar Loja
               </Link>
             </Button>
           </div>
