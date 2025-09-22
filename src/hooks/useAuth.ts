@@ -92,6 +92,29 @@ export const useAuthState = () => {
         description: "Bem-vindo de volta!",
       });
 
+      // Ensure a row exists in public.users for this auth user
+      try {
+        const { data: userInfo } = await supabase.auth.getUser();
+        const authUser = userInfo.user;
+        if (authUser) {
+          const { data: existing } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from('users').insert([{
+              id: authUser.id,
+              email: authUser.email || '',
+              name: (authUser.user_metadata?.full_name as string) || (authUser.email?.split('@')[0] || 'Usuário')
+            }]);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not ensure public.users profile:', e);
+      }
+
       return {};
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido';

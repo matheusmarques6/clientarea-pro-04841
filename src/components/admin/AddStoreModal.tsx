@@ -66,6 +66,7 @@ export const AddStoreModal: React.FC<AddStoreModalProps> = ({
 
       if (error) throw error;
       setUsers(data || []);
+      setSelectedUserIds((data || []).map((u: any) => u.id)); // pré-seleciona todos
     } catch (error) {
       console.error('Error fetching users:', error);
     }

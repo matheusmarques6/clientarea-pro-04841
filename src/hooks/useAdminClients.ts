@@ -214,10 +214,11 @@ export const useAdminClients = () => {
   }) => {
     try {
       // First create the store
+      const { userIds, ...storeFields } = storeData as any;
       const { data: store, error: storeError } = await supabase
         .from('stores')
         .insert([{
-          ...storeData,
+          ...storeFields,
           status: storeData.status || 'connected',
           customer_id: storeData.client_id  // Set customer_id to client_id for permissions
         }])
@@ -229,12 +230,12 @@ export const useAdminClients = () => {
       // Use selected users or fallback to existing client users
       let usersToAdd = [];
       
-      if (storeData.userIds && storeData.userIds.length > 0) {
+      if (userIds && userIds.length > 0) {
         // Use specifically selected users
         const { data: selectedUsers, error: usersError } = await supabase
           .from('users')
           .select('id, role')
-          .in('id', storeData.userIds);
+          .in('id', userIds as string[]);
 
         if (usersError) throw usersError;
         usersToAdd = selectedUsers || [];
