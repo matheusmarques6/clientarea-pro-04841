@@ -54,6 +54,23 @@ export const useAuthState = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Defer reconciliation if already signed in (avoids deadlocks in callback)
+      if (session?.user?.email) {
+        setTimeout(() => {
+          (async () => {
+            try {
+              await supabase.rpc('reconcile_user_profile', {
+                _email: session.user!.email as string,
+                _auth_id: session.user!.id,
+                _name: (session.user!.user_metadata?.full_name as string) || ((session.user!.email as string).split('@')[0] || 'Usuário')
+              });
+            } catch (e) {
+              console.warn('Reconcile on init failed:', e);
+            }
+          })();
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -92,27 +109,19 @@ export const useAuthState = () => {
         description: "Bem-vindo de volta!",
       });
 
-      // Ensure a row exists in public.users for this auth user
+      // Ensure user profile is reconciled with auth ID and linked memberships
       try {
         const { data: userInfo } = await supabase.auth.getUser();
         const authUser = userInfo.user;
-        if (authUser) {
-          const { data: existing } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-          if (!existing) {
-            await supabase.from('users').insert([{
-              id: authUser.id,
-              email: authUser.email || '',
-              name: (authUser.user_metadata?.full_name as string) || (authUser.email?.split('@')[0] || 'Usuário')
-            }]);
-          }
+        if (authUser && authUser.email) {
+          await supabase.rpc('reconcile_user_profile', {
+            _email: authUser.email,
+            _auth_id: authUser.id,
+            _name: (authUser.user_metadata?.full_name as string) || (authUser.email?.split('@')[0] || 'Usuário')
+          });
         }
       } catch (e) {
-        console.warn('Could not ensure public.users profile:', e);
+        console.warn('Could not reconcile public.users profile:', e);
       }
 
       return {};

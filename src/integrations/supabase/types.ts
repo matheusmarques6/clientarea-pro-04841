@@ -1071,6 +1071,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      reconcile_user_profile: {
+        Args: { _auth_id: string; _email: string; _name: string }
+        Returns: undefined
+      }
     }
     Enums: {
       channel_attribution: "email" | "sms" | "whatsapp" | "none"
