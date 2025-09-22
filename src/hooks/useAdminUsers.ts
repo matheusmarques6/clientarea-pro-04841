@@ -44,11 +44,13 @@ export const useAdminUsers = () => {
     try {
       console.log('useAdminUsers: Creating user with data:', userData);
       
-      // Primeiro, criar o usuário no sistema de autenticação do Supabase
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Usar signup normal ao invés de admin.createUser
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password || crypto.randomUUID().substring(0, 8), // senha temporária se não fornecida
-        email_confirm: true, // confirma email automaticamente
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
       });
 
       if (authError) {
@@ -57,6 +59,10 @@ export const useAdminUsers = () => {
       }
 
       console.log('Auth user created:', authData);
+
+      if (!authData.user) {
+        throw new Error('Falha ao criar usuário - dados de autenticação não retornados');
+      }
 
       // Depois, criar o registro na tabela users
       const { data, error } = await supabase
@@ -73,8 +79,7 @@ export const useAdminUsers = () => {
 
       if (error) {
         console.error('Error creating user record:', error);
-        // Se falhou ao criar o registro, tentar deletar o usuário de auth criado
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        // Não tentar deletar o usuário de auth se falhar, deixar para que ele possa completar o cadastro
         throw error;
       }
 
@@ -82,7 +87,7 @@ export const useAdminUsers = () => {
       
       toast({
         title: "Usuário criado",
-        description: `Usuário criado com sucesso! ${!userData.password ? 'Senha temporária será enviada por email.' : ''}`,
+        description: `Usuário criado com sucesso! ${!userData.password ? 'Uma senha temporária foi gerada.' : ''}`,
       });
 
       return { data, error: null };
@@ -221,34 +226,26 @@ export const useAdminUsers = () => {
 
   const resetUserPassword = async (userId: string, newPassword?: string) => {
     try {
-      if (newPassword) {
-        // Reset password with specific password using Supabase Admin API
-        const { error } = await supabase.auth.admin.updateUserById(userId, {
-          password: newPassword
-        });
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Senha alterada",
-          description: "A senha do usuário foi alterada com sucesso.",
-        });
-      } else {
-        // Generate a new random password
-        const temporaryPassword = crypto.randomUUID().substring(0, 12);
-        
-        const { error } = await supabase.auth.admin.updateUserById(userId, {
-          password: temporaryPassword
-        });
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Senha resetada",
-          description: `Nova senha temporária: ${temporaryPassword}`,
-          duration: 10000, // Show for 10 seconds so admin can copy
-        });
-      }
+      // Para reset de senha, usar a API normal de reset
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (userError) throw userError;
+
+      // Usar resetPasswordForEmail ao invés da API admin
+      const { error } = await supabase.auth.resetPasswordForEmail(userData.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Reset de senha enviado",
+        description: "Um email de reset de senha foi enviado para o usuário.",
+      });
 
       return { error: null };
     } catch (error) {
