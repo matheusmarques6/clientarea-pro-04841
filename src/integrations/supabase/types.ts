@@ -14,91 +14,40 @@ export type Database = {
   }
   public: {
     Tables: {
-      billings: {
+      audit_events: {
         Row: {
-          amount: number | null
-          created_at: string
-          currency: string | null
-          description: string | null
-          due_date: string | null
-          id: string
-          status: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string
-          currency?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          status?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string
-          currency?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          status?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      contracts: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_date: string | null
-          id: string
-          start_date: string | null
-          status: string | null
+          action: string | null
+          actor: string | null
+          created_at: string | null
+          entity: string | null
+          entity_id: string | null
+          id: number
+          meta: Json | null
           store_id: string | null
-          store_name: string | null
-          title: string
-          type: string | null
-          updated_at: string
-          user_id: string
-          value: number | null
         }
         Insert: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          start_date?: string | null
-          status?: string | null
+          action?: string | null
+          actor?: string | null
+          created_at?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: number
+          meta?: Json | null
           store_id?: string | null
-          store_name?: string | null
-          title: string
-          type?: string | null
-          updated_at?: string
-          user_id: string
-          value?: number | null
         }
         Update: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          start_date?: string | null
-          status?: string | null
+          action?: string | null
+          actor?: string | null
+          created_at?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: number
+          meta?: Json | null
           store_id?: string | null
-          store_name?: string | null
-          title?: string
-          type?: string | null
-          updated_at?: string
-          user_id?: string
-          value?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "contracts_store_id_fkey"
+            foreignKeyName: "audit_events_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -106,117 +55,70 @@ export type Database = {
           },
         ]
       }
-      klaviyo_report_logs: {
+      customers: {
         Row: {
-          created_at: string
-          data: Json | null
-          id: string
-          message: string | null
-          report_type: string
-          request_date: string | null
-          status: string | null
-          store_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          data?: Json | null
-          id?: string
-          message?: string | null
-          report_type: string
-          request_date?: string | null
-          status?: string | null
-          store_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          data?: Json | null
-          id?: string
-          message?: string | null
-          report_type?: string
-          request_date?: string | null
-          status?: string | null
-          store_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "klaviyo_report_logs_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          full_name: string | null
-          id: string
-          role: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          role?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          role?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      reports: {
-        Row: {
-          created_at: string
-          data: Json | null
+          created_at: string | null
           id: string
           name: string
-          status: string | null
-          store_id: string
-          type: string
-          updated_at: string
-          user_id: string
         }
         Insert: {
-          created_at?: string
-          data?: Json | null
+          created_at?: string | null
           id?: string
           name: string
-          status?: string | null
-          store_id: string
-          type: string
-          updated_at?: string
-          user_id: string
         }
         Update: {
-          created_at?: string
-          data?: Json | null
+          created_at?: string | null
           id?: string
           name?: string
-          status?: string | null
-          store_id?: string
-          type?: string
-          updated_at?: string
-          user_id?: string
+        }
+        Relationships: []
+      }
+      product_costs: {
+        Row: {
+          cost_brl: number | null
+          cost_eur: number | null
+          cost_gbp: number | null
+          cost_usd: number | null
+          id: string
+          price: number | null
+          product_title: string | null
+          sku: string
+          store_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          variant_title: string | null
+        }
+        Insert: {
+          cost_brl?: number | null
+          cost_eur?: number | null
+          cost_gbp?: number | null
+          cost_usd?: number | null
+          id?: string
+          price?: number | null
+          product_title?: string | null
+          sku: string
+          store_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          variant_title?: string | null
+        }
+        Update: {
+          cost_brl?: number | null
+          cost_eur?: number | null
+          cost_gbp?: number | null
+          cost_usd?: number | null
+          id?: string
+          price?: number | null
+          product_title?: string | null
+          sku?: string
+          store_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          variant_title?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "reports_store_id_fkey"
+            foreignKeyName: "product_costs_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -224,45 +126,236 @@ export type Database = {
           },
         ]
       }
-      store_secrets: {
+      public_links: {
         Row: {
-          created_at: string
+          auto_rules: Json | null
+          created_at: string | null
+          enabled: boolean | null
           id: string
-          klaviyo_private_key: string | null
-          klaviyo_public_key: string | null
-          shopify_access_token: string | null
-          shopify_token: string | null
+          messages: Json | null
+          slug: string
+          store_id: string | null
+          type: string
+        }
+        Insert: {
+          auto_rules?: Json | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          messages?: Json | null
+          slug: string
+          store_id?: string | null
+          type: string
+        }
+        Update: {
+          auto_rules?: Json | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          messages?: Json | null
+          slug?: string
+          store_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_links_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refunds: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string
+          final_amount: number | null
+          id: string
+          method: string | null
+          order_code: string
+          origin: string | null
+          reason: string | null
+          requested_amount: number
+          status: Database["public"]["Enums"]["refund_status"]
+          store_id: string | null
+          transaction_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name: string
+          final_amount?: number | null
+          id?: string
+          method?: string | null
+          order_code: string
+          origin?: string | null
+          reason?: string | null
+          requested_amount: number
+          status?: Database["public"]["Enums"]["refund_status"]
+          store_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          final_amount?: number | null
+          id?: string
+          method?: string | null
+          order_code?: string
+          origin?: string | null
+          reason?: string | null
+          requested_amount?: number
+          status?: Database["public"]["Enums"]["refund_status"]
+          store_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_items: {
+        Row: {
+          id: string
+          qty: number | null
+          return_id: string | null
+          sku: string | null
+          title: string | null
+          unit_price: number | null
+          variant: string | null
+        }
+        Insert: {
+          id?: string
+          qty?: number | null
+          return_id?: string | null
+          sku?: string | null
+          title?: string | null
+          unit_price?: number | null
+          variant?: string | null
+        }
+        Update: {
+          id?: string
+          qty?: number | null
+          return_id?: string | null
+          sku?: string | null
+          title?: string | null
+          unit_price?: number | null
+          variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      returns: {
+        Row: {
+          amount: number | null
+          code: string | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          order_code: string
+          origin: string | null
+          reason: string | null
+          sla_days: number | null
+          status: Database["public"]["Enums"]["return_status"]
+          store_id: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          code?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_code: string
+          origin?: string | null
+          reason?: string | null
+          sla_days?: number | null
+          status?: Database["public"]["Enums"]["return_status"]
+          store_id?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          code?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_code?: string
+          origin?: string | null
+          reason?: string | null
+          sla_days?: number | null
+          status?: Database["public"]["Enums"]["return_status"]
+          store_id?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_members: {
+        Row: {
+          created_at: string | null
+          role: Database["public"]["Enums"]["role_type"]
           store_id: string
-          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string
-          id?: string
-          klaviyo_private_key?: string | null
-          klaviyo_public_key?: string | null
-          shopify_access_token?: string | null
-          shopify_token?: string | null
+          created_at?: string | null
+          role?: Database["public"]["Enums"]["role_type"]
           store_id: string
-          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string
-          id?: string
-          klaviyo_private_key?: string | null
-          klaviyo_public_key?: string | null
-          shopify_access_token?: string | null
-          shopify_token?: string | null
+          created_at?: string | null
+          role?: Database["public"]["Enums"]["role_type"]
           store_id?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "store_secrets_store_id_fkey"
+            foreignKeyName: "store_members_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -270,82 +363,88 @@ export type Database = {
       }
       stores: {
         Row: {
-          address: string | null
-          category: string | null
           country: string | null
-          created_at: string
+          created_at: string | null
           currency: string | null
-          description: string | null
-          email: string | null
+          customer_id: string | null
           id: string
-          klaviyo_integration_status: string | null
-          klaviyo_last_sync_at: string | null
-          klaviyo_public_key: string | null
-          klaviyo_webhook_active: boolean | null
           name: string
-          phone: string | null
-          shopify_url: string | null
-          timezone: string | null
-          updated_at: string
-          user_id: string
-          website: string | null
+          status: string | null
         }
         Insert: {
-          address?: string | null
-          category?: string | null
           country?: string | null
-          created_at?: string
+          created_at?: string | null
           currency?: string | null
-          description?: string | null
-          email?: string | null
+          customer_id?: string | null
           id?: string
-          klaviyo_integration_status?: string | null
-          klaviyo_last_sync_at?: string | null
-          klaviyo_public_key?: string | null
-          klaviyo_webhook_active?: boolean | null
           name: string
-          phone?: string | null
-          shopify_url?: string | null
-          timezone?: string | null
-          updated_at?: string
-          user_id: string
-          website?: string | null
+          status?: string | null
         }
         Update: {
-          address?: string | null
-          category?: string | null
           country?: string | null
-          created_at?: string
+          created_at?: string | null
           currency?: string | null
-          description?: string | null
-          email?: string | null
+          customer_id?: string | null
           id?: string
-          klaviyo_integration_status?: string | null
-          klaviyo_last_sync_at?: string | null
-          klaviyo_public_key?: string | null
-          klaviyo_webhook_active?: boolean | null
           name?: string
-          phone?: string | null
-          shopify_url?: string | null
-          timezone?: string | null
-          updated_at?: string
-          user_id?: string
-          website?: string | null
+          status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stores_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      get_dashboard_stats: {
-        Args: { user_uuid: string }
-        Returns: Json
+      v_user_stores: {
+        Row: {
+          store_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_members_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
-    Enums: {
+    Functions: {
       [_ in never]: never
+    }
+    Enums: {
+      refund_status:
+        | "requested"
+        | "review"
+        | "approved"
+        | "processing"
+        | "done"
+        | "rejected"
+      return_status:
+        | "new"
+        | "review"
+        | "approved"
+        | "awaiting_post"
+        | "received_dc"
+        | "done"
+        | "rejected"
+      role_type: "owner" | "manager" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -472,6 +571,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      refund_status: [
+        "requested",
+        "review",
+        "approved",
+        "processing",
+        "done",
+        "rejected",
+      ],
+      return_status: [
+        "new",
+        "review",
+        "approved",
+        "awaiting_post",
+        "received_dc",
+        "done",
+        "rejected",
+      ],
+      role_type: ["owner", "manager", "viewer"],
+    },
   },
 } as const
