@@ -11,6 +11,8 @@ export const useAdminStores = () => {
   const fetchStores = async () => {
     try {
       setLoading(true);
+      
+      // Admin users can see all stores
       const { data, error } = await supabase
         .from('stores')
         .select(`

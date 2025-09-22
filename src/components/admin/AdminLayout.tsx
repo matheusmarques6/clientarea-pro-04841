@@ -1,9 +1,14 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { AdminSidebar } from './AdminSidebar';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const AdminLayout = () => {
+  const { signOut } = useAdminAuth();
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AdminSidebar />
@@ -15,6 +20,17 @@ const AdminLayout = () => {
               <div className="h-6 w-px bg-border"></div>
               <span className="text-sm font-medium text-foreground">Painel Administrativo</span>
             </div>
+          </div>
+          <div className="px-4">
+            <Button
+              variant="ghost" 
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
           </div>
         </header>
         <main className="flex-1 overflow-auto">

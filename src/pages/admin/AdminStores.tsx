@@ -147,7 +147,7 @@ const AdminStores = () => {
         <div>
           <h1 className="text-3xl font-bold heading-primary">Lojas</h1>
           <p className="text-muted-foreground">
-            Gerencie lojas dos clientes
+            Visualize e gerencie todas as lojas do sistema
           </p>
         </div>
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
