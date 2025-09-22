@@ -131,7 +131,7 @@ serve(async (req: Request) => {
       } else {
         // Associate user with store
         const { error: associationError } = await supabaseAdmin
-          .from('user_store_roles')
+          .from('store_members')
           .insert({
             user_id: userData.id,
             store_id: storeData.id,

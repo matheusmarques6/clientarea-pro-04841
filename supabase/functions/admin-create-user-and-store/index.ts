@@ -209,7 +209,7 @@ serve(async (req: Request) => {
     // STEP 4: Associate user with store
     console.log('admin-create-user-and-store: Step 4 - Associating user with store')
     const { error: associationError } = await supabaseAdmin
-      .from('user_store_roles')
+      .from('store_members')
       .insert({
         user_id: authUserId,
         store_id: storeData.id,
