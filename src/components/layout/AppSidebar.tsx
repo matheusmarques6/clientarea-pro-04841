@@ -20,14 +20,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import convertfyLogo from '@/assets/convertfy-logo.png';
 
 export function AppSidebar() {
-  const { open, setOpen, openMobile, setOpenMobile, isMobile, state } = useSidebar();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { id: storeId } = useParams();
@@ -156,48 +155,52 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`sidebar border-r transition-all duration-200 ${
-        collapsed ? 'w-16' : 'w-60'
-      }`}
+      className={cn(
+        "transition-all duration-300 ease-in-out border-r border-sidebar-border bg-sidebar", 
+        collapsed ? "w-[72px]" : "w-60"
+      )}
     >
-      {/* Logo and Toggle */}
-      <div className="flex items-center justify-between p-4 border-b">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <img 
-              src={convertfyLogo} 
-              alt="Convertfy" 
-              className="h-8 w-auto"
-            />
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSidebar}
-          className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-
-      <SidebarContent>
-        <SidebarGroup>
+      <SidebarContent className="flex flex-col h-full">
+        {/* Logo and Toggle */}
+        <div className="flex items-center justify-between p-4 border-b border-sidebar-border min-h-[73px]">
           {!collapsed && (
-            <SidebarGroupLabel>
+            <div className="flex items-center gap-2 animate-fade-in">
+              <img 
+                src={convertfyLogo} 
+                alt="Convertfy" 
+                className="h-8 w-auto"
+              />
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className={cn(
+              "h-8 w-8 p-0 hover:bg-sidebar-accent focus-ring rounded-md transition-colors",
+              collapsed && "mx-auto"
+            )}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        <SidebarGroup className="flex-1 p-2">
+          {!collapsed && (
+            <SidebarGroupLabel className="px-2 py-2 text-xs text-sidebar-foreground/60 font-medium">
               Navegação
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {items.map((item) => (
-                <SidebarMenuItem key={item.title} className="nav-item">
+                <SidebarMenuItem key={item.title}>
                   {renderMenuItem(item)}
                 </SidebarMenuItem>
               ))}

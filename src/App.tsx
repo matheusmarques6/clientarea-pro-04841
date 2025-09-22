@@ -5,8 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
+// Auth
+import { AuthProvider } from "./components/auth/AuthProvider";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+
 // Pages
 import PreDashboard from "./pages/PreDashboard";
+import Auth from "./pages/Auth";
 import StoreSelector from "./pages/StoreSelector";
 import StoreDashboard from "./pages/StoreDashboard";
 import Returns from "./pages/Returns";
@@ -30,38 +35,45 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SidebarProvider>
-          <Routes>
-            {/* Routes without sidebar */}
-            <Route path="/" element={<PreDashboard />} />
-            <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
-            <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
-            <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
-            <Route path="/tracking" element={<TrackingPortal />} />
-            
-            {/* Routes with sidebar */}
-            <Route element={<AppLayout />}>
-              <Route path="/stores" element={<StoreSelector />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/store/:id" element={<StoreDashboard />} />
-              <Route path="/store/:id/returns" element={<Returns />} />
-              <Route path="/store/:id/returns/setup" element={<ReturnsSetup />} />
-              <Route path="/store/:id/returns/new" element={<NewReturn />} />
-              <Route path="/store/:id/refunds" element={<Refunds />} />
-              <Route path="/store/:id/refunds/setup" element={<RefundsSetup />} />
-              <Route path="/store/:id/costs" element={<ProductCosts />} />
-              <Route path="/store/:id/settings" element={<StoreSettings />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SidebarProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SidebarProvider>
+            <Routes>
+              {/* Public routes without auth */}
+              <Route path="/" element={<PreDashboard />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/public/returns/:storeSlug" element={<PublicReturns />} />
+              <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
+              <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
+              <Route path="/tracking" element={<TrackingPortal />} />
+              
+              {/* Protected routes with sidebar */}
+              <Route element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="/stores" element={<StoreSelector />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/store/:id" element={<StoreDashboard />} />
+                <Route path="/store/:id/returns" element={<Returns />} />
+                <Route path="/store/:id/returns/setup" element={<ReturnsSetup />} />
+                <Route path="/store/:id/returns/new" element={<NewReturn />} />
+                <Route path="/store/:id/refunds" element={<Refunds />} />
+                <Route path="/store/:id/refunds/setup" element={<RefundsSetup />} />
+                <Route path="/store/:id/costs" element={<ProductCosts />} />
+                <Route path="/store/:id/settings" element={<StoreSettings />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

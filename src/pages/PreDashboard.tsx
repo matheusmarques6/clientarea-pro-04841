@@ -155,8 +155,8 @@ const PreDashboard = () => {
             </div>
           </div>
 
-          {/* CTA Button - Melhor estética mobile */}
-          <div className="w-full max-w-md mt-6 px-4 sm:px-0">
+          {/* CTA Buttons - Melhor estética mobile */}
+          <div className="w-full max-w-md mt-6 px-4 sm:px-0 space-y-4">
             <Button
               asChild 
               size="lg" 
@@ -164,6 +164,16 @@ const PreDashboard = () => {
             >
               <Link to="/stores" className="font-semibold">
                 Ver minhas lojas
+              </Link>
+            </Button>
+            <Button
+              asChild 
+              size="lg" 
+              variant="outline"
+              className="w-full text-lg font-semibold h-14 sm:h-14 rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20"
+            >
+              <Link to="/auth" className="font-semibold">
+                Fazer Login
               </Link>
             </Button>
           </div>
