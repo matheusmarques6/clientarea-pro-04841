@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Percent, PiggyBank, RefreshCw, Package, ArrowLeft } from 'lucide-react';
+import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,63 +49,75 @@ const StoreDashboard = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faturamento Total
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.faturamentoTotal)}</div>
-            <p className="text-xs text-muted-foreground">
-              Receita total do período
-            </p>
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-brand-600" />
+              </div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +12.5%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Faturamento Total</p>
+              <p className="text-2xl font-bold text-ink mt-1">R$ 42.850</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faturamento Convertfy
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{formatCurrency(stats.faturamentoConvertfy)}</div>
-            <p className="text-xs text-muted-foreground">
-              Receita via Convertfy
-            </p>
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-brand-600" />
+              </div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +8.3%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Faturamento Convertfy</p>
+              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(stats.faturamentoConvertfy)}</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Margem CFY
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.margemCFY}%</div>
-            <p className="text-xs text-muted-foreground">
-              Margem de conversão
-            </p>
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <Percent className="w-5 h-5 text-brand-600" />
+              </div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +2.1%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Margem CFY</p>
+              <p className="text-2xl font-bold text-ink mt-1">38.3%</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Lucro Líquido CFY
-            </CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.lucroLiquidoCFY)}</div>
-            <p className="text-xs text-muted-foreground">
-              Lucro após custos
-            </p>
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg">
+                <ShoppingBag className="w-5 h-5 text-orange-500" />
+              </div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +15.2%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Lucro CFY</p>
+              <p className="text-2xl font-bold text-ink mt-1">R$ 6.281</p>
+            </div>
           </CardContent>
         </Card>
       </div>
