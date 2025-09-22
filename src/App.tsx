@@ -55,25 +55,22 @@ const App = () => (
               <Route path="/" element={<Navigate to="/auth" replace />} />
               
               {/* Protected routes - TODAS as páginas internas exigem login */}
-              <Route element={<ProtectedRoute><div /></ProtectedRoute>}>
-                {/* PreDashboard - primeira página após login */}
-                <Route path="/dashboard" element={<PreDashboard />} />
-                
-                {/* Seleção de loja - segunda etapa */}
-                <Route path="/stores" element={<StoreSelector />} />
-                
-                {/* Rotas da aplicação com sidebar - requer loja selecionada */}
-                <Route element={<AppLayout />}>
-                  <Route path="/help" element={<Help />} />
-                  <Route path="/store/:id" element={<StoreDashboard />} />
-                  <Route path="/store/:id/returns" element={<Returns />} />
-                  <Route path="/store/:id/returns/setup" element={<ReturnsSetup />} />
-                  <Route path="/store/:id/returns/new" element={<NewReturn />} />
-                  <Route path="/store/:id/refunds" element={<Refunds />} />
-                  <Route path="/store/:id/refunds/setup" element={<RefundsSetup />} />
-                  <Route path="/store/:id/costs" element={<ProductCosts />} />
-                  <Route path="/store/:id/settings" element={<StoreSettings />} />
-                </Route>
+              <Route path="/dashboard" element={<ProtectedRoute><PreDashboard /></ProtectedRoute>} />
+              <Route path="/stores" element={<ProtectedRoute><StoreSelector /></ProtectedRoute>} />
+              
+              {/* Rotas da aplicação com sidebar - requer loja selecionada */}
+              <Route path="/store/:id" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<StoreDashboard />} />
+                <Route path="returns" element={<Returns />} />
+                <Route path="returns/setup" element={<ReturnsSetup />} />
+                <Route path="returns/new" element={<NewReturn />} />
+                <Route path="refunds" element={<Refunds />} />
+                <Route path="refunds/setup" element={<RefundsSetup />} />
+                <Route path="costs" element={<ProductCosts />} />
+                <Route path="settings" element={<StoreSettings />} />
+              </Route>
+              <Route path="/help" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<Help />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

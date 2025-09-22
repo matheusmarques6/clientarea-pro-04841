@@ -11,7 +11,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  console.log('ProtectedRoute: Current state', { 
+    user: !!user, 
+    loading, 
+    pathname: location.pathname 
+  });
+
   if (loading) {
+    console.log('ProtectedRoute: Loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-premium">
         <div className="space-y-4 w-full max-w-md mx-auto p-6">
@@ -25,8 +32,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  console.log('ProtectedRoute: User authenticated, rendering children');
   return <>{children}</>;
 };
