@@ -37,11 +37,14 @@ export const useAdminClients = () => {
 
   const createClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      console.log('useAdminClients: Creating client with data:', clientData);
       const { data, error } = await supabase
         .from('clients')
         .insert([clientData])
         .select()
         .single();
+
+      console.log('useAdminClients: Supabase response:', { data, error });
 
       if (error) throw error;
 

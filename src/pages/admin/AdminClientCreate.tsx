@@ -42,9 +42,11 @@ const AdminClientCreate = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('AdminClientCreate: Starting form submission');
     setLoading(true);
 
     try {
+      console.log('AdminClientCreate: Creating client with data:', clientData);
       // 1. Create client
       const clientResult = await createClient({
         name: clientData.name,
@@ -52,6 +54,8 @@ const AdminClientCreate = () => {
         tax_id: clientData.tax_id || null,
         status: clientData.status as 'active' | 'suspended',
       });
+
+      console.log('AdminClientCreate: Client creation result:', clientResult);
 
       if (clientResult.error || !clientResult.data) {
         throw new Error(clientResult.error || 'Erro ao criar cliente');
