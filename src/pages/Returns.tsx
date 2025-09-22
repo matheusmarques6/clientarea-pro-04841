@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft } from 'lucide-react';
+import { Plus, Copy, Filter, Search, MoreHorizontal, ArrowLeft, Settings, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { mockReturns, mockStores } from '@/lib/mockData';
 import { ReturnRequest } from '@/types';
@@ -15,6 +16,8 @@ const Returns = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [returns, setReturns] = useState(mockReturns);
@@ -165,27 +168,62 @@ const Returns = () => {
     </Card>
   );
 
+  // Status counts
+  const statusCounts = {
+    abertas: returns.filter(r => r.status === 'Nova').length,
+    aprovadas: returns.filter(r => r.status === 'Aprovada').length,
+    concluidas: returns.filter(r => r.status === 'Concluída').length,
+    recusadas: returns.filter(r => r.status === 'Recusada').length,
+    pendentes: returns.filter(r => ['Em análise', 'Aguardando postagem', 'Recebida em CD'].includes(r.status)).length
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-bg-page">
       <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Trocas & Devoluções</h1>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={handleCopyPublicLink} className="w-full sm:w-auto">
-            <Copy className="h-4 w-4 mr-2" />
-            Copiar Link Público
-          </Button>
-          <Button asChild className="w-full sm:w-auto">
-            <Link to={`/store/${storeId}/returns/new`}>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-ink">Trocas & Devoluções</h1>
+            <p className="text-ink-2 text-sm">{returns.length} solicitações • {statusCounts.pendentes} pendentes</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Nova Solicitação
-            </Link>
-          </Button>
+            </Button>
+          </div>
         </div>
-      </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-orange-500">{statusCounts.abertas}</div>
+              <div className="text-sm text-ink-2">Abertas</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-500">{statusCounts.aprovadas}</div>
+              <div className="text-sm text-ink-2">Aprovadas</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-500">{statusCounts.concluidas}</div>
+              <div className="text-sm text-ink-2">Concluídas</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-gray-500">{statusCounts.recusadas}</div>
+              <div className="text-sm text-ink-2">Recusadas</div>
+            </CardContent>
+          </Card>
+        </div>
 
       <Tabs defaultValue="kanban" className="space-y-6">
         <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-background border border-border/80 p-1.5 text-muted-foreground w-full max-w-md shadow-lg shadow-black/5">{/* Design moderno e clean */}
@@ -214,16 +252,35 @@ const Returns = () => {
             <div className="relative flex-1 max-w-full sm:max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por pedido, cliente..."
+                placeholder="Buscar por código, pedido ou cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 bg-background border-border"
+                className="pl-8 bg-white border-gray-200"
               />
             </div>
-            <Button variant="outline" className="w-full sm:w-auto bg-background border-border">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtros
-            </Button>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48 bg-white border-gray-200">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="Nova">Nova</SelectItem>
+                <SelectItem value="Em análise">Em análise</SelectItem>
+                <SelectItem value="Aprovada">Aprovada</SelectItem>
+                <SelectItem value="Concluída">Concluída</SelectItem>
+                <SelectItem value="Recusada">Recusada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-48 bg-white border-gray-200">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="Devolução">Devolução</SelectItem>
+                <SelectItem value="Troca">Troca</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Kanban Board */}
@@ -259,80 +316,129 @@ const Returns = () => {
             <div className="relative flex-1 max-w-full sm:max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por pedido, cliente..."
+                placeholder="Buscar por código, pedido ou cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 bg-background border-border"
+                className="pl-8 bg-white border-gray-200"
               />
             </div>
-            <Button variant="outline" className="w-full sm:w-auto bg-background border-border">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48 bg-white border-gray-200">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="Nova">Nova</SelectItem>
+                <SelectItem value="Em análise">Em análise</SelectItem>
+                <SelectItem value="Aprovada">Aprovada</SelectItem>
+                <SelectItem value="Concluída">Concluída</SelectItem>
+                <SelectItem value="Recusada">Recusada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-48 bg-white border-gray-200">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="Devolução">Devolução</SelectItem>
+                <SelectItem value="Troca">Troca</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="bg-white border-gray-200">
               <Filter className="h-4 w-4 mr-2" />
-              Filtros
+              Exportar
+            </Button>
+          </div>
+
+          {/* Header with title and count */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-ink">Solicitações ({returns.length})</h2>
+            <Button variant="outline" className="bg-white border-gray-200">
+              <Filter className="h-4 w-4 mr-2" />
+              Exportar
             </Button>
           </div>
 
           {/* Lista */}
-          <Card className="bg-card border-border shadow-sm">{/* Card com fundo sólido */}
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="border-b border-border">
+                  <thead className="border-b border-gray-200 bg-gray-50">
                     <tr className="text-left">
-                      <th className="p-4 font-semibold text-foreground">ID</th>
-                      <th className="p-4 font-semibold text-foreground">Pedido</th>
-                      <th className="p-4 font-semibold text-foreground">Cliente</th>
-                      <th className="p-4 font-semibold text-foreground">Tipo</th>
-                      <th className="p-4 font-semibold text-foreground">Status</th>
-                      <th className="p-4 font-semibold text-foreground">Valor</th>
-                      <th className="p-4 font-semibold text-foreground">Data</th>
-                      <th className="p-4 font-semibold text-foreground">Ações</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Código</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Pedido</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Cliente</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Tipo</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Status</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Valor</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Data</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm">Origem</th>
+                      <th className="p-4 font-medium text-ink-2 text-sm"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {returns
-                      .filter(item => 
-                        item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        item.cliente.toLowerCase().includes(searchTerm.toLowerCase())
-                      )
+                      .filter(item => {
+                        const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.cliente.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+                        const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
+                        return matchesSearch && matchesStatus && matchesType;
+                      })
                       .map((item) => (
                         <tr 
                           key={item.id} 
-                          className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
+                          className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                           onClick={() => handleReturnClick(item)}
                         >
                           <td className="p-4">
-                            <span className="font-medium text-foreground">{item.id}</span>
+                            <span className="font-medium text-brand-600">{item.id}</span>
                           </td>
                           <td className="p-4">
-                            <span className="text-foreground">{item.pedido}</span>
+                            <span className="text-ink">{item.pedido}</span>
                           </td>
                           <td className="p-4">
-                            <span className="text-foreground">{item.cliente}</span>
+                            <span className="text-ink">{item.cliente}</span>
                           </td>
                           <td className="p-4">
-                            <Badge variant="outline" className="text-foreground border-border">
+                            <Badge 
+                              variant="secondary" 
+                              className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0`}
+                            >
                               {item.tipo}
                             </Badge>
                           </td>
                           <td className="p-4">
-                            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                              {item.status}
-                            </div>
+                            <span className="text-ink text-sm">{item.status}</span>
                           </td>
                           <td className="p-4">
-                            <span className="font-semibold text-foreground">
-                              R$ {item.valor.toFixed(2)}
+                            <span className="font-medium text-green-600">
+                              R$ {item.valor.toFixed(2).replace('.', ',')}
                             </span>
                           </td>
                           <td className="p-4">
-                            <span className="text-muted-foreground">
-                              {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                            <span className="text-ink-3 text-sm">
+                              {new Date(item.createdAt).toLocaleDateString('pt-BR', { 
+                                day: '2-digit', 
+                                month: 'short', 
+                                year: 'numeric' 
+                              })}
                             </span>
+                          </td>
+                          <td className="p-4">
+                            <Badge 
+                              variant="outline" 
+                              className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600'} text-xs`}
+                            >
+                              {item.origem === 'Link público' ? 'Portal' : item.origem}
+                            </Badge>
                           </td>
                           <td className="p-4">
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
+                              <ExternalLink className="h-4 w-4 text-ink-3" />
                             </Button>
                           </td>
                         </tr>
@@ -340,13 +446,16 @@ const Returns = () => {
                   </tbody>
                 </table>
               </div>
-              {returns.filter(item => 
-                item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.cliente.toLowerCase().includes(searchTerm.toLowerCase())
-              ).length === 0 && (
+              {returns.filter(item => {
+                const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  item.cliente.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+                const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
+                return matchesSearch && matchesStatus && matchesType;
+              }).length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
+                  <p className="text-ink-3">Nenhuma solicitação encontrada</p>
                 </div>
               )}
             </CardContent>
