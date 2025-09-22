@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -148,6 +148,7 @@ const methodConfig = {
 
 export default function Refunds() {
   const { toast } = useToast();
+  const { id: storeId } = useParams();
   const [selectedRefund, setSelectedRefund] = useState<RefundItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -358,7 +359,7 @@ export default function Refunds() {
             <ExternalLink className="w-4 h-4 mr-2" />
             Copiar link público
           </Button>
-          <Link to="/store/1/refunds/setup">
+          <Link to={`/store/${storeId}/refunds/setup`}>
             <Button variant="outline">
               <Eye className="w-4 h-4 mr-2" />
               Configurar

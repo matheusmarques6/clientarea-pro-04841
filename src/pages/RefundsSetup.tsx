@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Copy, Eye, Palette, Settings, MessageSquare, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const RefundsSetup = () => {
   const { toast } = useToast();
+  const { id: storeId } = useParams();
   
   // Configuration state
   const [config, setConfig] = useState({
@@ -82,7 +83,7 @@ const RefundsSetup = () => {
         {/* Header */}
         <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-6">
           <div className="flex items-center gap-4">
-            <Link to="/store/1/refunds">
+            <Link to={`/store/${storeId}/refunds`}>
               <Button variant="outline" size="sm" className="hover:bg-muted/50 transition-colors">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Voltar para reembolsos</span>
