@@ -60,10 +60,10 @@ const StoreSelector = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="layout-center bg-gradient-to-br from-background via-background to-muted/20">
         {/* Header */}
-        <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg">
-          <div className="w-full px-4 sm:px-6 lg:px-8">
+        <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg w-full">
+          <div className="layout-container px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 <img src={convertfyLogo} alt="Convertfy" className="h-8 w-auto" />
@@ -77,7 +77,7 @@ const StoreSelector = () => {
         </header>
 
         {/* Content */}
-        <main className="w-full px-4 sm:px-6 lg:px-8 py-12">
+        <main className="layout-container px-4 sm:px-6 lg:px-8 py-12">
           <div className="space-y-8">
             <div className="text-center space-y-4">
               <div className="h-12 bg-muted/50 rounded-lg w-1/3 mx-auto animate-pulse"></div>
@@ -95,10 +95,10 @@ const StoreSelector = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="layout-center bg-gradient-to-br from-background via-background to-muted/20">
       {/* Modern Header */}
-      <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+      <header className="border-b border-border/40 bg-white/80 backdrop-blur-lg sticky top-0 z-50 w-full">
+        <div className="layout-container px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ const StoreSelector = () => {
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-4 sm:px-6 lg:px-8 py-12">
+      <main className="layout-container px-4 sm:px-6 lg:px-8 py-12">
         <div className="space-y-12">
           {/* Hero Section */}
           <div className="text-center space-y-6">
