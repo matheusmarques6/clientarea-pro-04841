@@ -90,22 +90,8 @@ serve(async (req: Request) => {
 
     console.log('admin-create-user: Creating user:', { name, email, role })
 
-    // Check if user already exists in public.users table
-    const { data: existingUser, error: existingErr } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .eq('email', email)
-      .maybeSingle()
-
-    if (existingErr) {
-      console.error('admin-create-user: Error checking existing user:', existingErr)
-      return new Response(
-        JSON.stringify({ error: 'Falha ao verificar usuário existente' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    let authUserId: string | null = existingUser?.id ?? null
+    // Always resolve auth user by email first
+    let authUserId: string | null = null
 
     if (!authUserId) {
       // Try to find existing auth user by email and confirm

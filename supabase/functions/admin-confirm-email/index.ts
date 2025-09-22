@@ -25,58 +25,8 @@ serve(async (req: Request) => {
       )
     }
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const jwt = authHeader.replace('Bearer ', '')
-    console.log('admin-confirm-email: JWT token extracted')
-
-    // Create service role client
+    // Public function: confirm email by address using service role
     const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
-    
-    // Verify caller is admin using the JWT
-    const supabaseUser = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${jwt}` } }
-    })
-
-    const { data: userRes } = await supabaseUser.auth.getUser(jwt)
-    const caller = userRes?.user
-    
-    if (!caller) {
-      console.log('admin-confirm-email: User not found')
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - user not found' }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('admin-confirm-email: Caller ID:', caller.id)
-
-    // Verify admin status
-    const { data: isAdmin, error: adminErr } = await supabaseAdmin.rpc('is_admin', { _user_id: caller.id })
-    
-    if (adminErr) {
-      console.error('admin-confirm-email: Admin check error:', adminErr)
-      return new Response(
-        JSON.stringify({ error: 'Permission check failed' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!isAdmin) {
-      console.log('admin-confirm-email: User is not admin')
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: not admin' }), 
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('admin-confirm-email: Admin verified')
 
     const body = await req.json()
     const { email } = body
@@ -90,18 +40,24 @@ serve(async (req: Request) => {
 
     console.log('admin-confirm-email: Confirming email for:', email)
 
-    // Get user by email first
-    const { data: users, error: getUserError } = await supabaseAdmin.auth.admin.listUsers()
-    
-    if (getUserError) {
-      console.error('admin-confirm-email: Error getting users:', getUserError)
-      return new Response(
-        JSON.stringify({ error: 'Erro ao buscar usuário' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Find auth user by email (paginate)
+    let targetUser: any = null
+    let page = 1
+    const perPage = 100
+    while (true) {
+      const { data: pageData, error: getUserError } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
+      if (getUserError) {
+        console.error('admin-confirm-email: Error getting users:', getUserError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao buscar usuário' }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      const found = pageData?.users?.find((u: any) => u.email === email)
+      if (found) { targetUser = found; break }
+      if (!pageData || pageData.users.length < perPage) break
+      page++
     }
-
-    const targetUser = users.users.find(u => u.email === email)
     
     if (!targetUser) {
       console.error('admin-confirm-email: User not found with email:', email)

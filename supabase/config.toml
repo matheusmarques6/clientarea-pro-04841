@@ -48,7 +48,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.admin-confirm-email]
-verify_jwt = true
-
+verify_jwt = false
+ 
 [functions.admin-confirm-all-emails]
 verify_jwt = true

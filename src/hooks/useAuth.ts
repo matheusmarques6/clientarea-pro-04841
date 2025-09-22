@@ -62,10 +62,21 @@ export const useAuthState = () => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      let { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (error && /not confirmed/i.test(error.message)) {
+        // Try to auto-confirm and retry once
+        try {
+          await supabase.functions.invoke('admin-confirm-email', { body: { email } });
+          const retry = await supabase.auth.signInWithPassword({ email, password });
+          error = retry.error;
+        } catch (e) {
+          // ignore
+        }
+      }
 
       if (error) {
         toast({
