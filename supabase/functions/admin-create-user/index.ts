@@ -108,41 +108,65 @@ serve(async (req: Request) => {
     let authUserId: string | null = existingUser?.id ?? null
 
     if (!authUserId) {
-      // Create auth user
-      const tempPassword = password || crypto.randomUUID().slice(0, 12)
-      console.log('admin-create-user: Creating auth user with password length:', tempPassword.length)
-      
-      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-      })
-
-      if (createErr) {
-        console.error('admin-create-user: Auth user creation error:', createErr)
-        return new Response(
-          JSON.stringify({ error: createErr.message || 'Falha ao criar usuário de autenticação' }), 
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      // Try to find existing auth user by email and confirm
+      let foundAuthUser: any = null
+      let page = 1
+      const perPage = 100
+      while (true) {
+        const { data: pageData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
+        if (listErr) break
+        const match = pageData?.users?.find((u: any) => u.email === email)
+        if (match) { foundAuthUser = match; break }
+        if (!pageData || pageData.users.length < perPage) break
+        page++
       }
 
-      authUserId = created.user?.id ?? null
-      if (!authUserId) {
-        console.error('admin-create-user: Auth user ID not returned')
-        return new Response(
-          JSON.stringify({ error: 'Auth user não retornado' }), 
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      if (foundAuthUser) {
+        authUserId = foundAuthUser.id
+        const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
+        if (!alreadyConfirmed) {
+          await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+            email_confirm: true,
+            user_metadata: { ...(foundAuthUser.user_metadata || {}), email_verified: true, email_confirmed_at: new Date().toISOString() }
+          })
+        }
+      } else {
+        // Create auth user
+        const tempPassword = password || crypto.randomUUID().slice(0, 12)
+        console.log('admin-create-user: Creating auth user with password length:', tempPassword.length)
+        const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { name }
+        })
 
-      console.log('admin-create-user: Auth user created with ID:', authUserId)
+        if (createErr) {
+          console.error('admin-create-user: Auth user creation error:', createErr)
+          return new Response(
+            JSON.stringify({ error: createErr.message || 'Falha ao criar usuário de autenticação' }), 
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        authUserId = created.user?.id ?? null
+        if (!authUserId) {
+          console.error('admin-create-user: Auth user ID not returned')
+          return new Response(
+            JSON.stringify({ error: 'Auth user não retornado' }), 
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('admin-create-user: Auth user created with ID:', authUserId)
+      }
     }
 
-    // Upsert into public.users
+    // Upsert into public.users always using authUserId
     const { data: upserted, error: upsertErr } = await supabaseAdmin
       .from('users')
       .upsert({ 
-        id: authUserId, 
+        id: authUserId!, 
         name, 
         email, 
         role, 

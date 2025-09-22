@@ -100,35 +100,58 @@ serve(async (req: Request) => {
 
     console.log('admin-create-user-and-store: Creating user and store for:', user_email)
 
-    // STEP 1: Create auth user
-    console.log('admin-create-user-and-store: Step 1 - Creating auth user')
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: user_email,
-      password: user_password,
-      email_confirm: true,
-      user_metadata: {
-        name: user_name
+    // STEP 1: Ensure auth user exists and is confirmed
+    console.log('admin-create-user-and-store: Step 1 - Ensuring auth user (confirm email)')
+    let authUserId: string | null = null
+    // Search existing auth user by email
+    let page = 1
+    const perPage = 100
+    let foundAuthUser: any = null
+    while (true) {
+      const { data: pageData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
+      if (listErr) break
+      const match = pageData?.users?.find((u: any) => u.email === user_email)
+      if (match) { foundAuthUser = match; break }
+      if (!pageData || pageData.users.length < perPage) break
+      page++
+    }
+
+    if (foundAuthUser) {
+      authUserId = foundAuthUser.id
+      const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
+      if (!alreadyConfirmed) {
+        await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+          email_confirm: true,
+          user_metadata: { ...(foundAuthUser.user_metadata || {}), name: user_name, email_verified: true, email_confirmed_at: new Date().toISOString() }
+        })
       }
-    })
+    } else {
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: user_email,
+        password: user_password,
+        email_confirm: true,
+        user_metadata: { name: user_name }
+      })
 
-    if (authError) {
-      console.error('admin-create-user-and-store: Auth user creation error:', authError)
-      return new Response(
-        JSON.stringify({ error: authError.message || 'Falha ao criar usuário de autenticação' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (authError) {
+        console.error('admin-create-user-and-store: Auth user creation error:', authError)
+        return new Response(
+          JSON.stringify({ error: authError.message || 'Falha ao criar usuário de autenticação' }), 
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      authUserId = authUser.user?.id ?? null
+      if (!authUserId) {
+        console.error('admin-create-user-and-store: Auth user ID not returned')
+        return new Response(
+          JSON.stringify({ error: 'Auth user não retornado' }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
-    const authUserId = authUser.user?.id
-    if (!authUserId) {
-      console.error('admin-create-user-and-store: Auth user ID not returned')
-      return new Response(
-        JSON.stringify({ error: 'Auth user não retornado' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('admin-create-user-and-store: Auth user created with ID:', authUserId)
+    console.log('admin-create-user-and-store: Auth user ensured with ID:', authUserId)
 
     // STEP 2: Create user in public.users table
     console.log('admin-create-user-and-store: Step 2 - Creating public user record')
