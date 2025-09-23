@@ -34,14 +34,23 @@ export async function getKlaviyoSummary(storeId: string, fromISO: string, toISO:
   const url = 'https://n8n-n8n.1fpac5.easypanel.host/webhook/klaviyo/summary';
   if (!url) throw new Error('N8N URL ausente (NEXT_PUBLIC_N8N_KLAVIYO_URL)');
 
-  const headers: Record<string, string> = {};
-  // Opcional: se precisar de API key no futuro
-  // const apiKey = process.env.NEXT_PUBLIC_N8N_API_KEY;
-  // if (apiKey) headers['x-api-key'] = apiKey;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'User-Agent': 'Convertfy-Dashboard'
+  };
+  
+  const requestBody = {
+    storeId,
+    from: fromISO,
+    to: toISO
+  };
+
+  console.log('Klaviyo API call:', { url, body: requestBody });
 
   return fetchJsonSafe(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ storeId, from: fromISO, to: toISO }),
+    body: JSON.stringify(requestBody),
   });
 }

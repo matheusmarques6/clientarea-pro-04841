@@ -95,29 +95,48 @@ serve(async (req) => {
     // URL do webhook n8n
     const webhookUrl = 'https://n8n-n8n.1fpac5.easypanel.host/webhook/klaviyo/summary'
     
+    const requestBody = {
+      storeId,
+      from,
+      to
+    }
+    
     console.log(`Chamando webhook n8n: ${webhookUrl}`)
+    console.log('Request body:', JSON.stringify(requestBody))
     
     // Fazer a chamada para o webhook n8n
     const webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Supabase-Edge-Function'
       },
-      body: JSON.stringify({
-        storeId,
-        from,
-        to
-      })
+      body: JSON.stringify(requestBody)
     })
+
+    console.log(`Webhook response status: ${webhookResponse.status}`)
+    console.log(`Webhook response headers:`, Object.fromEntries(webhookResponse.headers.entries()))
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text()
       console.error(`Webhook error (${webhookResponse.status}):`, errorText)
+      console.error('Request was:', {
+        url: webhookUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Supabase-Edge-Function'
+        },
+        body: JSON.stringify(requestBody)
+      })
       
       return new Response(
         JSON.stringify({ 
           error: `Webhook failed with status ${webhookResponse.status}`,
-          details: errorText
+          details: errorText,
+          request_body: requestBody
         }), 
         { 
           status: 502, 
