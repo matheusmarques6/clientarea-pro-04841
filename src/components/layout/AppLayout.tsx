@@ -3,7 +3,7 @@ import { AppSidebar } from './AppSidebar';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useStore } from '@/hooks/useStores';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -23,18 +23,6 @@ const AppLayout = () => {
             <h1 className="text-lg font-semibold text-foreground">
               {store ? store.name : 'Dashboard'}
             </h1>
-          </div>
-
-          {/* Center - Search bar */}
-          <div className="flex-1 max-w-md mx-8">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Buscar dados, usuários ou conteúdo"
-                className="pl-10 pr-4 py-2 w-full bg-background border-input focus:border-primary focus:ring-primary"
-              />
-            </div>
           </div>
 
           {/* Right side - Actions and profile */}
