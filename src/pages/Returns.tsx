@@ -90,10 +90,34 @@ const Returns = () => {
     return <div>Loja não encontrada</div>;
   }
 
-  const handleCopyPublicLink = () => {
-    const publicLink = `${window.location.origin}/public/returns/${store.name.toLowerCase().replace(/\s+/g, '-')}`;
-    navigator.clipboard.writeText(publicLink);
-    toast({ title: 'Link copiado!', description: 'Link público copiado para a área de transferência' });
+  const handleCopyPublicLink = async () => {
+    try {
+      // Get the actual public link from the database
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data } = await supabase
+        .from('public_links')
+        .select('slug')
+        .eq('store_id', storeId)
+        .eq('type', 'returns')
+        .single();
+      
+      const publicLink = data?.slug 
+        ? `${window.location.origin}/public/returns/${data.slug}`
+        : `${window.location.origin}/public/returns/${store.name.toLowerCase().replace(/\s+/g, '-')}-returns`;
+      
+      navigator.clipboard.writeText(publicLink);
+      toast({
+        title: "Link copiado!",
+        description: "Link público copiado para a área de transferência",
+      });
+    } catch (error) {
+      console.error('Error copying link:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao copiar o link",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReturnClick = (returnRequest: UIReturn) => {

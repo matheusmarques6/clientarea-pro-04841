@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Copy, Eye, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supportedLanguages } from '@/lib/translations';
 import { useStore } from '@/hooks/useStores';
+import { usePublicLinks } from '@/hooks/usePublicLinks';
 
 const ReturnsSetup = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const { store, isLoading } = useStore(storeId!);
+  const { config: publicConfig, loading: configLoading, saveConfig, getPublicUrl } = usePublicLinks(storeId!, 'returns');
+  
   const [config, setConfig] = useState({
     janelaDias: 15,
     valorMinimo: 50,
@@ -32,7 +35,20 @@ const ReturnsSetup = () => {
   
   const [returnsLanguage, setReturnsLanguage] = useState('pt');
 
-  if (isLoading) {
+  // Load config from database when available
+  useEffect(() => {
+    if (publicConfig) {
+      setConfig(prev => ({
+        ...prev,
+        ...publicConfig.auto_rules,
+        mensagemPt: publicConfig.messages.pt || prev.mensagemPt,
+        mensagemEn: publicConfig.messages.en || prev.mensagemEn,
+        mensagemEs: publicConfig.messages.es || prev.mensagemEs
+      }));
+    }
+  }, [publicConfig]);
+
+  if (isLoading || configLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -60,7 +76,7 @@ const ReturnsSetup = () => {
     );
   }
 
-  const publicUrl = `https://${store.name.toLowerCase().replace(/\s+/g, '-')}.convertfy.com/returns`;
+  const publicUrl = getPublicUrl(store.name);
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -70,18 +86,31 @@ const ReturnsSetup = () => {
     });
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Configurações salvas",
-      description: "Configurações do link público atualizadas com sucesso",
-    });
+  const handleSave = async () => {
+    try {
+      await saveConfig({
+        auto_rules: {
+          janelaDias: config.janelaDias,
+          valorMinimo: config.valorMinimo,
+          exigirFotos: config.exigirFotos,
+          aprovarAuto: config.aprovarAuto,
+          logisticaReversa: config.logisticaReversa,
+          categoriasBloquadas: config.categoriasBloquadas
+        },
+        messages: {
+          pt: config.mensagemPt,
+          en: config.mensagemEn,
+          es: config.mensagemEs
+        },
+        enabled: true
+      });
+    } catch (error) {
+      // Error handled in saveConfig
+    }
   };
 
   const handlePreview = () => {
-    toast({
-      title: "Preview",
-      description: "Abrindo preview do portal público...",
-    });
+    window.open(publicUrl, '_blank');
   };
 
   return (
