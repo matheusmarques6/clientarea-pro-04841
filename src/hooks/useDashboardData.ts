@@ -282,65 +282,89 @@ export const useDashboardData = (storeId: string, period: string) => {
     
     try {
       const { startDate, endDate } = getPeriodDates(period);
-      
-      // Sincronizar Shopify primeiro
-      const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke('shopify_orders_sync', {
-        method: 'POST',
-        body: { 
-          storeId, 
-          from: startDate.toISOString(), 
-          to: endDate.toISOString() 
-        }
-      });
-
-      if (shopifyError) {
-        throw new Error(shopifyError.message || 'Erro na sincronização do Shopify');
-      }
-
-      // Agora sincronizar dados do Klaviyo via Edge Function
       const fromISO = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0)).toISOString();
       const toISO = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59)).toISOString();
       
-      console.log('Iniciando sincronização Klaviyo via Edge Function...');
-      
-      const { data: klaviyoData, error: klaviyoError } = await supabase.functions.invoke('n8n_klaviyo_sync', {
-        method: 'POST',
-        body: {
-          storeId,
-          from: fromISO,
-          to: toISO
-        }
-      });
+      let shopifySuccess = false;
+      let klaviyoSuccess = false;
+      let messages: string[] = [];
 
-      if (klaviyoError) {
-        console.error('Erro na sincronização Klaviyo:', klaviyoError);
-        
-        toast({
-          title: "Shopify sincronizado",
-          description: `${shopifyData?.synced || 0} pedidos sincronizados. Erro ao sincronizar Klaviyo: ${klaviyoError.message}`,
-          variant: "destructive",
+      // 1. Sincronizar Shopify
+      try {
+        const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke('shopify_orders_sync', {
+          method: 'POST',
+          body: { 
+            storeId, 
+            from: startDate.toISOString(), 
+            to: endDate.toISOString() 
+          }
         });
-      } else if (klaviyoData?.success && klaviyoData?.data?.klaviyo) {
-        // Atualizar dados do Klaviyo
-        setKlaviyoData(klaviyoData.data.klaviyo);
-        setTopCampaigns(Array.isArray(klaviyoData.data.klaviyo.top_campaigns_by_revenue) ? klaviyoData.data.klaviyo.top_campaigns_by_revenue : []);
-        
-        toast({
-          title: "Sincronização completa",
-          description: `Shopify: ${shopifyData?.synced || 0} pedidos. Klaviyo: Receita R$ ${klaviyoData.data.klaviyo.revenue_total?.toLocaleString('pt-BR') || '0'}`,
-        });
-      } else {
-        toast({
-          title: "Shopify sincronizado",
-          description: `${shopifyData?.synced || 0} pedidos sincronizados. Klaviyo: Sem dados disponíveis`,
-        });
+
+        if (shopifyError) {
+          console.error('Erro Shopify:', shopifyError);
+          messages.push(`Shopify: ${shopifyError.message}`);
+        } else {
+          shopifySuccess = true;
+          messages.push(`Shopify: ${shopifyData?.synced || 0} pedidos sincronizados`);
+        }
+      } catch (shopifyErr) {
+        console.error('Erro Shopify catch:', shopifyErr);
+        messages.push(`Shopify: Erro na sincronização`);
       }
+
+      // 2. SEMPRE disparar webhook Klaviyo
+      console.log('Disparando webhook Klaviyo...');
       
-      // Recarregar dados após sincronização
+      try {
+        const { data: klaviyoData, error: klaviyoError } = await supabase.functions.invoke('n8n_klaviyo_sync', {
+          method: 'POST',
+          body: {
+            storeId,
+            from: fromISO,
+            to: toISO
+          }
+        });
+
+        if (klaviyoError) {
+          console.error('Erro Klaviyo:', klaviyoError);
+          messages.push(`Klaviyo: ${klaviyoError.message}`);
+        } else if (klaviyoData?.success && klaviyoData?.data?.klaviyo) {
+          klaviyoSuccess = true;
+          
+          // Atualizar dados do Klaviyo
+          setKlaviyoData(klaviyoData.data.klaviyo);
+          setTopCampaigns(Array.isArray(klaviyoData.data.klaviyo.top_campaigns_by_revenue) ? klaviyoData.data.klaviyo.top_campaigns_by_revenue : []);
+          
+          const revenue = klaviyoData.data.klaviyo.revenue_total || 0;
+          messages.push(`Klaviyo: Receita R$ ${revenue.toLocaleString('pt-BR')}`);
+        } else {
+          messages.push('Klaviyo: Sem dados retornados');
+        }
+      } catch (klaviyoErr) {
+        console.error('Erro Klaviyo catch:', klaviyoErr);
+        messages.push(`Klaviyo: Erro na comunicação`);
+      }
+
+      // 3. Recarregar dados sempre
       await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
+
+      // 4. Mostrar resultado final
+      const title = (shopifySuccess && klaviyoSuccess) ? "Sincronização completa" : 
+                    (shopifySuccess || klaviyoSuccess) ? "Sincronização parcial" : 
+                    "Erro na sincronização";
+      
+      const variant = (shopifySuccess && klaviyoSuccess) ? undefined : 
+                      (shopifySuccess || klaviyoSuccess) ? undefined : 
+                      "destructive";
+
+      toast({
+        title,
+        description: messages.join(' | '),
+        variant,
+      });
       
     } catch (error: any) {
-      console.error('Sync error:', error);
+      console.error('Erro geral sync:', error);
       
       toast({
         title: "Erro na sincronização",
