@@ -55,12 +55,40 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
           .trim();
       };
 
+      // Check for existing slugs and add number if needed
+      const getUniqueSlug = async (baseSlug: string): Promise<string> => {
+        let finalSlug = baseSlug;
+        let counter = 1;
+        
+        while (true) {
+          const { data: existing } = await supabase
+            .from('public_links')
+            .select('id')
+            .eq('slug', finalSlug)
+            .eq('type', type)
+            .neq('store_id', storeId)
+            .single();
+          
+          if (!existing) {
+            break; // Slug is unique
+          }
+          
+          finalSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        
+        return finalSlug;
+      };
+
+      const baseSlug = updatedConfig.slug || generateSlug(updatedConfig.storeName || 'store');
+      const uniqueSlug = await getUniqueSlug(baseSlug);
+
       const { data, error } = await supabase
         .from('public_links')
         .upsert({
           store_id: storeId,
           type,
-          slug: updatedConfig.slug || generateSlug(updatedConfig.storeName || 'store'),
+          slug: uniqueSlug,
           auto_rules: updatedConfig.auto_rules,
           messages: updatedConfig.messages,
           enabled: updatedConfig.enabled
@@ -73,7 +101,7 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       setConfig(data as any);
       toast({
         title: "Configurações salvas",
-        description: "Configurações do link público atualizadas com sucesso",
+        description: `Configurações salvas com slug: ${uniqueSlug}`,
       });
 
       return data;

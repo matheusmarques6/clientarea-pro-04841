@@ -48,6 +48,13 @@ const ReturnsSetup = () => {
     }
   }, [publicConfig]);
 
+  // Auto-save initial config when store loads
+  useEffect(() => {
+    if (store && !configLoading && !publicConfig) {
+      handleSave();
+    }
+  }, [store, configLoading, publicConfig]);
+
   if (isLoading || configLoading) {
     return (
       <div className="p-6">
@@ -167,7 +174,7 @@ const ReturnsSetup = () => {
                 </Button>
               </div>
               <Badge variant="secondary" className="text-foreground">
-                URL gerada automaticamente baseada no nome da loja
+                {publicConfig?.slug ? `Slug personalizado: ${publicConfig.slug}` : 'URL será gerada ao salvar configurações'}
               </Badge>
             </CardContent>
           </Card>
