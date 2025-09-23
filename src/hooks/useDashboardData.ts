@@ -214,55 +214,27 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  // Helper para parsing seguro de JSON
-  const fetchJsonSafe = async (input: RequestInfo, init?: RequestInit) => {
-    const resp = await fetch(input, { 
-      ...init, 
-      headers: { 
-        ...(init?.headers || {}), 
-        'Accept': 'application/json' 
-      } 
-    });
-    
-    let data: any = null;
-    const text = await resp.text(); // ler sempre
-    
-    if (text) { 
-      try { 
-        data = JSON.parse(text); 
-      } catch { 
-        data = { raw: text }; 
-      } 
-    }
-    
-    if (!resp.ok) {
-      const err = (data && (data.error || data.message)) || `HTTP ${resp.status}`;
-      const hint = data?.hint;
-      throw new Error(hint ? `${err} — ${hint}` : err);
-    }
-    
-    return data ?? {};
-  };
-
   const syncData = async () => {
     setIsSyncing(true);
     
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // Usar fetchJsonSafe para evitar "unexpected end of json input"
-      const data = await fetchJsonSafe(
-        `/functions/v1/shopify-orders-sync?storeId=${storeId}&from=${startDate.toISOString()}&to=${endDate.toISOString()}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'Content-Type': 'application/json',
-          },
+      // ✅ Usar supabase.functions.invoke em vez de fetch manual
+      const { data, error } = await supabase.functions.invoke('shopify_orders_sync', {
+        method: 'POST',
+        body: { 
+          storeId, 
+          from: startDate.toISOString(), 
+          to: endDate.toISOString() 
         }
-      );
+      });
 
-      if (data.synced !== undefined) {
+      if (error) {
+        throw new Error(error.message || 'Erro na sincronização');
+      }
+
+      if (data?.synced !== undefined) {
         toast({
           title: "Sucesso",
           description: `${data.synced} pedidos sincronizados. Receita total: ${data.totalRevenue} ${data.currency}`,
@@ -271,7 +243,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         // Recarregar dados após sincronização
         await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
       } else {
-        throw new Error(data.error || 'Erro na sincronização');
+        throw new Error(data?.error || 'Erro na sincronização');
       }
     } catch (error: any) {
       console.error('Sync error:', error);
