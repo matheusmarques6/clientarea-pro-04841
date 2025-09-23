@@ -221,41 +221,60 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // Buscar configuração do Klaviyo
-      const { data: integrations } = await supabase
-        .from('integrations')
-        .select('key_secret_encrypted')
-        .eq('store_id', storeId)
-        .eq('provider', 'klaviyo')
-        .maybeSingle();
+      // Tentar buscar via Edge Function primeiro
+      try {
+        const { data, error } = await supabase.functions.invoke('klaviyo_summary', {
+          method: 'POST',
+          body: {
+            storeId: storeId,
+            from: startDate.toISOString(),
+            to: endDate.toISOString()
+          }
+        });
 
-      if (!integrations?.key_secret_encrypted) {
-        console.log('Klaviyo integration not found');
-        return;
+        if (!error && data?.klaviyo) {
+          setKlaviyoData(data.klaviyo);
+          setTopCampaigns(Array.isArray(data.klaviyo.top_campaigns_by_revenue) ? data.klaviyo.top_campaigns_by_revenue : []);
+          return;
+        }
+        
+        console.log('Klaviyo function error:', error?.message);
+      } catch (fnError) {
+        console.log('Klaviyo function failed:', fnError);
       }
 
-      // Fazer chamada para o proxy do Klaviyo
-      const { data, error } = await supabase.functions.invoke('klaviyo_proxy', {
-        method: 'POST',
-        body: {
-          privateKey: integrations.key_secret_encrypted,
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-          storeId: storeId,
-          storeName: 'Store Name' // TODO: buscar nome real da loja
-        }
-      });
+      // Fallback: buscar do cache no banco
+      const { data: cache, error: cacheError } = await supabase
+        .from('klaviyo_summaries')
+        .select('*')
+        .eq('store_id', storeId)
+        .eq('period_start', startDate.toISOString().split('T')[0])
+        .eq('period_end', endDate.toISOString().split('T')[0])
+        .maybeSingle();
 
-      if (!error && data?.klaviyo_v2) {
-        setKlaviyoData(data.klaviyo_v2);
-        setTopCampaigns(data.klaviyo_v2.top_campaigns_by_revenue || []);
+      if (cache && !cacheError) {
+        const klaviyoFromCache = {
+          revenue_total: Number(cache.revenue_total),
+          revenue_campaigns: Number(cache.revenue_campaigns),
+          revenue_flows: Number(cache.revenue_flows),
+          orders_attributed: cache.orders_attributed,
+          top_campaigns_by_revenue: cache.top_campaigns_by_revenue || [],
+          top_campaigns_by_conversions: cache.top_campaigns_by_conversions || [],
+          leads_total: cache.leads_total
+        };
+        
+        setKlaviyoData(klaviyoFromCache);
+        setTopCampaigns(Array.isArray(klaviyoFromCache.top_campaigns_by_revenue) ? klaviyoFromCache.top_campaigns_by_revenue : []);
+        console.log('Using cached Klaviyo data');
       } else {
-        console.log('Klaviyo data not available:', error?.message || 'No klaviyo_v2 data');
+        console.log('No Klaviyo data available (cache miss)');
         setKlaviyoData(null);
         setTopCampaigns([]);
       }
     } catch (error) {
       console.error('Error fetching Klaviyo data:', error);
+      setKlaviyoData(null);
+      setTopCampaigns([]);
     }
   };
 

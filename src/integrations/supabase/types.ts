@@ -362,6 +362,51 @@ export type Database = {
           },
         ]
       }
+      klaviyo_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          leads_total: number
+          orders_attributed: number
+          period_end: string
+          period_start: string
+          revenue_campaigns: number
+          revenue_flows: number
+          revenue_total: number
+          store_id: string
+          top_campaigns_by_conversions: Json | null
+          top_campaigns_by_revenue: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leads_total?: number
+          orders_attributed?: number
+          period_end: string
+          period_start: string
+          revenue_campaigns?: number
+          revenue_flows?: number
+          revenue_total?: number
+          store_id: string
+          top_campaigns_by_conversions?: Json | null
+          top_campaigns_by_revenue?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leads_total?: number
+          orders_attributed?: number
+          period_end?: string
+          period_start?: string
+          revenue_campaigns?: number
+          revenue_flows?: number
+          revenue_total?: number
+          store_id?: string
+          top_campaigns_by_conversions?: Json | null
+          top_campaigns_by_revenue?: Json | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           channel_attrib:
