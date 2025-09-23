@@ -12,6 +12,7 @@ export interface PublicLinkConfig {
   messages: any;
   created_at?: string;
   updated_at?: string;
+  storeName?: string;
 }
 
 export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => {
@@ -45,13 +46,24 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
 
   const saveConfig = async (updatedConfig: Partial<PublicLinkConfig>) => {
     try {
+      // Generate a nice slug from store name if not provided
+      const generateSlug = (storeName: string) => {
+        return storeName
+          .toLowerCase()
+          .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .trim();
+      };
+
       const { data, error } = await supabase
         .from('public_links')
         .upsert({
           store_id: storeId,
           type,
-          slug: `${storeId}-${type}`,
-          ...updatedConfig
+          slug: updatedConfig.slug || generateSlug(updatedConfig.storeName || 'store'),
+          auto_rules: updatedConfig.auto_rules,
+          messages: updatedConfig.messages,
+          enabled: updatedConfig.enabled
         } as any)
         .select()
         .single();
@@ -80,7 +92,13 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
     if (config?.slug) {
       return `https://app.convertfy.me/public/${type}/${config.slug}`;
     }
-    return `https://app.convertfy.me/public/${type}/${storeName.toLowerCase().replace(/\s+/g, '-')}`;
+    // Generate clean slug from store name as fallback
+    const cleanSlug = storeName
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .trim();
+    return `https://app.convertfy.me/public/${type}/${cleanSlug}`;
   };
 
   useEffect(() => {

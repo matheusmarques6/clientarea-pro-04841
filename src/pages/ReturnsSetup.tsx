@@ -88,7 +88,16 @@ const ReturnsSetup = () => {
 
   const handleSave = async () => {
     try {
+      // Generate clean slug from store name
+      const cleanSlug = store.name
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .trim();
+
       await saveConfig({
+        slug: cleanSlug,
+        storeName: store.name,
         auto_rules: {
           janelaDias: config.janelaDias,
           valorMinimo: config.valorMinimo,
