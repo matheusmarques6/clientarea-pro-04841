@@ -95,19 +95,19 @@ serve(async (req) => {
     // URL do webhook n8n
     const webhookUrl = 'https://n8n-n8n.1fpac5.easypanel.host/webhook/klaviyo/summary'
     
-    // Buscar as configurações da loja para obter as chaves de API
-    const { data: storeConfig, error: configError } = await supabase
-      .from('stores')
-      .select('shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
-      .eq('id', storeId)
-      .single()
+    // Buscar as configurações da loja a partir das integrações
+    const { data: integrations, error: integrationsError } = await supabase
+      .from('integrations')
+      .select('provider, key_public, key_secret_encrypted, extra')
+      .eq('store_id', storeId)
+      .in('provider', ['shopify', 'klaviyo'])
 
-    if (configError || !storeConfig) {
-      console.error('Erro ao buscar configurações da loja:', configError)
+    if (integrationsError) {
+      console.error('Erro ao buscar integrações da loja:', integrationsError)
       return new Response(
         JSON.stringify({ 
-          error: 'Store configuration not found',
-          details: configError?.message 
+          error: 'Store integrations not found',
+          details: integrationsError?.message 
         }), 
         { 
           status: 404, 
@@ -116,28 +116,48 @@ serve(async (req) => {
       )
     }
 
-    console.log('Store config encontrada:', {
-      hasShopifyDomain: !!storeConfig.shopify_domain,
-      hasShopifyToken: !!storeConfig.shopify_access_token,
-      hasKlaviyoKey: !!storeConfig.klaviyo_private_key,
-      hasKlaviyoSiteId: !!storeConfig.klaviyo_site_id
+    // Processar as integrações para extrair as configurações
+    let shopify_domain = "";
+    let shopify_api_key = "";
+    let klaviyo_private_key = "";
+    let klaviyo_site_id = "";
+
+    integrations?.forEach(integration => {
+      if (integration.provider === 'shopify') {
+        shopify_domain = integration.extra?.url || "";
+        shopify_api_key = integration.key_secret_encrypted || "";
+      } else if (integration.provider === 'klaviyo') {
+        klaviyo_site_id = integration.key_public || "";
+        klaviyo_private_key = integration.key_secret_encrypted || "";
+      }
+    });
+
+    console.log('Integrações encontradas:', {
+      hasShopifyDomain: !!shopify_domain,
+      hasShopifyToken: !!shopify_api_key,
+      hasKlaviyoKey: !!klaviyo_private_key,
+      hasKlaviyoSiteId: !!klaviyo_site_id
     })
 
     // Verificar se as configurações necessárias estão disponíveis
-    if (!storeConfig.shopify_domain || !storeConfig.shopify_access_token || 
-        !storeConfig.klaviyo_private_key || !storeConfig.klaviyo_site_id) {
-      console.warn('Configurações da loja incompletas, mas prosseguindo com webhook...')
+    if (!shopify_domain || !shopify_api_key || !klaviyo_private_key || !klaviyo_site_id) {
+      console.warn('Algumas configurações estão em falta:', {
+        shopify_domain: !!shopify_domain,
+        shopify_api_key: !!shopify_api_key,
+        klaviyo_private_key: !!klaviyo_private_key,
+        klaviyo_site_id: !!klaviyo_site_id
+      })
     }
 
-    // Preparar o body com os dados reais da loja
+    // Preparar o body com os dados reais das integrações
     const requestBody = {
       storeId,
       from,
       to,
-      shopify_domain: storeConfig.shopify_domain || "",
-      shopify_api_key: storeConfig.shopify_access_token || "",
-      klaviyo_private_key: storeConfig.klaviyo_private_key || "",
-      klaviyo_site_id: storeConfig.klaviyo_site_id || ""
+      shopify_domain,
+      shopify_api_key,
+      klaviyo_private_key,
+      klaviyo_site_id
     }
     
     console.log(`Chamando webhook n8n: ${webhookUrl}`)
