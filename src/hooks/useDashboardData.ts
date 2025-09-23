@@ -74,7 +74,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+      timeoutHandle = setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs);
     });
 
     try {
@@ -292,12 +292,16 @@ export const useDashboardData = (storeId: string, period: string) => {
         const fromDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
         const toDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-        const data = await invokeEdgeFunction<KlaviyoSummary>('klaviyo_summary', {
-          storeId,
-          from: fromDate,
-          to: toDate,
-          fast: true,
-        });
+        const data = await invokeEdgeFunction<KlaviyoSummary>(
+          'klaviyo_summary',
+          {
+            storeId,
+            from: fromDate,
+            to: toDate,
+            fast: true,
+          },
+          45000
+        );
 
         if (data?.klaviyo) {
           updateKlaviyoState(data.klaviyo);
@@ -361,7 +365,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             from: startDate.toISOString().split('T')[0],
             to: endDate.toISOString().split('T')[0],
           },
-          15000
+          45000
         );
 
         if (shopifyData) {
@@ -388,7 +392,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             to: endDate.toISOString().split('T')[0],
             fast: true,
           },
-          15000
+          45000
         );
 
         if (klaviyoResult?.klaviyo) {
