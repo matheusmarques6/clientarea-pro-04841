@@ -136,7 +136,11 @@ serve(async (req) => {
       klaviyo_private_key: store?.klaviyo_private_key || integ.extra?.private_key || null,
       klaviyo_site_id: store?.klaviyo_site_id || integ.extra?.site_id || null,
       webhookUrl: N8N_WEBHOOK_URL,
-      executionMode: "production"
+      executionMode: "production",
+      // Adicionar informações de autenticação da loja
+      supabase_url: Deno.env.get("SUPABASE_URL"),
+      supabase_anon_key: Deno.env.get("SUPABASE_ANON_KEY"),
+      authorization_token: auth // Token de autenticação do usuário
     };
 
     console.log(`[${requestId}] Calling webhook with body:`, JSON.stringify(webhookBody, null, 2));
