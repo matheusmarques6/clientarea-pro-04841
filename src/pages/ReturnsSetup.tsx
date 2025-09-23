@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Eye, Save, Upload, Palette } from 'lucide-react';
+import { ArrowLeft, Copy, Eye, Save, Upload, Palette, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -196,7 +196,7 @@ const ReturnsSetup = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-4 sm:p-6 space-y-6">{/* Mantendo mesmo padrão visual */}
+      <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -544,54 +544,61 @@ const ReturnsSetup = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
+          {/* Language Customization */}
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Globe className="h-5 w-5" />
+                Idioma e Mensagens
+              </CardTitle>
+            </CardHeader>
             <CardContent>
               <Tabs defaultValue="pt" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 bg-muted">
-                  <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
-                  <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
-                  <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
-                </TabsList>
+                  <TabsList className="grid w-full grid-cols-3 bg-muted">
+                    <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
+                    <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
+                    <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="pt" className="space-y-4">
-                  <div>
-                    <Label className="text-foreground">Mensagem de confirmação</Label>
-                    <Textarea
-                      value={config.mensagemPt}
-                      onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
-                      placeholder="Mensagem exibida após a solicitação"
-                      rows={4}
-                      className="text-foreground"
-                    />
-                  </div>
-                </TabsContent>
+                  <TabsContent value="pt" className="space-y-4">
+                    <div>
+                      <Label className="text-foreground">Mensagem de confirmação</Label>
+                      <Textarea
+                        value={config.mensagemPt}
+                        onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
+                        placeholder="Mensagem exibida após a solicitação"
+                        rows={4}
+                        className="text-foreground"
+                      />
+                    </div>
+                  </TabsContent>
 
-                <TabsContent value="en" className="space-y-4">
-                  <div>
-                    <Label className="text-foreground">Confirmation message</Label>
-                    <Textarea
-                      value={config.mensagemEn}
-                      onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
-                      placeholder="Message displayed after request"
-                      rows={4}
-                      className="text-foreground"
-                    />
-                  </div>
-                </TabsContent>
+                  <TabsContent value="en" className="space-y-4">
+                    <div>
+                      <Label className="text-foreground">Confirmation message</Label>
+                      <Textarea
+                        value={config.mensagemEn}
+                        onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
+                        placeholder="Message displayed after request"
+                        rows={4}
+                        className="text-foreground"
+                      />
+                    </div>
+                  </TabsContent>
 
-                <TabsContent value="es" className="space-y-4">
-                  <div>
-                    <Label className="text-foreground">Mensaje de confirmación</Label>
-                    <Textarea
-                      value={config.mensagemEs}
-                      onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
-                      placeholder="Mensaje mostrado después de la solicitud"
-                      rows={4}
-                      className="text-foreground"
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="es" className="space-y-4">
+                    <div>
+                      <Label className="text-foreground">Mensaje de confirmación</Label>
+                      <Textarea
+                        value={config.mensagemEs}
+                        onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
+                        placeholder="Mensaje mostrado después de la solicitud"
+                        rows={4}
+                        className="text-foreground"
+                      />
+                    </div>
+                  </TabsContent>
+                 </Tabs>
             </CardContent>
           </Card>
         </div>
