@@ -81,14 +81,17 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       };
 
       const baseSlug = updatedConfig.slug || generateSlug(updatedConfig.storeName || 'store');
-      const uniqueSlug = await getUniqueSlug(baseSlug);
+      
+      // For existing configs, always use the provided slug to allow updates
+      const finalSlug = config?.id ? baseSlug : await getUniqueSlug(baseSlug);
 
       const { data, error } = await supabase
         .from('public_links')
         .upsert({
+          id: config?.id, // Include ID for updates
           store_id: storeId,
           type,
-          slug: uniqueSlug,
+          slug: finalSlug,
           auto_rules: updatedConfig.auto_rules,
           messages: updatedConfig.messages,
           enabled: updatedConfig.enabled
@@ -101,7 +104,7 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       setConfig(data as any);
       toast({
         title: "Configurações salvas",
-        description: `Configurações salvas com slug: ${uniqueSlug}`,
+        description: `Configurações salvas com slug: ${finalSlug}`,
       });
 
       return data;
