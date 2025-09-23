@@ -131,6 +131,7 @@ export type Database = {
           created_at: string
           currency: string | null
           id: string
+          orders_count: number | null
           period_end: string
           period_start: string
           raw: Json | null
@@ -144,6 +145,7 @@ export type Database = {
           created_at?: string
           currency?: string | null
           id?: string
+          orders_count?: number | null
           period_end: string
           period_start: string
           raw?: Json | null
@@ -157,6 +159,7 @@ export type Database = {
           created_at?: string
           currency?: string | null
           id?: string
+          orders_count?: number | null
           period_end?: string
           period_start?: string
           raw?: Json | null
@@ -367,6 +370,8 @@ export type Database = {
           code: string
           created_at: string | null
           currency: string | null
+          customer_email: string | null
+          customer_id_ext: number | null
           id: string
           raw: Json | null
           shopify_id: number | null
@@ -381,6 +386,8 @@ export type Database = {
           code: string
           created_at?: string | null
           currency?: string | null
+          customer_email?: string | null
+          customer_id_ext?: number | null
           id?: string
           raw?: Json | null
           shopify_id?: number | null
@@ -395,6 +402,8 @@ export type Database = {
           code?: string
           created_at?: string | null
           currency?: string | null
+          customer_email?: string | null
+          customer_id_ext?: number | null
           id?: string
           raw?: Json | null
           shopify_id?: number | null
@@ -1227,6 +1236,26 @@ export type Database = {
       is_admin: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      kpi_customers_distinct: {
+        Args: { p_end: string; p_start: string; p_store: string }
+        Returns: number
+      }
+      kpi_customers_returning: {
+        Args: { p_end: string; p_start: string; p_store: string }
+        Returns: number
+      }
+      kpi_email_orders_count: {
+        Args: { p_end: string; p_start: string; p_store: string }
+        Returns: number
+      }
+      kpi_email_revenue: {
+        Args: { p_end: string; p_start: string; p_store: string }
+        Returns: number
+      }
+      kpi_total_revenue: {
+        Args: { p_end: string; p_start: string; p_store: string }
+        Returns: number
       }
       reconcile_user_profile: {
         Args: { _auth_id: string; _email: string; _name: string }

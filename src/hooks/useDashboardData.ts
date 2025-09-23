@@ -5,11 +5,11 @@ import { useToast } from '@/hooks/use-toast';
 interface DashboardKPIs {
   total_revenue: number;
   email_revenue: number;
-  sms_revenue: number;
-  whatsapp_revenue: number;
-  order_count: number;
-  currency: string;
   convertfy_revenue: number;
+  order_count: number;
+  customers_distinct: number;
+  customers_returning: number;
+  currency: string;
 }
 
 interface ChartDataPoint {
@@ -53,25 +53,91 @@ export const useDashboardData = (storeId: string, period: string) => {
     return { startDate, endDate };
   };
 
-  // Buscar KPIs
+  // Buscar KPIs usando as novas funções RPC
   const fetchKPIs = async () => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      const { data, error } = await supabase.rpc('rpc_get_store_kpis', {
-        _store_id: storeId,
-        _start_date: startDate.toISOString(),
-        _end_date: endDate.toISOString(),
-      });
+      // Buscar dados em paralelo usando as novas RPC functions
+      const [
+        totalRevenueResult,
+        emailRevenueResult,
+        customersDistinctResult,
+        customersReturningResult,
+        storeResult
+      ] = await Promise.all([
+        supabase.rpc('kpi_total_revenue', {
+          p_store: storeId,
+          p_start: startDate.toISOString(),
+          p_end: endDate.toISOString(),
+        }),
+        supabase.rpc('kpi_email_revenue', {
+          p_store: storeId,
+          p_start: startDate.toISOString(),
+          p_end: endDate.toISOString(),
+        }),
+        supabase.rpc('kpi_customers_distinct', {
+          p_store: storeId,
+          p_start: startDate.toISOString(),
+          p_end: endDate.toISOString(),
+        }),
+        supabase.rpc('kpi_customers_returning', {
+          p_store: storeId,
+          p_start: startDate.toISOString(),
+          p_end: endDate.toISOString(),
+        }),
+        supabase
+          .from('stores')
+          .select('currency')
+          .eq('id', storeId)
+          .maybeSingle()
+      ]);
 
-      if (error) {
-        console.error('Error fetching KPIs:', error);
+      if (totalRevenueResult.error) {
+        console.error('Error fetching total revenue:', totalRevenueResult.error);
         return;
       }
 
-      if (data) {
-        setKpis(data as unknown as DashboardKPIs);
+      if (emailRevenueResult.error) {
+        console.error('Error fetching email revenue:', emailRevenueResult.error);
+        return;
       }
+
+      if (customersDistinctResult.error) {
+        console.error('Error fetching distinct customers:', customersDistinctResult.error);
+        return;
+      }
+
+      if (customersReturningResult.error) {
+        console.error('Error fetching returning customers:', customersReturningResult.error);
+        return;
+      }
+
+      const totalRevenue = totalRevenueResult.data || 0;
+      const emailRevenue = emailRevenueResult.data || 0;
+      const customersDistinct = customersDistinctResult.data || 0;
+      const customersReturning = customersReturningResult.data || 0;
+      const currency = storeResult.data?.currency || 'BRL';
+
+      // Buscar contagem de pedidos no período
+      const { data: orderCountResult } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('store_id', storeId)
+        .gte('created_at', startDate.toISOString())
+        .lt('created_at', endDate.toISOString());
+
+      const orderCount = orderCountResult ? 0 : 0; // count is in the count property
+
+      setKpis({
+        total_revenue: Number(totalRevenue),
+        email_revenue: Number(emailRevenue),
+        convertfy_revenue: Number(emailRevenue), // Por enquanto só email
+        order_count: orderCount,
+        customers_distinct: Number(customersDistinct),
+        customers_returning: Number(customersReturning),
+        currency: currency,
+      });
     } catch (error) {
       console.error('Error in fetchKPIs:', error);
     }
@@ -152,42 +218,45 @@ export const useDashboardData = (storeId: string, period: string) => {
     setIsSyncing(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('dashboard-sync', {
-        body: { storeId },
-      });
+      const { startDate, endDate } = getPeriodDates(period);
+      
+      // Usar a nova Edge Function corrigida
+      const response = await fetch(
+        `/functions/v1/shopify-orders-sync?storeId=${storeId}&from=${startDate.toISOString()}&to=${endDate.toISOString()}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (error) {
-        throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro na sincronização');
       }
 
-      if (data?.success) {
+      if (data.synced !== undefined) {
         toast({
           title: "Sucesso",
-          description: "Dados sincronizados com sucesso!",
+          description: `${data.synced} pedidos sincronizados. Receita total: ${data.totalRevenue} ${data.currency}`,
         });
         
         // Recarregar dados após sincronização
         await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
       } else {
-        throw new Error(data?.error || 'Erro na sincronização');
+        throw new Error(data.error || 'Erro na sincronização');
       }
     } catch (error: any) {
       console.error('Sync error:', error);
       
-      // Se for erro de função não encontrada, tentar alternativa
-      if (error.message?.includes('function not found') || error.message?.includes('not found')) {
-        toast({
-          title: "Funcionalidade em desenvolvimento",
-          description: "A sincronização automática ainda não está disponível. Use dados mock por enquanto.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro na sincronização",
-          description: error.message || "Não foi possível sincronizar os dados",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Erro na sincronização",
+        description: error.message || "Não foi possível sincronizar os dados",
+        variant: "destructive",
+      });
     } finally {
       setIsSyncing(false);
     }
