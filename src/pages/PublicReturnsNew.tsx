@@ -310,18 +310,41 @@ const PublicReturnsNew = () => {
     );
   }
 
+  const theme = config?.auto_rules?.theme || {
+    primaryColor: '#3b82f6',
+    secondaryColor: '#1e40af', 
+    backgroundColor: '#ffffff',
+    textColor: '#1f2937'
+  };
+
+  const dynamicStyles = {
+    '--primary-color': theme.primaryColor,
+    '--secondary-color': theme.secondaryColor,
+    '--background-color': theme.backgroundColor,
+    '--text-color': theme.textColor
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundColor: theme.backgroundColor,
+        color: theme.textColor,
+        ...dynamicStyles
+      }}
+    >
       <div className="max-w-2xl mx-auto p-4 sm:p-6">
-        <div className="mb-6">
-          <img src={convertfyLogo} alt="Convertfy" className="h-8 mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">{store.name}</h1>
-          <p className="text-muted-foreground">Portal de Trocas & Devoluções</p>
+        <div className="mb-6 text-center">
+          {theme.logoUrl && (
+            <img src={theme.logoUrl} alt={store.name} className="h-16 w-auto mx-auto mb-4 object-contain" />
+          )}
+          <h1 className="text-2xl font-bold" style={{ color: theme.textColor }}>{store.name}</h1>
+          <p style={{ color: theme.textColor + 'cc' }}>Portal de Trocas & Devoluções</p>
         </div>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.backgroundColor, borderColor: theme.primaryColor + '40' }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2" style={{ color: theme.textColor }}>
               <Package className="h-5 w-5" />
               {t('requestTitle')}
             </CardTitle>
@@ -329,41 +352,60 @@ const PublicReturnsNew = () => {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="pedido">{t('orderNumber')}</Label>
+                <Label htmlFor="pedido" style={{ color: theme.textColor }}>{t('orderNumber')}</Label>
                 <Input
                   id="pedido"
                   value={formData.pedido}
                   onChange={(e) => setFormData({ ...formData, pedido: e.target.value })}
                   placeholder={t('orderNumberPlaceholder')}
+                  style={{ 
+                    backgroundColor: theme.backgroundColor,
+                    borderColor: theme.primaryColor + '60',
+                    color: theme.textColor
+                  }}
                 />
               </div>
               <div>
-                <Label htmlFor="email">{t('email')}</Label>
+                <Label htmlFor="email" style={{ color: theme.textColor }}>{t('email')}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder={t('emailPlaceholder')}
+                  style={{ 
+                    backgroundColor: theme.backgroundColor,
+                    borderColor: theme.primaryColor + '60',
+                    color: theme.textColor
+                  }}
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="nome">{t('name')}</Label>
+              <Label htmlFor="nome" style={{ color: theme.textColor }}>{t('name')}</Label>
               <Input
                 id="nome"
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 placeholder={t('namePlaceholder')}
+                style={{ 
+                  backgroundColor: theme.backgroundColor,
+                  borderColor: theme.primaryColor + '60',
+                  color: theme.textColor
+                }}
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="tipo">{t('requestType')}</Label>
+                <Label htmlFor="tipo" style={{ color: theme.textColor }}>{t('requestType')}</Label>
                 <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger style={{ 
+                    backgroundColor: theme.backgroundColor,
+                    borderColor: theme.primaryColor + '60',
+                    color: theme.textColor
+                  }}>
                     <SelectValue placeholder={t('selectType')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -373,9 +415,13 @@ const PublicReturnsNew = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="motivo">{t('reason')}</Label>
+                <Label htmlFor="motivo" style={{ color: theme.textColor }}>{t('reason')}</Label>
                 <Select value={formData.motivo} onValueChange={(value) => setFormData({ ...formData, motivo: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger style={{ 
+                    backgroundColor: theme.backgroundColor,
+                    borderColor: theme.primaryColor + '60',
+                    color: theme.textColor
+                  }}>
                     <SelectValue placeholder={t('selectReason')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -390,19 +436,27 @@ const PublicReturnsNew = () => {
             </div>
 
             <div>
-              <Label htmlFor="observacoes">{t('additionalComments')}</Label>
+              <Label htmlFor="observacoes" style={{ color: theme.textColor }}>{t('additionalComments')}</Label>
               <Textarea
                 id="observacoes"
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                 placeholder={t('commentsPlaceholder')}
                 rows={3}
+                style={{ 
+                  backgroundColor: theme.backgroundColor,
+                  borderColor: theme.primaryColor + '60',
+                  color: theme.textColor
+                }}
               />
             </div>
 
             <div>
-              <Label>{t('attachments')}</Label>
-              <div className="border-2 border-dashed border-muted rounded-lg p-4">
+              <Label style={{ color: theme.textColor }}>{t('attachments')}</Label>
+              <div 
+                className="border-2 border-dashed rounded-lg p-4"
+                style={{ borderColor: theme.primaryColor + '40' }}
+              >
                 <input
                   type="file"
                   multiple
@@ -412,8 +466,8 @@ const PublicReturnsNew = () => {
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer block text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
+                  <Upload className="h-8 w-8 mx-auto mb-2" style={{ color: theme.textColor + 'aa' }} />
+                  <p className="text-sm" style={{ color: theme.textColor + 'aa' }}>
                     {t('uploadDescription')}
                   </p>
                 </label>
@@ -422,9 +476,18 @@ const PublicReturnsNew = () => {
               {formData.anexos.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {formData.anexos.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
-                      <span className="text-sm truncate">{file.name}</span>
-                      <Button size="sm" variant="ghost" onClick={() => removeFile(index)}>
+                    <div 
+                      key={index} 
+                      className="flex items-center justify-between p-2 rounded"
+                      style={{ backgroundColor: theme.primaryColor + '10' }}
+                    >
+                      <span className="text-sm truncate" style={{ color: theme.textColor }}>{file.name}</span>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => removeFile(index)}
+                        style={{ color: theme.textColor }}
+                      >
                         ×
                       </Button>
                     </div>
@@ -437,6 +500,10 @@ const PublicReturnsNew = () => {
               onClick={handleSubmit} 
               className="w-full"
               disabled={!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo}
+              style={{ 
+                backgroundColor: theme.primaryColor,
+                color: '#ffffff'
+              }}
             >
               {t('submitRequest')}
             </Button>

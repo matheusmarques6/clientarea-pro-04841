@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Eye, Save } from 'lucide-react';
+import { ArrowLeft, Copy, Eye, Save, Upload, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,13 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supportedLanguages } from '@/lib/translations';
 import { useStore } from '@/hooks/useStores';
-import { usePublicLinks } from '@/hooks/usePublicLinks';
+import { usePublicLinks, type PublicLinkTheme } from '@/hooks/usePublicLinks';
 
 const ReturnsSetup = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
   const { store, isLoading } = useStore(storeId!);
-  const { config: publicConfig, loading: configLoading, saveConfig, getPublicUrl } = usePublicLinks(storeId!, 'returns');
+  const { config: publicConfig, loading: configLoading, saveConfig, uploadLogo, getPublicUrl } = usePublicLinks(storeId!, 'returns');
   
   const [config, setConfig] = useState({
     janelaDias: 15,
@@ -33,18 +33,39 @@ const ReturnsSetup = () => {
     mensagemEs: 'Su solicitud de devolución/cambio ha sido recibida y está siendo revisada.'
   });
   
+  const [theme, setTheme] = useState<PublicLinkTheme>({
+    primaryColor: '#3b82f6',
+    secondaryColor: '#1e40af',
+    backgroundColor: '#ffffff',
+    textColor: '#1f2937'
+  });
+  
   const [returnsLanguage, setReturnsLanguage] = useState('pt');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   // Load config from database when available
   useEffect(() => {
     if (publicConfig) {
+      const rules = publicConfig.auto_rules || {};
       setConfig(prev => ({
         ...prev,
-        ...publicConfig.auto_rules,
-        mensagemPt: publicConfig.messages.pt || prev.mensagemPt,
-        mensagemEn: publicConfig.messages.en || prev.mensagemEn,
-        mensagemEs: publicConfig.messages.es || prev.mensagemEs
+        ...rules,
+        mensagemPt: publicConfig.messages?.pt || prev.mensagemPt,
+        mensagemEn: publicConfig.messages?.en || prev.mensagemEn,
+        mensagemEs: publicConfig.messages?.es || prev.mensagemEs
       }));
+      
+      // Load theme if available
+      if (rules.theme) {
+        setTheme(rules.theme);
+        setLogoPreview(rules.theme.logoUrl);
+      }
+      
+      // Load language
+      if (rules.language) {
+        setReturnsLanguage(rules.language);
+      }
     }
   }, [publicConfig]);
 
@@ -93,8 +114,36 @@ const ReturnsSetup = () => {
     });
   };
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
     try {
+      let logoUrl = theme.logoUrl;
+      
+      // Upload logo if a new file was selected
+      if (logoFile) {
+        logoUrl = await uploadLogo(logoFile);
+      }
+
       // Generate clean slug from store name
       const cleanSlug = store.name
         .toLowerCase()
@@ -103,7 +152,7 @@ const ReturnsSetup = () => {
         .trim();
 
       await saveConfig({
-        slug: cleanSlug,
+        slug: cleanSlug, // Always update to clean slug
         storeName: store.name,
         auto_rules: {
           janelaDias: config.janelaDias,
@@ -118,8 +167,16 @@ const ReturnsSetup = () => {
           en: config.mensagemEn,
           es: config.mensagemEs
         },
+        theme: {
+          ...theme,
+          logoUrl
+        },
+        language: returnsLanguage,
         enabled: true
       });
+      
+      // Clear logo file after successful upload
+      setLogoFile(null);
     } catch (error) {
       // Error handled in saveConfig
     }
@@ -128,6 +185,14 @@ const ReturnsSetup = () => {
   const handlePreview = () => {
     window.open(publicUrl, '_blank');
   };
+
+  // Generate preview styles for the preview card
+  const previewStyles = {
+    '--primary-color': theme.primaryColor,
+    '--secondary-color': theme.secondaryColor,
+    '--background-color': theme.backgroundColor,
+    '--text-color': theme.textColor
+  } as React.CSSProperties;
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,11 +223,11 @@ const ReturnsSetup = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Configuration */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* URL */}
-          <Card className="bg-card border-border shadow-sm">{/* Cards com fundo sólido */}
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader>
               <CardTitle className="text-foreground">URL do Portal Público</CardTitle>
             </CardHeader>
@@ -179,29 +244,152 @@ const ReturnsSetup = () => {
             </CardContent>
           </Card>
 
-          {/* Language Configuration */}
+          {/* Visual Customization */}
           <Card className="bg-card border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-foreground">Idioma do Portal</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Palette className="h-5 w-5" />
+                Personalização Visual
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Logo Upload */}
+              <div>
+                <Label className="text-foreground">Logo da Loja</Label>
+                <div className="mt-2 space-y-4">
+                  {logoPreview && (
+                    <div className="flex items-center gap-4">
+                      <img src={logoPreview} alt="Logo preview" className="h-16 w-auto rounded border" />
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setLogoPreview(null);
+                        setLogoFile(null);
+                      }}>
+                        Remover
+                      </Button>
+                    </div>
+                  )}
+                  <div className="border-2 border-dashed border-muted rounded-lg p-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label htmlFor="logo-upload" className="cursor-pointer block text-center">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Clique para fazer upload da logo (máx. 5MB)
+                      </p>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Customization */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-foreground">Cor Principal</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="color"
+                      value={theme.primaryColor}
+                      onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                      className="w-12 h-10 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={theme.primaryColor}
+                      onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                      className="flex-1"
+                      placeholder="#3b82f6"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-foreground">Cor Secundária</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="color"
+                      value={theme.secondaryColor}
+                      onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                      className="w-12 h-10 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={theme.secondaryColor}
+                      onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                      className="flex-1"
+                      placeholder="#1e40af"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-foreground">Cor de Fundo</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="color"
+                      value={theme.backgroundColor}
+                      onChange={(e) => setTheme({...theme, backgroundColor: e.target.value})}
+                      className="w-12 h-10 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={theme.backgroundColor}
+                      onChange={(e) => setTheme({...theme, backgroundColor: e.target.value})}
+                      className="flex-1"
+                      placeholder="#ffffff"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-foreground">Cor do Texto</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="color"
+                      value={theme.textColor}
+                      onChange={(e) => setTheme({...theme, textColor: e.target.value})}
+                      className="w-12 h-10 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={theme.textColor}
+                      onChange={(e) => setTheme({...theme, textColor: e.target.value})}
+                      className="flex-1"
+                      placeholder="#1f2937"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Automation */}
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-foreground">Automação</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="aprovarAuto" className="text-foreground">Aprovação automática</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Aprovar automaticamente se dentro da janela e com fotos
+                  </p>
+                </div>
+                <Switch
+                  checked={config.aprovarAuto}
+                  onCheckedChange={(checked) => setConfig({...config, aprovarAuto: checked})}
+                />
+              </div>
+
               <div>
-                <Label htmlFor="returnsLanguage" className="text-foreground">Idioma para Trocas e Devoluções</Label>
-                <Select value={returnsLanguage} onValueChange={setReturnsLanguage}>
+                <Label className="text-foreground">Logística reversa</Label>
+                <Select value={config.logisticaReversa} onValueChange={(value) => setConfig({...config, logisticaReversa: value})}>
                   <SelectTrigger className="text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    {supportedLanguages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code} className="text-foreground">
-                        {lang.flag} {lang.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="etiqueta" className="text-foreground">Gerar etiqueta (mock)</SelectItem>
+                    <SelectItem value="manual" className="text-foreground">Instruções manuais</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Define o idioma que será exibido no formulário público de trocas e devoluções
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -293,12 +481,70 @@ const ReturnsSetup = () => {
           </Card>
         </div>
 
-        {/* Messages */}
+        {/* Preview */}
         <div className="space-y-4 sm:space-y-6">
-          <Card className="glass-card">
+          {/* Preview Card */}
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-foreground">Mensagens Públicas</CardTitle>
+              <CardTitle className="text-foreground">Preview do Portal</CardTitle>
             </CardHeader>
+            <CardContent>
+              <div 
+                className="rounded-lg p-6 space-y-4 border"
+                style={{
+                  backgroundColor: theme.backgroundColor,
+                  color: theme.textColor,
+                  borderColor: theme.primaryColor + '40'
+                }}
+              >
+                {/* Logo preview */}
+                {logoPreview && (
+                  <div className="flex justify-center mb-4">
+                    <img src={logoPreview} alt="Logo" className="h-12 w-auto" />
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: theme.textColor }}>
+                    {store.name}
+                  </h3>
+                  <p className="text-sm mb-4" style={{ color: theme.textColor + 'cc' }}>
+                    Portal de Trocas & Devoluções
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div 
+                    className="h-10 rounded border" 
+                    style={{ 
+                      backgroundColor: theme.backgroundColor,
+                      borderColor: theme.primaryColor + '60'
+                    }}
+                  ></div>
+                  <div 
+                    className="h-10 rounded border" 
+                    style={{ 
+                      backgroundColor: theme.backgroundColor,
+                      borderColor: theme.primaryColor + '60'
+                    }}
+                  ></div>
+                  <button 
+                    className="w-full h-10 rounded font-medium"
+                    style={{ 
+                      backgroundColor: theme.primaryColor,
+                      color: '#ffffff'
+                    }}
+                  >
+                    Enviar Solicitação
+                  </button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">
+                Preview em tempo real - clique em "Preview" para ver o portal completo
+              </p>
+            </CardContent>
+          </Card>
+        </div>
             <CardContent>
               <Tabs defaultValue="pt" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3 bg-muted">
@@ -348,29 +594,7 @@ const ReturnsSetup = () => {
               </Tabs>
             </CardContent>
           </Card>
-
-          {/* Preview Card */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-foreground">Preview do Portal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-                <div className="space-y-2">
-                  <div className="h-10 bg-muted rounded"></div>
-                  <div className="h-10 bg-muted rounded"></div>
-                </div>
-                <div className="h-8 bg-primary/20 rounded w-1/3"></div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Clique em "Preview" para ver o portal completo
-              </p>
-            </CardContent>
-          </Card>
         </div>
-      </div>
       </div>
     </div>
   );

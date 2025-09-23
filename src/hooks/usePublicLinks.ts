@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface PublicLinkTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  logoUrl?: string;
+}
+
 export interface PublicLinkConfig {
   id?: string;
   store_id?: string;
@@ -10,6 +18,8 @@ export interface PublicLinkConfig {
   enabled?: boolean;
   auto_rules: any;
   messages: any;
+  theme?: PublicLinkTheme;
+  language?: string;
   created_at?: string;
   updated_at?: string;
   storeName?: string;
@@ -41,6 +51,31 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const uploadLogo = async (file: File): Promise<string> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${storeId}/logo.${fileExt}`;
+      
+      // Delete existing logo if any
+      await supabase.storage.from('store-logos').remove([fileName]);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('store-logos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('store-logos')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (err: any) {
+      console.error('Error uploading logo:', err);
+      throw err;
     }
   };
 
@@ -94,7 +129,15 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
           slug: finalSlug,
           auto_rules: updatedConfig.auto_rules,
           messages: updatedConfig.messages,
-          enabled: updatedConfig.enabled
+          enabled: updatedConfig.enabled,
+          // Store theme and language in auto_rules for now (can be separate columns later)
+          ...(updatedConfig.theme && { 
+            auto_rules: { 
+              ...updatedConfig.auto_rules, 
+              theme: updatedConfig.theme,
+              language: updatedConfig.language 
+            } 
+          })
         } as any)
         .select()
         .single();
@@ -143,6 +186,7 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
     loading,
     error,
     saveConfig,
+    uploadLogo,
     getPublicUrl,
     refetch: fetchConfig
   };
