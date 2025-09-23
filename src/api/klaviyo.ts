@@ -12,45 +12,5 @@ export type KlaviyoSummary = {
   store: { id: string };
 };
 
-async function fetchJsonSafe(url: string, init?: RequestInit) {
-  const resp = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
-  });
-  const text = await resp.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!resp.ok) {
-    const msg = data?.error || data?.message || `HTTP ${resp.status}`;
-    const hint = data?.hint ? ` — ${data.hint}` : '';
-    throw new Error(msg + hint);
-  }
-  return data as KlaviyoSummary;
-}
-
-export async function getKlaviyoSummary(storeId: string, fromISO: string, toISO: string) {
-  const url = 'https://n8n-n8n.1fpac5.easypanel.host/webhook/klaviyo/summary';
-  if (!url) throw new Error('N8N URL ausente (NEXT_PUBLIC_N8N_KLAVIYO_URL)');
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'User-Agent': 'Convertfy-Dashboard'
-  };
-  
-  const requestBody = {
-    storeId,
-    from: fromISO,
-    to: toISO
-  };
-
-  console.log('Klaviyo API call:', { url, body: requestBody });
-
-  return fetchJsonSafe(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(requestBody),
-  });
-}
+// Use syncKlaviyo from lib/syncKlaviyo.ts instead of direct n8n calls
+// This properly calls the Supabase edge function klaviyo_summary with auth headers
