@@ -6,7 +6,7 @@ const SHOPIFY_API_VER = "2023-10";
 serve(async (req) => {
   // ✅ CORS/preflight: evita 404 em OPTIONS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: cors() });
+    return new Response(null, { status: 204, headers: cors() });
   }
 
   try {
