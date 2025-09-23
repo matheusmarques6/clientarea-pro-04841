@@ -163,8 +163,9 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
   };
 
   const getPublicUrl = (storeName: string) => {
+    const baseUrl = window.location.origin;
     if (config?.slug) {
-      return `https://app.convertfy.me/public/${type}/${config.slug}`;
+      return `${baseUrl}/public/${type}/${config.slug}`;
     }
     // Generate clean slug from store name as fallback
     const cleanSlug = storeName
@@ -172,7 +173,7 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       .replace(/[^a-zA-Z0-9\s]/g, '')
       .replace(/\s+/g, '-')
       .trim();
-    return `https://app.convertfy.me/public/${type}/${cleanSlug}`;
+    return `${baseUrl}/public/${type}/${cleanSlug}`;
   };
 
   useEffect(() => {
