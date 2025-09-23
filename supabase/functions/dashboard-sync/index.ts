@@ -77,8 +77,8 @@ serve(async (req) => {
 
     // URLs das funções de sincronização
     const baseUrl = Deno.env.get('SUPABASE_URL');
-    const shopifyUrl = `${baseUrl}/functions/v1/shopify-orders-sync?storeId=${storeId}&from=${fromISO}&to=${toISO}`;
-    const klaviyoUrl = `${baseUrl}/functions/v1/klaviyo-revenue-sync?storeId=${storeId}&from=${fromISO}&to=${toISO}`;
+    const shopifyUrl = `${baseUrl}/functions/v1/shopify_orders_sync`;
+    const klaviyoUrl = `${baseUrl}/functions/v1/klaviyo_summary`;
 
     const results = {
       shopify: { success: false, error: null as string | null, data: null as any },
@@ -93,6 +93,11 @@ serve(async (req) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          storeId,
+          from: startDate.toISOString().split('T')[0],
+          to: endDate.toISOString().split('T')[0]
+        })
       });
 
       if (shopifyResponse.ok) {
@@ -117,6 +122,12 @@ serve(async (req) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          storeId,
+          from: startDate.toISOString().split('T')[0],
+          to: endDate.toISOString().split('T')[0],
+          fast: true // Use fast mode for dashboard sync
+        })
       });
 
       if (klaviyoResponse.ok) {

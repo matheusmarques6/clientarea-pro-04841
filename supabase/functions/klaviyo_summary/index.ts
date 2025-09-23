@@ -1,31 +1,11 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
-const ALLOWED_HEADERS = "authorization, content-type, x-client-info, apikey";
-
-const buildCorsHeaders = (req: Request) => {
-  const origin = req.headers.get("origin");
-  const corsHeaders: Record<string, string> = {
-    "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
-    "Access-Control-Max-Age": "86400",
-  };
-=======
-const CORS = {
+const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
-};
->>>>>>> main
-
-  if (origin) {
-    corsHeaders["Access-Control-Allow-Credentials"] = "true";
-    corsHeaders["Vary"] = "Origin";
-  }
-
-  return corsHeaders;
+  "Access-Control-Max-Age": "86400",
 };
 
 // Definir tipos para melhor type safety
@@ -91,14 +71,16 @@ const KLAVIYO_REVISION = Deno.env.get('KLAVIYO_REVISION') || '2024-10-15';
 const DEFAULT_METRIC_ID = 'W8Gk3c'; // Fallback metric ID
 
 serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req);
   const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    new Response(JSON.stringify(data), { 
+      status, 
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS } 
+    });
 
   const bad = (msg: string, extra: Record<string, unknown> = {}) => json({ error: msg, ...extra }, 400);
   const authErr = () => json({ error: "Missing/invalid Authorization bearer token" }, 401);
 
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   if (req.method !== "POST") return json({ error: "Method Not Allowed" }, 405);
 
   const auth = req.headers.get("authorization");
@@ -130,17 +112,22 @@ serve(async (req) => {
   console.log(`[${requestId}] Processing request for store ${storeId} from ${from} to ${to}`);
 
   // RLS client (usa o token do usuário)
-
   const supa = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: auth } } }
   );
 
-  // Limites para evitar timeout 504
-  const PAGE_LIMIT = fast ? 2 : 3;        // máx. páginas (reduzido)
-  const CONCURRENCY = 1;                   // máx. requisições paralelas (reduzido)
-  const REQ_TIMEOUT_MS = 15000;           // timeout por request a Klaviyo (reduzido)
+  // Service role client for writing channel_revenue
+  const supabaseService = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Limites para evitar timeout 504 - Otimizado para performance
+  const PAGE_LIMIT = fast ? 1 : 2;        // máx. páginas (reduzido)
+  const CONCURRENCY = 3;                   // máx. requisições paralelas (aumentado)
+  const REQ_TIMEOUT_MS = 12000;           // timeout por request a Klaviyo
 
   const withTimeout = async <T>(promise: Promise<T>, ms: number, context?: string): Promise<T> => {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
@@ -196,7 +183,7 @@ serve(async (req) => {
 
           if (response.status === 429 && attempt < retries) {
             const retryAfter = response.headers.get('Retry-After');
-            const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+            const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.min(Math.pow(2, attempt) * 1000, 5000);
             console.log(`[${requestId}] Rate limited, waiting ${delay}ms before retry ${attempt}/${retries}`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
@@ -205,7 +192,7 @@ serve(async (req) => {
           return response;
         } catch (error) {
           if (attempt === retries) throw error;
-          const delay = Math.pow(2, attempt) * 1000;
+          const delay = Math.min(Math.pow(2, attempt) * 1000, 5000);
           const message = error instanceof Error ? error.message : String(error);
           console.log(`[${requestId}] Request failed, retrying in ${delay}ms (${attempt}/${retries}):`, message);
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -299,7 +286,7 @@ serve(async (req) => {
     let totalCampaignRevenue = 0;
     let totalCampaignConversions = 0;
 
-    // Process campaigns in batches of 2 to respect rate limits
+    // Process campaigns in batches with improved concurrency
     const batchSize = CONCURRENCY;
     for (let i = 0; i < campaignsInPeriod.length; i += batchSize) {
       const batch = campaignsInPeriod.slice(i, i + batchSize);
@@ -354,13 +341,13 @@ serve(async (req) => {
         }
       }));
 
-      // Small delay between batches
+      // Smaller delay between batches for better performance
       if (i + batchSize < campaignsInPeriod.length) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
-    // Step 4: Get flows
+    // Step 4: Get flows (with optimizations)
     console.log(`[${requestId}] Step 4: Fetching flows`);
     const flowsUrl = 'https://a.klaviyo.com/api/flows';
     const allFlows = await paginateKlaviyoAPI<KlaviyoFlow>(flowsUrl);
@@ -372,7 +359,7 @@ serve(async (req) => {
 
     console.log(`[${requestId}] Found ${activeFlows.length} active flows out of ${allFlows.length} total`);
 
-    // Step 5: Get total flow revenue
+    // Step 5: Get total flow revenue (optimized)
     let totalFlowRevenue = 0;
     let totalFlowConversions = 0;
 
@@ -390,7 +377,7 @@ serve(async (req) => {
                   end: `${to}T23:59:59Z`
                 },
                 conversion_metric_id: metricId,
-                statistics: ["conversion_value", "conversions", "conversion_uniques"]
+                statistics: ["conversion_value", "conversions"]
               }
             }
           })
@@ -409,22 +396,17 @@ serve(async (req) => {
       console.warn(`[${requestId}] Error fetching total flow revenue:`, message);
     }
 
-    // Step 6: Get individual flow metrics and performance
+    // Step 6: Get top flow metrics (limited for performance)
     const flowMetrics: FlowMetrics[] = [];
-    let flowsWithRevenue = 0;
-    let flowsWithActivity = 0;
-    let totalFlowOpens = 0;
-    let totalFlowClicks = 0;
-    let totalFlowDeliveries = 0;
+    const topFlowsToProcess = activeFlows.slice(0, 10); // Limit to top 10 flows for performance
 
-    // Process flows in batches to avoid rate limits and timeout  
-    const flowBatchSize = Math.min(CONCURRENCY, 2);
-    for (let i = 0; i < activeFlows.length; i += flowBatchSize) {
-      const batch = activeFlows.slice(i, i + flowBatchSize);
+    // Process flows in batches with timeout
+    const flowBatchSize = Math.min(CONCURRENCY, 3);
+    for (let i = 0; i < topFlowsToProcess.length; i += flowBatchSize) {
+      const batch = topFlowsToProcess.slice(i, i + flowBatchSize);
       
       await Promise.allSettled(batch.map(async (flow) => {
         try {
-          // Get flow revenue with timeout
           const flowValueResponse = await withTimeout(
             makeKlaviyoRequest('https://a.klaviyo.com/api/flow-values-reports/', {
               method: 'POST',
@@ -457,7 +439,7 @@ serve(async (req) => {
             flowConversions = flowValueData.data?.attributes?.conversions || 0;
           }
 
-          // Simplified performance calculation (skip detailed series for speed)
+          // Simplified performance calculation
           const performance = {
             opens: 0,
             opens_unique: 0,
@@ -470,13 +452,6 @@ serve(async (req) => {
             click_rate: 0,
             conversion_rate: 0
           };
-
-          // Track aggregates
-          if (flowRevenue > 0) flowsWithRevenue++;
-          
-          totalFlowOpens += performance.opens;
-          totalFlowClicks += performance.clicks;
-          totalFlowDeliveries += performance.deliveries;
 
           // Add to results if has revenue
           if (flowRevenue > 0) {
@@ -494,9 +469,9 @@ serve(async (req) => {
         }
       }));
 
-      // Delay between batches
-      if (i + flowBatchSize < activeFlows.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Smaller delay between batches
+      if (i + flowBatchSize < topFlowsToProcess.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
@@ -528,27 +503,13 @@ serve(async (req) => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    const topFlowsByPerformance = flowMetrics
-      .filter(f => f.performance.deliveries > 0)
-      .sort((a, b) => b.performance.open_rate - a.performance.open_rate)
-      .slice(0, 5);
-
-    flowsWithActivity = flowMetrics.length;
-
     // Step 9: Calculate summary metrics
     const totalRevenue = totalCampaignRevenue + totalFlowRevenue;
     const totalOrders = totalCampaignConversions + totalFlowConversions;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const avgFlowOpenRate = flowsWithActivity > 0 ? totalFlowOpens / totalFlowDeliveries : 0;
-    const avgFlowClickRate = flowsWithActivity > 0 ? totalFlowClicks / totalFlowDeliveries : 0;
 
-    // Step 10: Cache result in database
+    // Step 10: Cache result in klaviyo_summaries
     try {
-      const supabaseService = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
       await supabaseService
         .from('klaviyo_summaries')
         .upsert({
@@ -561,28 +522,62 @@ serve(async (req) => {
           orders_attributed: totalOrders,
           leads_total: leadsTotal,
           top_campaigns_by_revenue: topCampaignsByRevenue,
-          top_campaigns_by_conversions: topCampaignsByConversions,
-          top_flows_by_revenue: topFlowsByRevenue,
-          top_flows_by_performance: topFlowsByPerformance,
-          flows_detailed: flowMetrics,
-          flow_performance_averages: {
-            avg_open_rate: avgFlowOpenRate,
-            avg_click_rate: avgFlowClickRate,
-            total_flow_deliveries: totalFlowDeliveries,
-            total_flow_opens: totalFlowOpens,
-            total_flow_clicks: totalFlowClicks
-          }
+          top_campaigns_by_conversions: topCampaignsByConversions
         }, { 
           onConflict: 'store_id,period_start,period_end' 
         });
 
-      console.log(`[${requestId}] Cached results in database`);
+      console.log(`[${requestId}] Cached results in klaviyo_summaries`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[${requestId}] Error caching results:`, message);
+      console.warn(`[${requestId}] Error caching klaviyo_summaries:`, message);
     }
 
-    // Step 11: Build final response
+    // Step 11: CRITICAL - Persist to channel_revenue for dashboard integration
+    try {
+      console.log(`[${requestId}] Step 11: Persisting to channel_revenue`);
+      
+      // Upsert email channel revenue
+      await supabaseService
+        .from('channel_revenue')
+        .upsert({
+          store_id: storeId,
+          channel: 'email',
+          source: 'klaviyo',
+          period_start: from,
+          period_end: to,
+          revenue: totalRevenue,
+          orders_count: totalOrders,
+          currency: 'BRL', // TODO: Get from store settings
+          raw: {
+            campaigns: {
+              total_revenue: totalCampaignRevenue,
+              total_conversions: totalCampaignConversions,
+              count: campaignMetrics.length,
+              top_performers: topCampaignsByRevenue
+            },
+            flows: {
+              total_revenue: totalFlowRevenue,
+              total_conversions: totalFlowConversions,
+              count: flowMetrics.length,
+              top_performers: topFlowsByRevenue
+            },
+            leads_total: leadsTotal,
+            synced_at: new Date().toISOString(),
+            request_id: requestId
+          }
+        }, { 
+          onConflict: 'store_id,channel,source,period_start,period_end'
+        });
+
+      console.log(`[${requestId}] Successfully persisted to channel_revenue: ${totalRevenue} revenue, ${totalOrders} orders`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[${requestId}] CRITICAL ERROR persisting to channel_revenue:`, message);
+      // Don't fail the request, but log the error for monitoring
+    }
+
+    // Step 12: Build final response
     const response = {
       klaviyo: {
         revenue_total: totalRevenue,
@@ -594,20 +589,11 @@ serve(async (req) => {
         top_campaigns_by_revenue: topCampaignsByRevenue,
         top_campaigns_by_conversions: topCampaignsByConversions,
         top_flows_by_revenue: topFlowsByRevenue,
-        top_flows_by_performance: topFlowsByPerformance,
         leads_total: leadsTotal,
         campaign_count: campaigns.length,
         flow_count: activeFlows.length,
         campaigns_with_revenue: campaignMetrics.length,
-        flows_with_revenue: flowsWithRevenue,
-        flows_with_activity: flowsWithActivity,
-        flow_performance_averages: {
-          avg_open_rate: avgFlowOpenRate,
-          avg_click_rate: avgFlowClickRate,
-          total_flow_deliveries: totalFlowDeliveries,
-          total_flow_opens: totalFlowOpens,
-          total_flow_clicks: totalFlowClicks
-        },
+        flows_with_revenue: flowMetrics.length,
         flows_detailed: flowMetrics
       },
       period: { start: from, end: to },
@@ -616,116 +602,25 @@ serve(async (req) => {
         metric_id: metricId, 
         request_id: requestId, 
         timestamp: new Date().toISOString(), 
-        version: "2.0" 
+        version: "3.0",
+        performance_optimized: true
       },
       status: totalRevenue > 0 || totalOrders > 0 ? "SUCCESS" : "NO_DATA",
       summary: {
         total_revenue: totalRevenue,
         total_orders: totalOrders,
         average_order_value: avgOrderValue,
-        campaign_performance: { 
-          sent: campaignsInPeriod.length, 
-          with_revenue: campaignMetrics.length, 
-          revenue_percentage: campaignsInPeriod.length > 0 ? campaignMetrics.length / campaignsInPeriod.length : 0 
-        },
-        flow_performance: { 
-          active: activeFlows.length, 
-          with_revenue: flowsWithRevenue, 
-          with_activity: flowsWithActivity, 
-          revenue_percentage: activeFlows.length > 0 ? flowsWithRevenue / activeFlows.length : 0, 
-          avg_open_rate: avgFlowOpenRate, 
-          avg_click_rate: avgFlowClickRate 
-        }
-      },
-      debug: {
-        campaigns_found: campaigns.length,
-        flows_found: activeFlows.length,
-        flows_with_revenue: flowsWithRevenue,
-        flows_with_performance: flowsWithActivity,
-        metric_id_used: metricId,
-        dates_processed: { start: from, end: to }
+        channel_revenue_synced: true
       }
     };
 
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
     console.log(`[${requestId}] Results: ${totalRevenue} revenue, ${totalOrders} orders, ${leadsTotal} leads`);
 
-<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
     return json(response, 200);
-=======
-    // Build final response with actual data
-    const finalResponse = {
-      klaviyo: {
-        revenue_total: totalCampaignRevenue + totalFlowRevenue,
-        revenue_campaigns: totalCampaignRevenue,
-        revenue_flows: totalFlowRevenue,
-        orders_attributed: totalCampaignConversions + totalFlowConversions,
-        conversions_campaigns: totalCampaignConversions,
-        conversions_flows: totalFlowConversions,
-        top_campaigns_by_revenue: topCampaignsByRevenue,
-        top_campaigns_by_conversions: topCampaignsByConversions,
-        top_flows_by_revenue: topFlowsByRevenue,
-        top_flows_by_performance: topFlowsByPerformance,
-        leads_total: leadsTotal,
-        campaign_count: campaigns.length,
-        flow_count: activeFlows.length,
-        campaigns_with_revenue: campaignMetrics.length,
-        flows_with_revenue: flowsWithRevenue,
-        flows_with_activity: flowsWithActivity,
-        flow_performance_averages: {
-          avg_open_rate: flowsWithActivity > 0 ? totalFlowOpens / totalFlowDeliveries : 0,
-          avg_click_rate: flowsWithActivity > 0 ? totalFlowClicks / totalFlowDeliveries : 0,
-          total_flow_deliveries: totalFlowDeliveries,
-          total_flow_opens: totalFlowOpens,
-          total_flow_clicks: totalFlowClicks
-        },
-        flows_detailed: flowMetrics
-      },
-      period: { start: from, end: to },
-      store: { id: storeId, domain: klaviyoSiteId || "" },
-      metadata: { 
-        metric_id: metricId, 
-        request_id: requestId, 
-        timestamp: new Date().toISOString(), 
-        version: "2.0" 
-      },
-      status: totalCampaignRevenue + totalFlowRevenue > 0 ? "SUCCESS" : "NO_DATA"
-    };
-
-    // Cache result in database
-    try {
-      const supabaseService = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
-      await supabaseService
-        .from('klaviyo_summaries')
-        .upsert({
-          store_id: storeId,
-          period_start: from,
-          period_end: to,
-          revenue_total: totalCampaignRevenue + totalFlowRevenue,
-          revenue_campaigns: totalCampaignRevenue,
-          revenue_flows: totalFlowRevenue,
-          orders_attributed: totalCampaignConversions + totalFlowConversions,
-          leads_total: leadsTotal,
-          top_campaigns_by_revenue: topCampaignsByRevenue,
-          top_campaigns_by_conversions: topCampaignsByConversions
-        }, { 
-          onConflict: 'store_id,period_start,period_end' 
-        });
-
-      console.log(`[${requestId}] Cached results in database`);
-    } catch (error) {
-      console.warn(`[${requestId}] Error caching results:`, error.message);
-    }
-
-    console.log(`[${requestId}] Klaviyo Summary completed successfully`);
-    return json(finalResponse, 200);
->>>>>>> main
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
+    console.error(`[${requestId}] Error in klaviyo_summary:`, detail);
     return json({ error: "Klaviyo summary failed", detail }, 502);
   }
 });

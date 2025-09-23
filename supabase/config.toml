@@ -53,10 +53,16 @@ verify_jwt = false
 [functions.admin-confirm-all-emails]
 verify_jwt = true
 
-[functions.shopify-orders-sync]
+[functions.admin-link-user-to-store]
 verify_jwt = true
 
-[functions.klaviyo-revenue-sync]
+[functions.shopify_orders_sync]
+verify_jwt = true
+
+[functions.klaviyo_summary]
+verify_jwt = true
+
+[functions.klaviyo_proxy]
 verify_jwt = true
 
 [functions.dashboard-sync]
@@ -65,3 +71,5 @@ verify_jwt = true
 [functions.dashboard-backfill]
 verify_jwt = true
 
+[functions.n8n_klaviyo_sync]
+verify_jwt = false
