@@ -50,7 +50,7 @@ const AppLayout = () => {
         </header>
         
         <main className="flex-1 overflow-auto">
-          <div className="p-6">
+          <div className="p-5 md:p-6">
             <Outlet />
           </div>
         </main>
