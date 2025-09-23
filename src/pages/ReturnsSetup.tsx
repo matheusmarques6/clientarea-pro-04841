@@ -604,6 +604,7 @@ const ReturnsSetup = () => {
           </Card>
         </div>
       </div>
+      </div>
     </div>
   );
 };
