@@ -216,31 +216,30 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  // Buscar dados do Klaviyo
+  // Buscar dados do Klaviyo via webhook n8n
   const fetchKlaviyoData = async () => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // Tentar buscar via Edge Function primeiro
+      // Tentar buscar via webhook n8n primeiro
       try {
-        const { data, error } = await supabase.functions.invoke('klaviyo_summary', {
-          method: 'POST',
-          body: {
-            storeId: storeId,
-            from: startDate.toISOString(),
-            to: endDate.toISOString()
-          }
-        });
+        const { getKlaviyoSummary } = await import('@/api/klaviyo');
+        
+        const fromISO = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0)).toISOString();
+        const toISO = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59)).toISOString();
+        
+        const data = await getKlaviyoSummary(storeId, fromISO, toISO);
 
-        if (!error && data?.klaviyo) {
+        if (data?.klaviyo) {
           setKlaviyoData(data.klaviyo);
           setTopCampaigns(Array.isArray(data.klaviyo.top_campaigns_by_revenue) ? data.klaviyo.top_campaigns_by_revenue : []);
+          console.log('Using real Klaviyo data from n8n webhook');
           return;
         }
         
-        console.log('Klaviyo function error:', error?.message);
-      } catch (fnError) {
-        console.log('Klaviyo function failed:', fnError);
+        console.log('Klaviyo webhook: no data returned');
+      } catch (webhookError) {
+        console.log('Klaviyo webhook failed:', webhookError);
       }
 
       // Fallback: buscar do cache no banco
