@@ -7,6 +7,8 @@ import {
   Settings,
   HelpCircle,
   Store,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import {
@@ -17,7 +19,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import convertfyLogo from '@/assets/convertfy-logo.png';
 
@@ -25,6 +29,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { id: storeId } = useParams();
   const currentPath = location.pathname;
+  const { state, toggleSidebar } = useSidebar();
 
   const items = [
     {
@@ -88,7 +93,7 @@ export function AppSidebar() {
     const content = (
       <>
         <item.icon className="h-4 w-4 mr-3 flex-shrink-0" />
-        <span className="text-sm">{item.title}</span>
+        {state !== 'collapsed' && <span className="text-sm">{item.title}</span>}
       </>
     );
 
@@ -110,17 +115,34 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-64 bg-card border-r border-border">
+    <Sidebar collapsible="icon" className="bg-card border-r border-border">
       <SidebarContent className="flex flex-col h-full p-4">
-        {/* Logo */}
-        <div className="mb-8 px-2 flex justify-center">
-          <div className="flex items-center gap-2">
-            <img 
-              src={convertfyLogo} 
-              alt="Convertfy" 
-              className="h-8 w-auto"
-            />
-          </div>
+        {/* Logo and collapse button */}
+        <div className="mb-8 px-2 flex items-center justify-between">
+          {state !== 'collapsed' && (
+            <div className="flex items-center gap-2">
+              <img 
+                src={convertfyLogo} 
+                alt="Convertfy" 
+                className="h-8 w-auto"
+              />
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className={cn(
+              "h-8 w-8 p-0 hover:bg-muted transition-colors hidden md:flex",
+              state === 'collapsed' && "mx-auto"
+            )}
+          >
+            {state === 'collapsed' ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
 
         <SidebarGroup className="flex-1">
