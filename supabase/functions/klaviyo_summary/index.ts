@@ -125,9 +125,9 @@ serve(async (req) => {
   );
 
   // Limites para evitar timeout 504 - Otimizado para performance
-  const PAGE_LIMIT = fast ? 1 : 2;        // máx. páginas (reduzido)
-  const CONCURRENCY = 3;                   // máx. requisições paralelas (aumentado)
-  const REQ_TIMEOUT_MS = 12000;           // timeout por request a Klaviyo
+  const PAGE_LIMIT = fast ? 1 : 1;        // máx. páginas (reduzido para fast mode)
+  const CONCURRENCY = fast ? 5 : 3;       // máx. requisições paralelas (aumentado para fast)
+  const REQ_TIMEOUT_MS = fast ? 8000 : 12000; // timeout reduzido para fast mode
 
   const withTimeout = async <T>(promise: Promise<T>, ms: number, context?: string): Promise<T> => {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
@@ -343,7 +343,7 @@ serve(async (req) => {
 
       // Smaller delay between batches for better performance
       if (i + batchSize < campaignsInPeriod.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, fast ? 50 : 100));
       }
     }
 
@@ -469,9 +469,9 @@ serve(async (req) => {
         }
       }));
 
-      // Smaller delay between batches
+      // Smaller delay between batches in fast mode
       if (i + flowBatchSize < topFlowsToProcess.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, fast ? 50 : 100));
       }
     }
 

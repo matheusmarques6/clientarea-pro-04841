@@ -299,7 +299,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             to: toDate,
             fast: true,
           },
-          45000
+          30000
         );
 
         if (data?.klaviyo) {
@@ -364,7 +364,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             from: startDate.toISOString().split('T')[0],
             to: endDate.toISOString().split('T')[0],
           },
-          45000
+          30000
         );
 
         if (shopifyData) {
@@ -391,7 +391,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             to: endDate.toISOString().split('T')[0],
             fast: true,
           },
-          45000
+          30000
         );
 
         if (klaviyoResult?.klaviyo) {
