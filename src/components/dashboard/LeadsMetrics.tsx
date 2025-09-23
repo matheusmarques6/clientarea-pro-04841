@@ -32,10 +32,10 @@ export const LeadsMetrics = ({ klaviyoData }: LeadsMetricsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {klaviyoData?.leads_total ? formatNumber(klaviyoData.leads_total) : "0"}
+            {klaviyoData?.leads_total ? formatNumber(klaviyoData.leads_total) : "—"}
           </div>
           <p className="text-xs text-muted-foreground">
-            Total de perfis no Klaviyo
+            {klaviyoData?.leads_total ? "Total de perfis no Klaviyo" : "Klaviyo não configurado"}
           </p>
         </CardContent>
       </Card>
@@ -49,10 +49,13 @@ export const LeadsMetrics = ({ klaviyoData }: LeadsMetricsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {klaviyoData?.leads_engaged ? formatNumber(klaviyoData.leads_engaged.total) : "N/A"}
+            {klaviyoData?.leads_engaged ? formatNumber(klaviyoData.leads_engaged.total) : "—"}
           </div>
           <p className="text-xs text-muted-foreground">
-            {engagementRate ? `${engagementRate}% do total` : "Segmento não configurado"}
+            {klaviyoData?.leads_engaged 
+              ? (engagementRate ? `${engagementRate}% do total` : "Segmento configurado")
+              : "Segmento não configurado"
+            }
           </p>
         </CardContent>
       </Card>

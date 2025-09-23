@@ -222,7 +222,7 @@ const StoreDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Leads Metrics */}
+        {/* Leads Metrics - only show if Klaviyo data exists */}
         {klaviyoData && (
           <div className="space-y-4">
             <LeadsMetrics klaviyoData={klaviyoData} />
@@ -230,9 +230,23 @@ const StoreDashboard = () => {
         )}
       </div>
 
-      {/* Top Campaigns */}
-      {topCampaigns.length > 0 && (
+      {/* Top Campaigns - only show if there are real campaigns */}
+      {topCampaigns.length > 0 ? (
         <TopCampaigns campaigns={topCampaigns} currency={kpis?.currency} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Top Campanhas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-center py-8">
+              Configure a integração do Klaviyo para ver dados de campanhas
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Charts */}

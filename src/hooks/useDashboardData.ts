@@ -249,6 +249,10 @@ export const useDashboardData = (storeId: string, period: string) => {
       if (!error && data?.klaviyo_v2) {
         setKlaviyoData(data.klaviyo_v2);
         setTopCampaigns(data.klaviyo_v2.top_campaigns_by_revenue || []);
+      } else {
+        console.log('Klaviyo data not available:', error?.message || 'No klaviyo_v2 data');
+        setKlaviyoData(null);
+        setTopCampaigns([]);
       }
     } catch (error) {
       console.error('Error fetching Klaviyo data:', error);

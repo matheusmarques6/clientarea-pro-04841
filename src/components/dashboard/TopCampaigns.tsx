@@ -77,7 +77,8 @@ export const TopCampaigns = ({ campaigns, currency = "BRL" }: TopCampaignsProps)
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">
-            Nenhuma campanha encontrada no período
+            Dados do Klaviyo não disponíveis.<br />
+            Configure a integração para ver as campanhas.
           </p>
         </CardContent>
       </Card>
