@@ -52,3 +52,15 @@ verify_jwt = false
  
 [functions.admin-confirm-all-emails]
 verify_jwt = true
+
+[functions.shopify-orders-sync]
+verify_jwt = true
+
+[functions.klaviyo-revenue-sync]
+verify_jwt = true
+
+[functions.dashboard-sync]
+verify_jwt = true
+
+[functions.dashboard-backfill]
+verify_jwt = true

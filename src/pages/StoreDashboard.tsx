@@ -5,17 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockDashboardStats, mockChannelRevenue, mockChartData } from '@/lib/mockData';
 import { useStore } from '@/hooks/useStores';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
   
-  const { store, isLoading } = useStore(id!);
-  const stats = mockDashboardStats;
+  const { store, isLoading: storeLoading } = useStore(id!);
+  const { kpis, chartData, channelRevenue, isLoading: dataLoading, isSyncing, syncData } = useDashboardData(id!, period);
 
-  if (isLoading) {
+  if (storeLoading || dataLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -50,7 +50,9 @@ const StoreDashboard = () => {
   const COLORS = ['#6366f1', '#10b981', '#f59e0b'];
 
   const formatCurrency = (value: number) => {
-    return `${store.currency === 'BRL' ? 'R$' : store.currency === 'USD' ? '$' : store.currency === 'EUR' ? '€' : '£'} ${value.toLocaleString()}`;
+    const currency = kpis?.currency || store?.currency || 'BRL';
+    const symbol = currency === 'BRL' ? 'R$' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£';
+    return `${symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -60,8 +62,20 @@ const StoreDashboard = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
+            {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {kpis?.currency || store?.currency || 'BRL'}
           </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            onClick={syncData}
+            disabled={isSyncing}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+          </Button>
         </div>
         
         <Select value={period} onValueChange={setPeriod}>
@@ -91,7 +105,7 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Faturamento Total</p>
-              <p className="text-2xl font-bold text-ink mt-1">R$ 42.850</p>
+              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(kpis?.total_revenue || 0)}</p>
             </div>
           </CardContent>
         </Card>
@@ -109,7 +123,7 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Faturamento Convertfy</p>
-              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(stats.faturamentoConvertfy)}</p>
+              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(kpis?.convertfy_revenue || 0)}</p>
             </div>
           </CardContent>
         </Card>
@@ -127,7 +141,11 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Margem CFY</p>
-              <p className="text-2xl font-bold text-ink mt-1">38.3%</p>
+              <p className="text-2xl font-bold text-ink mt-1">
+                {kpis?.total_revenue && kpis.total_revenue > 0 
+                  ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
+                  : '0.0%'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -144,8 +162,8 @@ const StoreDashboard = () => {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm text-muted-foreground">Lucro CFY</p>
-              <p className="text-2xl font-bold text-ink mt-1">R$ 6.281</p>
+              <p className="text-sm text-muted-foreground">Pedidos</p>
+              <p className="text-2xl font-bold text-ink mt-1">{kpis?.order_count || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -166,10 +184,12 @@ const StoreDashboard = () => {
             </div>
             <div className="text-center lg:text-right">
               <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
-                {((stats.faturamentoConvertfy / stats.faturamentoTotal) * 100).toFixed(1)}%
+                {kpis?.total_revenue && kpis.total_revenue > 0 
+                  ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
+                  : '0.0%'}
               </div>
               <div className="text-sm text-muted-foreground">
-                {formatCurrency(stats.faturamentoConvertfy)} de {formatCurrency(stats.faturamentoTotal)}
+                {formatCurrency(kpis?.convertfy_revenue || 0)} de {formatCurrency(kpis?.total_revenue || 0)}
               </div>
             </div>
           </div>
@@ -185,7 +205,7 @@ const StoreDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockChartData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -218,7 +238,7 @@ const StoreDashboard = () => {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={mockChannelRevenue}
+                  data={channelRevenue}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -227,7 +247,7 @@ const StoreDashboard = () => {
                   fill="#8884d8"
                   dataKey="revenue"
                 >
-                  {mockChannelRevenue.map((entry, index) => (
+                  {channelRevenue.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
