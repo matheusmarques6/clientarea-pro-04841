@@ -82,32 +82,32 @@ export function AppSidebar() {
 
   const getNavClassName = (item: any) => {
     if (item.disabled) {
-      return 'opacity-50 cursor-not-allowed pointer-events-none text-muted-foreground';
+      return 'opacity-40 cursor-not-allowed pointer-events-none text-muted-foreground/60 hover:bg-transparent';
     }
     return isActive(item.url)
-      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/80'
-      : 'text-foreground hover:bg-muted/80 hover:text-foreground';
+      ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25 border border-primary/20'
+      : 'text-foreground hover:bg-gradient-to-r hover:from-muted/60 hover:to-muted/40 hover:text-foreground border border-transparent hover:border-border/30 hover:shadow-sm';
   };
 
   const renderMenuItem = (item: any) => {
     const content = (
       <>
-        <item.icon className="h-4 w-4 mr-3 flex-shrink-0" />
-        {state !== 'collapsed' && <span className="text-sm">{item.title}</span>}
+        <item.icon className="h-5 w-5 flex-shrink-0" />
+        {state !== 'collapsed' && <span className="text-sm font-medium">{item.title}</span>}
       </>
     );
 
     if (item.disabled) {
       return (
-        <SidebarMenuButton className={cn("w-full justify-start px-3 py-2.5 rounded-lg", getNavClassName(item))}>
+        <SidebarMenuButton className={cn("w-full justify-start px-4 py-3 rounded-xl transition-all duration-200", getNavClassName(item))}>
           {content}
         </SidebarMenuButton>
       );
     }
 
     return (
-      <SidebarMenuButton asChild className={cn("w-full justify-start px-3 py-2.5 rounded-lg", getNavClassName(item))}>
-        <NavLink to={item.url} className="flex items-center">
+      <SidebarMenuButton asChild className={cn("w-full justify-start px-4 py-3 rounded-xl transition-all duration-200", getNavClassName(item))}>
+        <NavLink to={item.url} className="flex items-center gap-3">
           {content}
         </NavLink>
       </SidebarMenuButton>
@@ -115,17 +115,31 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="bg-card border-r border-border">
-      <SidebarContent className="flex flex-col h-full p-4">
+    <Sidebar collapsible="icon" className="bg-gradient-to-b from-card via-card to-card/95 border-r border-border/50 shadow-lg backdrop-blur-sm">
+      <SidebarContent className="flex flex-col h-full p-3">
         {/* Logo and collapse button */}
-        <div className="mb-8 px-2 flex items-center justify-between">
+        <div className="mb-6 px-3 flex items-center justify-between">
           {state !== 'collapsed' && (
-            <div className="flex items-center gap-2">
-              <img 
-                src={convertfyLogo} 
-                alt="Convertfy" 
-                className="h-8 w-auto"
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img 
+                  src={convertfyLogo} 
+                  alt="Convertfy" 
+                  className="h-10 w-auto drop-shadow-sm"
+                />
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur opacity-30"></div>
+              </div>
+            </div>
+          )}
+          {state === 'collapsed' && (
+            <div className="flex items-center justify-center w-full">
+              <div className="relative">
+                <img 
+                  src={convertfyLogo} 
+                  alt="Convertfy" 
+                  className="h-8 w-auto drop-shadow-sm"
+                />
+              </div>
             </div>
           )}
           <Button
@@ -133,8 +147,8 @@ export function AppSidebar() {
             size="sm"
             onClick={toggleSidebar}
             className={cn(
-              "h-8 w-8 p-0 hover:bg-muted transition-colors hidden md:flex",
-              state === 'collapsed' && "mx-auto"
+              "h-8 w-8 p-0 hover:bg-muted/70 transition-all duration-200 hidden md:flex rounded-lg",
+              state === 'collapsed' && "absolute top-3 right-3"
             )}
           >
             {state === 'collapsed' ? (
@@ -147,7 +161,7 @@ export function AppSidebar() {
 
         <SidebarGroup className="flex-1">
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-2 px-2">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {renderMenuItem(item)}

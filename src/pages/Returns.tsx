@@ -258,11 +258,12 @@ const Returns = () => {
             <TabsTrigger value="resumo" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
               <span className="relative z-10">Resumo</span>
             </TabsTrigger>
-            <TabsTrigger value="config" asChild>
-              <Link to={`/store/${storeId}/returns/setup`} className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg group">
-                <span className="relative z-10">Config</span>
-              </Link>
-            </TabsTrigger>
+            <Link to={`/store/${storeId}/returns/setup`}>
+              <Button variant="ghost" size="sm" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg">
+                <Settings className="h-4 w-4 mr-1" />
+                <span className="relative z-10">Configurar</span>
+              </Button>
+            </Link>
           </TabsList>
 
           <TabsContent value="kanban" className="space-y-4 sm:space-y-6">
