@@ -3,7 +3,7 @@ import { AppSidebar } from './AppSidebar';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bell, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useStore } from '@/hooks/useStores';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -27,10 +27,6 @@ const AppLayout = () => {
 
           {/* Right side - Actions and profile */}
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="p-2">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            
             <div className="flex items-center gap-2 ml-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-muted text-muted-foreground text-sm">
