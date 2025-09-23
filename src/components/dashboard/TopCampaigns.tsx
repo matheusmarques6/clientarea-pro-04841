@@ -2,26 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Users } from "lucide-react";
-
-interface Campaign {
-  id: string;
-  nome?: string;
-  name?: string;
-  receita?: number;
-  revenue?: number;
-  conversoes?: number;
-  conversions?: number;
-  data_envio?: string;
-  send_time?: string;
-  status?: string;
-}
+import { Campaign } from "@/api/klaviyo";
 
 interface TopCampaignsProps {
-  campaigns: Campaign[];
+  campaignsByRevenue: Campaign[];
+  campaignsByConversions: Campaign[];
   currency?: string;
 }
 
-export const TopCampaigns = ({ campaigns, currency = "BRL" }: TopCampaignsProps) => {
+export const TopCampaigns = ({ campaignsByRevenue, campaignsByConversions, currency = "BRL" }: TopCampaignsProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -34,20 +23,13 @@ export const TopCampaigns = ({ campaigns, currency = "BRL" }: TopCampaignsProps)
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getRevenue = (campaign: Campaign) => campaign.receita || campaign.revenue || 0;
-  const getConversions = (campaign: Campaign) => campaign.conversoes || campaign.conversions || 0;
-  const getName = (campaign: Campaign) => campaign.nome || campaign.name || 'Campanha sem nome';
-  const getDate = (campaign: Campaign) => campaign.data_envio || campaign.send_time || '';
+  const getRevenue = (campaign: Campaign) => campaign.revenue || 0;
+  const getConversions = (campaign: Campaign) => campaign.conversions || 0;
+  const getName = (campaign: Campaign) => campaign.name || 'Campanha sem nome';
+  const getDate = (campaign: Campaign) => campaign.send_time || '';
 
-  const topByRevenue = [...campaigns]
-    .filter(c => getRevenue(c) > 0)
-    .sort((a, b) => getRevenue(b) - getRevenue(a))
-    .slice(0, 5);
-
-  const topByConversions = [...campaigns]
-    .filter(c => getConversions(c) > 0)
-    .sort((a, b) => getConversions(b) - getConversions(a))
-    .slice(0, 5);
+  const topByRevenue = campaignsByRevenue.slice(0, 5);
+  const topByConversions = campaignsByConversions.slice(0, 5);
 
   const CampaignItem = ({ campaign, showRevenue = true }: { campaign: Campaign; showRevenue?: boolean }) => (
     <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -76,7 +58,7 @@ export const TopCampaigns = ({ campaigns, currency = "BRL" }: TopCampaignsProps)
     </div>
   );
 
-  if (!campaigns.length) {
+  if (!campaignsByRevenue.length && !campaignsByConversions.length) {
     return (
       <Card>
         <CardHeader>

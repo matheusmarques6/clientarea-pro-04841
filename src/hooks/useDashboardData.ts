@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { KlaviyoSummary } from '@/api/klaviyo';
+import type { KlaviyoSummary, KlaviyoWebhookResponse, Campaign } from '@/api/klaviyo';
 
 interface DashboardKPIs {
   total_revenue: number;
@@ -44,7 +44,10 @@ export const useDashboardData = (storeId: string, period: string) => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [channelRevenue, setChannelRevenue] = useState<ChannelRevenue[]>([]);
   const [klaviyoData, setKlaviyoData] = useState<KlaviyoSummary['klaviyo'] | null>(null);
-  const [topCampaigns, setTopCampaigns] = useState<KlaviyoSummary['klaviyo']['top_campaigns_by_revenue']>([]);
+  const [topCampaigns, setTopCampaigns] = useState<{
+    byRevenue: Campaign[];
+    byConversions: Campaign[];
+  }>({ byRevenue: [], byConversions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
@@ -132,15 +135,44 @@ export const useDashboardData = (storeId: string, period: string) => {
     });
   };
 
-  const updateKlaviyoState = (klaviyo: KlaviyoSummary['klaviyo'] | null) => {
-    if (klaviyo) {
-      setKlaviyoData(klaviyo);
-      setTopCampaigns(Array.isArray(klaviyo.top_campaigns_by_revenue) ? klaviyo.top_campaigns_by_revenue : []);
-      applyKpis(klaviyo.revenue_total ?? null);
-    } else {
+  const updateKlaviyoState = (data: KlaviyoWebhookResponse | KlaviyoSummary['klaviyo'] | null) => {
+    if (!data) {
       setKlaviyoData(null);
-      setTopCampaigns([]);
+      setTopCampaigns({ byRevenue: [], byConversions: [] });
       applyKpis(null);
+      return;
+    }
+    
+    // Handle new webhook response format
+    if ('klaviyo' in data) {
+      const webhookData = data as KlaviyoWebhookResponse;
+      const klaviyoData = {
+        revenue_total: webhookData.klaviyo.revenue_total,
+        revenue_campaigns: webhookData.klaviyo.revenue_campaigns,
+        revenue_flows: webhookData.klaviyo.revenue_flows,
+        orders_attributed: webhookData.klaviyo.orders_attributed,
+        leads_total: typeof webhookData.klaviyo.leads_total === 'string' 
+          ? parseInt(webhookData.klaviyo.leads_total.replace('+', '')) || 0
+          : webhookData.klaviyo.leads_total,
+        top_campaigns_by_revenue: webhookData.klaviyo.top_campaigns_by_revenue || [],
+        top_campaigns_by_conversions: webhookData.klaviyo.top_campaigns_by_conversions || []
+      };
+      
+      setKlaviyoData(klaviyoData);
+      setTopCampaigns({
+        byRevenue: webhookData.klaviyo.top_campaigns_by_revenue || [],
+        byConversions: webhookData.klaviyo.top_campaigns_by_conversions || []
+      });
+      applyKpis(klaviyoData.revenue_total ?? null);
+    } else {
+      // Handle legacy format
+      const klaviyoData = data as KlaviyoSummary['klaviyo'];
+      setKlaviyoData(klaviyoData);
+      setTopCampaigns({
+        byRevenue: klaviyoData.top_campaigns_by_revenue || [],
+        byConversions: klaviyoData.top_campaigns_by_conversions || []
+      });
+      applyKpis(klaviyoData.revenue_total ?? null);
     }
   };
 
@@ -291,7 +323,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         const fromDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
         const toDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-        const data = await invokeEdgeFunction<KlaviyoSummary>(
+        const data = await invokeEdgeFunction<KlaviyoWebhookResponse[] | KlaviyoSummary>(
           'klaviyo_summary',
           {
             storeId,
@@ -302,9 +334,14 @@ export const useDashboardData = (storeId: string, period: string) => {
           30000
         );
 
-        if (data?.klaviyo) {
+        // Handle both new webhook format and legacy format
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('Using new webhook format from Edge Function');
+          updateKlaviyoState(data[0]);
+          return;
+        } else if (data && 'klaviyo' in data) {
+          console.log('Using legacy format from Edge Function');
           updateKlaviyoState(data.klaviyo);
-          console.log('Using real Klaviyo data from Edge Function');
           return;
         }
 
@@ -383,7 +420,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       console.log('Sincronizando Klaviyo...');
 
       try {
-        const klaviyoResult = await invokeEdgeFunction<KlaviyoSummary>(
+        const klaviyoResult = await invokeEdgeFunction<KlaviyoWebhookResponse[] | KlaviyoSummary>(
           'klaviyo_summary',
           {
             storeId,
@@ -394,10 +431,15 @@ export const useDashboardData = (storeId: string, period: string) => {
           30000
         );
 
-        if (klaviyoResult?.klaviyo) {
+        // Handle both new webhook format and legacy format
+        if (Array.isArray(klaviyoResult) && klaviyoResult.length > 0) {
+          klaviyoSuccess = true;
+          updateKlaviyoState(klaviyoResult[0]);
+          const revenue = klaviyoResult[0].klaviyo.revenue_total || 0;
+          messages.push(`Klaviyo: Receita ${formatToastCurrency(revenue)}`);
+        } else if (klaviyoResult && 'klaviyo' in klaviyoResult) {
           klaviyoSuccess = true;
           updateKlaviyoState(klaviyoResult.klaviyo);
-
           const revenue = klaviyoResult.klaviyo.revenue_total || 0;
           messages.push(`Klaviyo: Receita ${formatToastCurrency(revenue)}`);
         } else {

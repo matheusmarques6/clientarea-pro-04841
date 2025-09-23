@@ -231,8 +231,12 @@ const StoreDashboard = () => {
       </div>
 
       {/* Top Campaigns - only show if there are real campaigns */}
-      {topCampaigns.length > 0 ? (
-        <TopCampaigns campaigns={topCampaigns} currency={kpis?.currency} />
+      {(topCampaigns.byRevenue.length > 0 || topCampaigns.byConversions.length > 0) ? (
+        <TopCampaigns 
+          campaignsByRevenue={topCampaigns.byRevenue} 
+          campaignsByConversions={topCampaigns.byConversions} 
+          currency={kpis?.currency} 
+        />
       ) : (
         <Card>
           <CardHeader>
