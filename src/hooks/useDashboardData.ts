@@ -283,7 +283,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // ✅ Usar supabase.functions.invoke em vez de fetch manual
+      // Sincronizar Shopify primeiro
       const { data, error } = await supabase.functions.invoke('shopify_orders_sync', {
         method: 'POST',
         body: { 
@@ -294,20 +294,51 @@ export const useDashboardData = (storeId: string, period: string) => {
       });
 
       if (error) {
-        throw new Error(error.message || 'Erro na sincronização');
+        throw new Error(error.message || 'Erro na sincronização do Shopify');
       }
 
       if (data?.synced !== undefined) {
         toast({
-          title: "Sucesso",
+          title: "Shopify sincronizado",
           description: `${data.synced} pedidos sincronizados. Receita total: ${data.totalRevenue} ${data.currency}`,
         });
-        
-        // Recarregar dados após sincronização
-        await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
-      } else {
-        throw new Error(data?.error || 'Erro na sincronização');
       }
+
+      // Agora sincronizar dados do Klaviyo via webhook n8n
+      try {
+        const { getKlaviyoSummary } = await import('@/api/klaviyo');
+        
+        const fromISO = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0)).toISOString();
+        const toISO = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59)).toISOString();
+        
+        const klaviyoData = await getKlaviyoSummary(storeId, fromISO, toISO);
+
+        if (klaviyoData?.klaviyo) {
+          setKlaviyoData(klaviyoData.klaviyo);
+          setTopCampaigns(Array.isArray(klaviyoData.klaviyo.top_campaigns_by_revenue) ? klaviyoData.klaviyo.top_campaigns_by_revenue : []);
+          
+          toast({
+            title: "Dados atualizados",
+            description: "Dados do Shopify e Klaviyo sincronizados com sucesso",
+          });
+        } else {
+          toast({
+            title: "Shopify sincronizado",
+            description: "Dados do Shopify sincronizados. Klaviyo não disponível",
+          });
+        }
+      } catch (klaviyoError) {
+        console.error('Klaviyo sync error:', klaviyoError);
+        toast({
+          title: "Shopify sincronizado",
+          description: "Dados do Shopify sincronizados. Erro ao sincronizar Klaviyo",
+          variant: "destructive",
+        });
+      }
+      
+      // Recarregar dados após sincronização
+      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
+      
     } catch (error: any) {
       console.error('Sync error:', error);
       
