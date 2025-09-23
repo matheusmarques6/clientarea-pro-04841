@@ -479,6 +479,64 @@ const ReturnsSetup = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Language Customization */}
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Globe className="h-5 w-5" />
+                Idioma e Mensagens
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="pt" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-3 bg-muted">
+                  <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
+                  <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
+                  <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="pt" className="space-y-4">
+                  <div>
+                    <Label className="text-foreground">Mensagem de confirmação</Label>
+                    <Textarea
+                      value={config.mensagemPt}
+                      onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
+                      placeholder="Mensagem exibida após a solicitação"
+                      rows={4}
+                      className="text-foreground"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="en" className="space-y-4">
+                  <div>
+                    <Label className="text-foreground">Confirmation message</Label>
+                    <Textarea
+                      value={config.mensagemEn}
+                      onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
+                      placeholder="Message displayed after request"
+                      rows={4}
+                      className="text-foreground"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="es" className="space-y-4">
+                  <div>
+                    <Label className="text-foreground">Mensaje de confirmación</Label>
+                    <Textarea
+                      value={config.mensagemEs}
+                      onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
+                      placeholder="Mensaje mostrado después de la solicitud"
+                      rows={4}
+                      className="text-foreground"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Preview */}
@@ -542,63 +600,6 @@ const ReturnsSetup = () => {
               <p className="text-sm text-muted-foreground mt-4">
                 Preview em tempo real - clique em "Preview" para ver o portal completo
               </p>
-            </CardContent>
-          </Card>
-          {/* Language Customization */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <Globe className="h-5 w-5" />
-                Idioma e Mensagens
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="pt" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-3 bg-muted">
-                    <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
-                    <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
-                    <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="pt" className="space-y-4">
-                    <div>
-                      <Label className="text-foreground">Mensagem de confirmação</Label>
-                      <Textarea
-                        value={config.mensagemPt}
-                        onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
-                        placeholder="Mensagem exibida após a solicitação"
-                        rows={4}
-                        className="text-foreground"
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="en" className="space-y-4">
-                    <div>
-                      <Label className="text-foreground">Confirmation message</Label>
-                      <Textarea
-                        value={config.mensagemEn}
-                        onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
-                        placeholder="Message displayed after request"
-                        rows={4}
-                        className="text-foreground"
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="es" className="space-y-4">
-                    <div>
-                      <Label className="text-foreground">Mensaje de confirmación</Label>
-                      <Textarea
-                        value={config.mensagemEs}
-                        onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
-                        placeholder="Mensaje mostrado después de la solicitud"
-                        rows={4}
-                        className="text-foreground"
-                      />
-                    </div>
-                  </TabsContent>
-                 </Tabs>
             </CardContent>
           </Card>
         </div>
