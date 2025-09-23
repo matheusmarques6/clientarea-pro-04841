@@ -121,29 +121,29 @@ const StoreCard = ({ store, index }: StoreCardProps) => {
             </Link>
           </Button>
           
-          <div className="grid grid-cols-3 gap-3">
-            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
-              <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-2 h-18 p-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+          <div className="grid grid-cols-3 gap-4">
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/30 hover:border-primary/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-primary/10 transition-all duration-300 shadow-sm hover:shadow-md">
+              <Link to={`/store/${store.id}/returns`} className="flex flex-col items-center gap-3 h-20 p-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/30 flex items-center justify-center border border-blue-200/50">
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
                 </div>
-                <span className="text-xs font-medium">Trocas</span>
+                <span className="text-xs font-semibold text-center leading-tight">Trocas</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
-              <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-2 h-18 p-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-primary" />
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/30 hover:border-primary/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-primary/10 transition-all duration-300 shadow-sm hover:shadow-md">
+              <Link to={`/store/${store.id}/refunds`} className="flex flex-col items-center gap-3 h-20 p-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/30 flex items-center justify-center border border-green-200/50">
+                  <DollarSign className="h-5 w-5 text-green-600" />
                 </div>
-                <span className="text-xs font-medium">Reembolsos</span>
+                <span className="text-xs font-semibold text-center leading-tight">Reembolsos</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="hover-scale border-border/50 hover:border-primary/30 hover:bg-primary/5">
-              <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-2 h-18 p-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Package className="h-4 w-4 text-primary" />
+            <Button asChild size="sm" variant="outline" className="hover-scale border-border/30 hover:border-primary/40 hover:bg-gradient-to-br hover:from-primary/5 hover:to-primary/10 transition-all duration-300 shadow-sm hover:shadow-md">
+              <Link to={`/store/${store.id}/costs`} className="flex flex-col items-center gap-3 h-20 p-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/30 flex items-center justify-center border border-purple-200/50">
+                  <Package className="h-5 w-5 text-purple-600" />
                 </div>
-                <span className="text-xs font-medium">Custos</span>
+                <span className="text-xs font-semibold text-center leading-tight">Custos</span>
               </Link>
             </Button>
           </div>
