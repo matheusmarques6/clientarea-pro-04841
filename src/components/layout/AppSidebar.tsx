@@ -81,7 +81,7 @@ export function AppSidebar() {
     }
     return isActive(item.url)
       ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
-      : 'text-foreground hover:bg-accent hover:text-accent-foreground';
+      : 'text-foreground hover:bg-muted/80 hover:text-foreground';
   };
 
   const renderMenuItem = (item: any) => {
