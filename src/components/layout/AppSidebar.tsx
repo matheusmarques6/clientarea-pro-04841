@@ -113,7 +113,7 @@ export function AppSidebar() {
     <Sidebar className="w-64 bg-card border-r border-border">
       <SidebarContent className="flex flex-col h-full p-4">
         {/* Logo */}
-        <div className="mb-8 px-2">
+        <div className="mb-8 px-2 flex justify-center">
           <div className="flex items-center gap-2">
             <img 
               src={convertfyLogo} 
