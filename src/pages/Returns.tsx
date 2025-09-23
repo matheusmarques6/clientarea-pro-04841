@@ -102,8 +102,8 @@ const Returns = () => {
         .single();
       
       const publicLink = data?.slug 
-        ? `${window.location.origin}/public/returns/${data.slug}`
-        : `${window.location.origin}/public/returns/${store.name.toLowerCase().replace(/\s+/g, '-')}-returns`;
+        ? `https://app.convertfy.me/public/returns/${data.slug}`
+        : `https://app.convertfy.me/public/returns/${store.name.toLowerCase().replace(/\s+/g, '-')}-returns`;
       
       navigator.clipboard.writeText(publicLink);
       toast({

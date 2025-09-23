@@ -78,9 +78,9 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
 
   const getPublicUrl = (storeName: string) => {
     if (config?.slug) {
-      return `${window.location.origin}/public/${type}/${config.slug}`;
+      return `https://app.convertfy.me/public/${type}/${config.slug}`;
     }
-    return `${window.location.origin}/public/${type}/${storeName.toLowerCase().replace(/\s+/g, '-')}`;
+    return `https://app.convertfy.me/public/${type}/${storeName.toLowerCase().replace(/\s+/g, '-')}`;
   };
 
   useEffect(() => {
