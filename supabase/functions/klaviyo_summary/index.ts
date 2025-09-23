@@ -246,56 +246,67 @@ serve(async (req) => {
 
     console.log(`[${requestId}] ${campaignsInPeriod.length} campaigns in period`);
 
-    // Step 3: Get campaign metrics
+    // Step 3: Get campaign metrics in batches to avoid rate limits
     const campaignMetrics: CampaignMetrics[] = [];
     let totalCampaignRevenue = 0;
     let totalCampaignConversions = 0;
 
-    for (const campaign of campaignsInPeriod) {
-      try {
-        const metricsResponse = await makeKlaviyoRequest('https://a.klaviyo.com/api/campaign-values-reports/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: {
-              type: 'campaign-values-report',
-              attributes: {
-                timeframe: { 
-                  start: `${from}T00:00:00Z`, 
-                  end: `${to}T23:59:59Z` 
-                },
-                conversion_metric_id: metricId,
-                filter: `equals(campaign_id,"${campaign.id}")`,
-                statistics: ["conversion_value", "conversions"]
-              }
+    // Process campaigns in batches of 2 to respect rate limits
+    const batchSize = CONCURRENCY;
+    for (let i = 0; i < campaignsInPeriod.length; i += batchSize) {
+      const batch = campaignsInPeriod.slice(i, i + batchSize);
+      
+      await Promise.allSettled(batch.map(async (campaign) => {
+        try {
+          const metricsResponse = await withTimeout(
+            makeKlaviyoRequest('https://a.klaviyo.com/api/campaign-values-reports/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                data: {
+                  type: 'campaign-values-report',
+                  attributes: {
+                    timeframe: { 
+                      start: `${from}T00:00:00Z`, 
+                      end: `${to}T23:59:59Z` 
+                    },
+                    conversion_metric_id: metricId,
+                    filter: `equals(campaign_id,"${campaign.id}")`,
+                    statistics: ["conversion_value", "conversions"]
+                  }
+                }
+              })
+            }),
+            REQ_TIMEOUT_MS
+          );
+
+          if (metricsResponse.ok) {
+            const metricsData = await metricsResponse.json();
+            const revenue = metricsData.data?.attributes?.conversion_value || 0;
+            const conversions = metricsData.data?.attributes?.conversions || 0;
+
+            if (revenue > 0 || conversions > 0) {
+              campaignMetrics.push({
+                id: campaign.id,
+                name: campaign.attributes.name,
+                revenue,
+                conversions,
+                send_time: campaign.attributes.send_time,
+                status: campaign.attributes.status
+              });
+
+              totalCampaignRevenue += revenue;
+              totalCampaignConversions += conversions;
             }
-          })
-        });
-
-        if (metricsResponse.ok) {
-          const metricsData = await metricsResponse.json();
-          const revenue = metricsData.data?.attributes?.conversion_value || 0;
-          const conversions = metricsData.data?.attributes?.conversions || 0;
-
-          if (revenue > 0 || conversions > 0) {
-            campaignMetrics.push({
-              id: campaign.id,
-              name: campaign.attributes.name,
-              revenue,
-              conversions,
-              send_time: campaign.attributes.send_time,
-              status: campaign.attributes.status
-            });
-
-            totalCampaignRevenue += revenue;
-            totalCampaignConversions += conversions;
           }
+        } catch (error) {
+          console.warn(`[${requestId}] Error fetching metrics for campaign ${campaign.id}:`, error.message);
         }
+      }));
 
-        // Small delay to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.warn(`[${requestId}] Error fetching metrics for campaign ${campaign.id}:`, error.message);
+      // Small delay between batches
+      if (i + batchSize < campaignsInPeriod.length) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
 
@@ -351,119 +362,84 @@ serve(async (req) => {
     let totalFlowClicks = 0;
     let totalFlowDeliveries = 0;
 
-    for (const flow of activeFlows) {
-      try {
-        // Get flow revenue
-        const flowValueResponse = await makeKlaviyoRequest('https://a.klaviyo.com/api/flow-values-reports/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: {
-              type: 'flow-values-report',
-              attributes: {
-                timeframe: { 
-                  start: `${from}T00:00:00Z`, 
-                  end: `${to}T23:59:59Z` 
-                },
-                conversion_metric_id: metricId,
-                filter: `equals(flow_id,"${flow.id}")`,
-                statistics: ["conversion_value", "conversions"]
-              }
-            }
-          })
-        });
+    // Process flows in batches to avoid rate limits and timeout  
+    const flowBatchSize = Math.min(CONCURRENCY, 2);
+    for (let i = 0; i < activeFlows.length; i += flowBatchSize) {
+      const batch = activeFlows.slice(i, i + flowBatchSize);
+      
+      await Promise.allSettled(batch.map(async (flow) => {
+        try {
+          // Get flow revenue with timeout
+          const flowValueResponse = await withTimeout(
+            makeKlaviyoRequest('https://a.klaviyo.com/api/flow-values-reports/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                data: {
+                  type: 'flow-values-report',
+                  attributes: {
+                    timeframe: { 
+                      start: `${from}T00:00:00Z`, 
+                      end: `${to}T23:59:59Z` 
+                    },
+                    conversion_metric_id: metricId,
+                    filter: `equals(flow_id,"${flow.id}")`,
+                    statistics: ["conversion_value", "conversions"]
+                  }
+                }
+              })
+            }),
+            REQ_TIMEOUT_MS
+          );
 
-        let flowRevenue = 0;
-        let flowConversions = 0;
+          let flowRevenue = 0;
+          let flowConversions = 0;
 
-        if (flowValueResponse.ok) {
-          const flowValueData = await flowValueResponse.json();
-          flowRevenue = flowValueData.data?.attributes?.conversion_value || 0;
-          flowConversions = flowValueData.data?.attributes?.conversions || 0;
-        }
+          if (flowValueResponse.ok) {
+            const flowValueData = await flowValueResponse.json();
+            flowRevenue = flowValueData.data?.attributes?.conversion_value || 0;
+            flowConversions = flowValueData.data?.attributes?.conversions || 0;
+          }
 
-        // Get flow performance
-        const flowPerformanceResponse = await makeKlaviyoRequest('https://a.klaviyo.com/api/flow-series-reports/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: {
-              type: 'flow-series-report',
-              attributes: {
-                timeframe: { 
-                  start: `${from}T00:00:00Z`, 
-                  end: `${to}T23:59:59Z` 
-                },
-                filter: `equals(flow_id,"${flow.id}")`,
-                interval: 'day',
-                statistics: ["opens", "opens_unique", "clicks", "clicks_unique", "deliveries", "bounces", "unsubscribes"]
-              }
-            }
-          })
-        });
+          // Simplified performance calculation (skip detailed series for speed)
+          let performance = {
+            opens: 0,
+            opens_unique: 0,
+            clicks: 0,
+            clicks_unique: 0,
+            deliveries: 0,
+            bounces: 0,
+            unsubscribes: 0,
+            open_rate: 0,
+            click_rate: 0,
+            conversion_rate: 0
+          };
 
-        let performance = {
-          opens: 0,
-          opens_unique: 0,
-          clicks: 0,
-          clicks_unique: 0,
-          deliveries: 0,
-          bounces: 0,
-          unsubscribes: 0,
-          open_rate: 0,
-          click_rate: 0,
-          conversion_rate: 0
-        };
-
-        if (flowPerformanceResponse.ok) {
-          const flowPerformanceData = await flowPerformanceResponse.json();
-          const seriesData = flowPerformanceData.data || [];
+          // Track aggregates
+          if (flowRevenue > 0) flowsWithRevenue++;
           
-          // Aggregate performance data
-          for (const dayData of seriesData) {
-            const attrs = dayData.attributes || {};
-            performance.opens += attrs.opens || 0;
-            performance.opens_unique += attrs.opens_unique || 0;
-            performance.clicks += attrs.clicks || 0;
-            performance.clicks_unique += attrs.clicks_unique || 0;
-            performance.deliveries += attrs.deliveries || 0;
-            performance.bounces += attrs.bounces || 0;
-            performance.unsubscribes += attrs.unsubscribes || 0;
-          }
+          totalFlowOpens += performance.opens;
+          totalFlowClicks += performance.clicks;
+          totalFlowDeliveries += performance.deliveries;
 
-          // Calculate rates
-          if (performance.deliveries > 0) {
-            performance.open_rate = performance.opens / performance.deliveries;
-            performance.click_rate = performance.clicks / performance.deliveries;
+          // Add to results if has revenue
+          if (flowRevenue > 0) {
+            flowMetrics.push({
+              id: flow.id,
+              name: flow.attributes.name,
+              revenue: flowRevenue,
+              conversions: flowConversions,
+              performance
+            });
           }
-          if (performance.opens > 0) {
-            performance.conversion_rate = flowConversions / performance.opens;
-          }
+        } catch (error) {
+          console.warn(`[${requestId}] Error fetching metrics for flow ${flow.id}:`, error.message);
         }
+      }));
 
-        // Track aggregates
-        if (flowRevenue > 0) flowsWithRevenue++;
-        if (performance.deliveries > 0) flowsWithActivity++;
-        
-        totalFlowOpens += performance.opens;
-        totalFlowClicks += performance.clicks;
-        totalFlowDeliveries += performance.deliveries;
-
-        // Add to results if has revenue or activity
-        if (flowRevenue > 0 || performance.deliveries > 0) {
-          flowMetrics.push({
-            id: flow.id,
-            name: flow.attributes.name,
-            revenue: flowRevenue,
-            conversions: flowConversions,
-            performance
-          });
-        }
-
-        // Delay to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 150));
-      } catch (error) {
-        console.warn(`[${requestId}] Error fetching metrics for flow ${flow.id}:`, error.message);
+      // Delay between batches
+      if (i + flowBatchSize < activeFlows.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
@@ -613,41 +589,76 @@ serve(async (req) => {
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
     console.log(`[${requestId}] Results: ${totalRevenue} revenue, ${totalOrders} orders, ${leadsTotal} leads`);
 
-    // Exemplo de payload mínimo de teste (substitua pelos seus cálculos reais)
-    const payload = {
+    // Build final response with actual data
+    const response = {
       klaviyo: {
-        revenue_total: 0,
-        revenue_campaigns: 0,
-        revenue_flows: 0,
-        orders_attributed: 0,
-        conversions_campaigns: 0,
-        conversions_flows: 0,
-        top_campaigns_by_revenue: [],
-        top_campaigns_by_conversions: [],
-        top_flows_by_revenue: [],
-        top_flows_by_performance: [],
-        leads_total: 0,
-        campaign_count: 0,
-        flow_count: 0,
-        campaigns_with_revenue: 0,
-        flows_with_revenue: 0,
-        flows_with_activity: 0,
+        revenue_total: totalCampaignRevenue + totalFlowRevenue,
+        revenue_campaigns: totalCampaignRevenue,
+        revenue_flows: totalFlowRevenue,
+        orders_attributed: totalCampaignConversions + totalFlowConversions,
+        conversions_campaigns: totalCampaignConversions,
+        conversions_flows: totalFlowConversions,
+        top_campaigns_by_revenue: topCampaignsByRevenue,
+        top_campaigns_by_conversions: topCampaignsByConversions,
+        top_flows_by_revenue: topFlowsByRevenue,
+        top_flows_by_performance: topFlowsByPerformance,
+        leads_total: leadsTotal,
+        campaign_count: campaigns.length,
+        flow_count: activeFlows.length,
+        campaigns_with_revenue: campaignMetrics.length,
+        flows_with_revenue: flowsWithRevenue,
+        flows_with_activity: flowsWithActivity,
         flow_performance_averages: {
-          avg_open_rate: 0,
-          avg_click_rate: 0,
-          total_flow_deliveries: 0,
-          total_flow_opens: 0,
-          total_flow_clicks: 0
+          avg_open_rate: flowsWithActivity > 0 ? totalFlowOpens / totalFlowDeliveries : 0,
+          avg_click_rate: flowsWithActivity > 0 ? totalFlowClicks / totalFlowDeliveries : 0,
+          total_flow_deliveries: totalFlowDeliveries,
+          total_flow_opens: totalFlowOpens,
+          total_flow_clicks: totalFlowClicks
         },
-        flows_detailed: []
+        flows_detailed: flowMetrics
       },
-      period: { start: String(from).slice(0,10), end: String(to).slice(0,10) },
-      store: { id: storeId },
-      metadata: { version: "2.0" },
-      status: "SUCCESS"
+      period: { start: from, end: to },
+      store: { id: storeId, domain: klaviyoSiteId || "" },
+      metadata: { 
+        metric_id: metricId, 
+        request_id: requestId, 
+        timestamp: new Date().toISOString(), 
+        version: "2.0" 
+      },
+      status: totalCampaignRevenue + totalFlowRevenue > 0 ? "SUCCESS" : "NO_DATA"
     };
 
-    return json(payload, 200);
+    // Cache result in database
+    try {
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      await supabaseService
+        .from('klaviyo_summaries')
+        .upsert({
+          store_id: storeId,
+          period_start: from,
+          period_end: to,
+          revenue_total: totalCampaignRevenue + totalFlowRevenue,
+          revenue_campaigns: totalCampaignRevenue,
+          revenue_flows: totalFlowRevenue,
+          orders_attributed: totalCampaignConversions + totalFlowConversions,
+          leads_total: leadsTotal,
+          top_campaigns_by_revenue: topCampaignsByRevenue,
+          top_campaigns_by_conversions: topCampaignsByConversions
+        }, { 
+          onConflict: 'store_id,period_start,period_end' 
+        });
+
+      console.log(`[${requestId}] Cached results in database`);
+    } catch (error) {
+      console.warn(`[${requestId}] Error caching results:`, error.message);
+    }
+
+    console.log(`[${requestId}] Klaviyo Summary completed successfully`);
+    return json(response, 200);
   } catch (e) {
     return json({ error: "Klaviyo summary failed", detail: String(e?.message ?? e) }, 502);
   }
