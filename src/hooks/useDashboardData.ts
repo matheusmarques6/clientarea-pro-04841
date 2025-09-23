@@ -221,25 +221,44 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // Tentar buscar via webhook n8n primeiro
+      // Usar a nova Edge Function klaviyo_summary
       try {
-        const { getKlaviyoSummary } = await import('@/api/klaviyo');
+        const fromDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        const toDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
         
-        const fromISO = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0)).toISOString();
-        const toISO = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59)).toISOString();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
         
-        const data = await getKlaviyoSummary(storeId, fromISO, toISO);
-
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+        
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://bsotblbtrshqfiqyzisy.supabase.co'}/functions/v1/klaviyo_summary`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ storeId, from: fromDate, to: toDate })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
         if (data?.klaviyo) {
           setKlaviyoData(data.klaviyo);
           setTopCampaigns(Array.isArray(data.klaviyo.top_campaigns_by_revenue) ? data.klaviyo.top_campaigns_by_revenue : []);
-          console.log('Using real Klaviyo data from n8n webhook');
+          console.log('Using real Klaviyo data from Edge Function');
           return;
         }
         
-        console.log('Klaviyo webhook: no data returned');
-      } catch (webhookError) {
-        console.log('Klaviyo webhook failed:', webhookError);
+        console.log('Klaviyo Edge Function: no data returned');
+      } catch (functionError) {
+        console.log('Klaviyo Edge Function failed:', functionError);
       }
 
       // Fallback: buscar do cache no banco
