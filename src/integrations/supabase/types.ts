@@ -1194,6 +1194,34 @@ export type Database = {
           },
         ]
       }
+      vw_channel_email_summary: {
+        Row: {
+          currency: string | null
+          email_revenue: number | null
+          period_end: string | null
+          period_start: string | null
+          store_id: string | null
+        }
+        Relationships: []
+      }
+      vw_store_orders_summary: {
+        Row: {
+          currency: string | null
+          day: string | null
+          order_count: number | null
+          store_id: string | null
+          total_revenue: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       is_admin: {
@@ -1203,6 +1231,24 @@ export type Database = {
       reconcile_user_profile: {
         Args: { _auth_id: string; _email: string; _name: string }
         Returns: undefined
+      }
+      rpc_get_revenue_series: {
+        Args: {
+          _end_date: string
+          _interval?: string
+          _start_date: string
+          _store_id: string
+        }
+        Returns: {
+          email_revenue: number
+          order_count: number
+          period: string
+          total_revenue: number
+        }[]
+      }
+      rpc_get_store_kpis: {
+        Args: { _end_date: string; _start_date: string; _store_id: string }
+        Returns: Json
       }
     }
     Enums: {
