@@ -148,7 +148,6 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  // Sincronizar dados
   const syncData = async () => {
     setIsSyncing(true);
     
@@ -172,13 +171,23 @@ export const useDashboardData = (storeId: string, period: string) => {
       } else {
         throw new Error(data?.error || 'Erro na sincronização');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync error:', error);
-      toast({
-        title: "Erro na sincronização",
-        description: error.message || "Não foi possível sincronizar os dados",
-        variant: "destructive",
-      });
+      
+      // Se for erro de função não encontrada, tentar alternativa
+      if (error.message?.includes('function not found') || error.message?.includes('not found')) {
+        toast({
+          title: "Funcionalidade em desenvolvimento",
+          description: "A sincronização automática ainda não está disponível. Use dados mock por enquanto.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro na sincronização",
+          description: error.message || "Não foi possível sincronizar os dados",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSyncing(false);
     }
