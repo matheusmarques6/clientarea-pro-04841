@@ -946,7 +946,11 @@ export type Database = {
           currency: string | null
           customer_id: string | null
           id: string
+          klaviyo_private_key: string | null
+          klaviyo_site_id: string | null
           name: string
+          shopify_access_token: string | null
+          shopify_domain: string | null
           status: string | null
         }
         Insert: {
@@ -956,7 +960,11 @@ export type Database = {
           currency?: string | null
           customer_id?: string | null
           id?: string
+          klaviyo_private_key?: string | null
+          klaviyo_site_id?: string | null
           name: string
+          shopify_access_token?: string | null
+          shopify_domain?: string | null
           status?: string | null
         }
         Update: {
@@ -966,7 +974,11 @@ export type Database = {
           currency?: string | null
           customer_id?: string | null
           id?: string
+          klaviyo_private_key?: string | null
+          klaviyo_site_id?: string | null
           name?: string
+          shopify_access_token?: string | null
+          shopify_domain?: string | null
           status?: string | null
         }
         Relationships: [

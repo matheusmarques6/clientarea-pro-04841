@@ -184,7 +184,14 @@ serve(async (req) => {
       )
     }
 
-    const webhookData = await webhookResponse.json()
+    const responseText = await webhookResponse.text()
+    let webhookData: any = null
+    try {
+      webhookData = responseText ? JSON.parse(responseText) : null
+    } catch (e) {
+      console.warn('Webhook returned non-JSON body; using raw text')
+      webhookData = { raw: responseText }
+    }
     console.log('Webhook response:', webhookData)
 
     // Se o webhook retornou dados, salvar no cache para fallback
