@@ -80,36 +80,28 @@ export const useDashboardData = (storeId: string) => {
     }
   };
 
-  // Sincronizar dados manualmente
+  // Sincronizar dados manualmente (versão simplificada)
   const syncData = async (startDate: string, endDate: string) => {
     try {
       setSyncing(true);
 
-      const { data, error } = await supabase.functions.invoke('dashboard-sync', {
-        body: {
-          storeId,
-          from: startDate,
-          to: endDate
-        }
+      toast({
+        title: "Sincronização iniciada",
+        description: "Atualizando dados do dashboard...",
       });
 
-      if (error) {
-        console.error('Error syncing data:', error);
-        throw error;
-      }
+      // Recarregar dados diretamente
+      await Promise.all([
+        fetchKPIs(startDate, endDate),
+        fetchRevenueSeries(startDate, endDate)
+      ]);
 
       toast({
         title: "Sincronização concluída",
         description: "Os dados foram atualizados com sucesso",
       });
 
-      // Recarregar dados após sincronização
-      await Promise.all([
-        fetchKPIs(startDate, endDate),
-        fetchRevenueSeries(startDate, endDate)
-      ]);
-
-      return data;
+      return { success: true };
     } catch (err: any) {
       const errorMessage = err.message || 'Erro ao sincronizar dados';
       toast({
