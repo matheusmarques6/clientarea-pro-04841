@@ -116,28 +116,22 @@ serve(async (req) => {
       )
     }
 
-    // Verificar se as chaves necessárias estão disponíveis
-    if (!storeConfig.klaviyo_private_key || !storeConfig.klaviyo_site_id) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Klaviyo credentials not configured for this store',
-          details: 'Please configure Klaviyo API keys in store settings'
-        }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    console.log('Store config encontrada:', {
+      hasShopifyDomain: !!storeConfig.shopify_domain,
+      hasShopifyToken: !!storeConfig.shopify_access_token,
+      hasKlaviyoKey: !!storeConfig.klaviyo_private_key,
+      hasKlaviyoSiteId: !!storeConfig.klaviyo_site_id
+    })
 
+    // Preparar o body exatamente como especificado
     const requestBody = {
       storeId,
       from,
       to,
-      shopify_domain: storeConfig.shopify_domain || '',
-      shopify_api_key: storeConfig.shopify_access_token || '',
-      klaviyo_private_key: storeConfig.klaviyo_private_key,
-      klaviyo_site_id: storeConfig.klaviyo_site_id
+      shopify_domain: storeConfig.shopify_domain || "minhaloja.myshopify.com",
+      shopify_api_key: storeConfig.shopify_access_token || "shpat_xxx",
+      klaviyo_private_key: storeConfig.klaviyo_private_key || "pk_xxx",
+      klaviyo_site_id: storeConfig.klaviyo_site_id || "AbCdEf"
     }
     
     console.log(`Chamando webhook n8n: ${webhookUrl}`)
