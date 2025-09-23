@@ -153,10 +153,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     
     try {
       const { data, error } = await supabase.functions.invoke('dashboard-sync', {
-        body: JSON.stringify({ storeId }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        body: { storeId },
       });
 
       if (error) {
