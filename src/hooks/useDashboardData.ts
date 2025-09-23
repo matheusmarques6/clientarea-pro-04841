@@ -28,6 +28,8 @@ export const useDashboardData = (storeId: string, period: string) => {
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [channelRevenue, setChannelRevenue] = useState<ChannelRevenue[]>([]);
+  const [klaviyoData, setKlaviyoData] = useState<any>(null);
+  const [topCampaigns, setTopCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
@@ -131,8 +133,8 @@ export const useDashboardData = (storeId: string, period: string) => {
 
       setKpis({
         total_revenue: Number(totalRevenue),
-        email_revenue: Number(emailRevenue),
-        convertfy_revenue: Number(emailRevenue), // Por enquanto só email
+        email_revenue: klaviyoData?.revenue_total || Number(emailRevenue),
+        convertfy_revenue: klaviyoData?.revenue_total || Number(emailRevenue),
         order_count: orderCount,
         customers_distinct: Number(customersDistinct),
         customers_returning: Number(customersReturning),
@@ -214,6 +216,45 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
+  // Buscar dados do Klaviyo
+  const fetchKlaviyoData = async () => {
+    try {
+      const { startDate, endDate } = getPeriodDates(period);
+      
+      // Buscar configuração do Klaviyo
+      const { data: integrations } = await supabase
+        .from('integrations')
+        .select('key_secret_encrypted')
+        .eq('store_id', storeId)
+        .eq('provider', 'klaviyo')
+        .maybeSingle();
+
+      if (!integrations?.key_secret_encrypted) {
+        console.log('Klaviyo integration not found');
+        return;
+      }
+
+      // Fazer chamada para o proxy do Klaviyo
+      const { data, error } = await supabase.functions.invoke('klaviyo_proxy', {
+        method: 'POST',
+        body: {
+          privateKey: integrations.key_secret_encrypted,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          storeId: storeId,
+          storeName: 'Store Name' // TODO: buscar nome real da loja
+        }
+      });
+
+      if (!error && data?.klaviyo_v2) {
+        setKlaviyoData(data.klaviyo_v2);
+        setTopCampaigns(data.klaviyo_v2.top_campaigns_by_revenue || []);
+      }
+    } catch (error) {
+      console.error('Error fetching Klaviyo data:', error);
+    }
+  };
+
   const syncData = async () => {
     setIsSyncing(true);
     
@@ -262,7 +303,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
+      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue(), fetchKlaviyoData()]);
     } finally {
       setIsLoading(false);
     }
@@ -279,6 +320,8 @@ export const useDashboardData = (storeId: string, period: string) => {
     kpis,
     chartData,
     channelRevenue,
+    klaviyoData,
+    topCampaigns,
     isLoading,
     isSyncing,
     syncData,

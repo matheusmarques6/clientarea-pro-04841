@@ -7,13 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
+import { LeadsMetrics } from '@/components/dashboard/LeadsMetrics';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
   
   const { store, isLoading: storeLoading } = useStore(id!);
-  const { kpis, chartData, channelRevenue, isLoading: dataLoading, isSyncing, syncData, refetch } = useDashboardData(id!, period);
+  const { 
+    kpis, 
+    chartData, 
+    channelRevenue, 
+    klaviyoData, 
+    topCampaigns, 
+    isLoading: dataLoading, 
+    isSyncing, 
+    syncData, 
+    refetch 
+  } = useDashboardData(id!, period);
 
   if (storeLoading || dataLoading) {
     return (
@@ -169,32 +181,59 @@ const StoreDashboard = () => {
         </Card>
       </div>
 
-      {/* Convertfy Impact Card */}
-      <Card className="glass-card bg-gradient-premium shadow-premium animate-hover relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5"></div>
-        <CardContent className="p-6 sm:p-8 relative">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="text-center lg:text-left">
-              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                Impacto da Convertfy no seu Faturamento
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Veja quanto a Convertfy representa do seu faturamento total no período
-              </p>
-            </div>
-            <div className="text-center lg:text-right">
-              <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
-                {kpis?.total_revenue && kpis.total_revenue > 0 
-                  ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
-                  : '0.0%'}
+      {/* Enhanced Convertfy Impact Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Impact Card */}
+        <Card className="glass-card bg-gradient-premium shadow-premium animate-hover relative overflow-hidden lg:col-span-2">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5"></div>
+          <CardContent className="p-6 sm:p-8 relative">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              <div className="text-center lg:text-left">
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                  Impacto da Convertfy no seu Faturamento
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Veja quanto a Convertfy representa do seu faturamento total no período
+                </p>
+                {klaviyoData && (
+                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="font-medium text-blue-600">Campanhas</div>
+                      <div className="text-lg font-semibold">{formatCurrency(klaviyoData.revenue_campaigns || 0)}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-purple-600">Flows</div>
+                      <div className="text-lg font-semibold">{formatCurrency(klaviyoData.revenue_flows || 0)}</div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {formatCurrency(kpis?.convertfy_revenue || 0)} de {formatCurrency(kpis?.total_revenue || 0)}
+              <div className="text-center lg:text-right">
+                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
+                  {kpis?.total_revenue && kpis.total_revenue > 0 
+                    ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
+                    : '0.0%'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {formatCurrency(kpis?.convertfy_revenue || 0)} de {formatCurrency(kpis?.total_revenue || 0)}
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Leads Metrics */}
+        {klaviyoData && (
+          <div className="space-y-4">
+            <LeadsMetrics klaviyoData={klaviyoData} />
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+
+      {/* Top Campaigns */}
+      {topCampaigns.length > 0 && (
+        <TopCampaigns campaigns={topCampaigns} currency={kpis?.currency} />
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
