@@ -589,7 +589,7 @@ serve(async (req) => {
     console.log(`[${requestId}] Results: ${totalRevenue} revenue, ${totalOrders} orders, ${leadsTotal} leads`);
 
     // Build final response with actual data
-    const response = {
+    const finalResponse = {
       klaviyo: {
         revenue_total: totalCampaignRevenue + totalFlowRevenue,
         revenue_campaigns: totalCampaignRevenue,
@@ -657,7 +657,7 @@ serve(async (req) => {
     }
 
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
-    return json(response, 200);
+    return json(finalResponse, 200);
   } catch (e) {
     return json({ error: "Klaviyo summary failed", detail: String(e?.message ?? e) }, 502);
   }

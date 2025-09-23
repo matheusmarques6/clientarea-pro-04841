@@ -105,7 +105,6 @@ export const useDashboardData = (storeId: string, period: string) => {
         body,
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
       }) as Promise<EdgeFunctionResult<T>>,
       timeoutMs
@@ -129,7 +128,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     setKpis({
       ...kpiBaseRef.current,
       email_revenue: hasKlaviyoRevenue ? klaviyoRevenue : kpiBaseRef.current.email_revenue,
-      convertfy_revenue: hasKlaviyoRevenue ? klaviyoRevenue : kpiBaseRef.current.convertfy_revenue,
+      convertfy_revenue: kpiBaseRef.current.convertfy_revenue, // Preservar valor original do Convertfy
     });
   };
 
