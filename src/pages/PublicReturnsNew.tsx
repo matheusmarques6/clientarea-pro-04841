@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Package, Upload, Check, AlertCircle, FileText, ShieldCheck, Clock, CheckCircle, XCircle, ArrowRight, Trash2 } from 'lucide-react';
+import { Package, Upload, Check, AlertCircle, FileText, Clock, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { getTranslation } from '@/lib/translations';
 
 interface Store {
   id: string;
@@ -33,8 +32,6 @@ const PublicReturnsNew = () => {
   const [loading, setLoading] = useState(true);
   const [validationResult, setValidationResult] = useState<any>(null);
   
-  const [language, setLanguage] = useState('pt');
-  
   const [formData, setFormData] = useState({
     pedido: '',
     email: '',
@@ -45,15 +42,12 @@ const PublicReturnsNew = () => {
     anexos: [] as File[]
   });
 
-  const t = (key: string): any => getTranslation('returns', language, key);
-
   // Fetch store and config by slug
   useEffect(() => {
     const fetchStoreData = async () => {
       try {
         setLoading(true);
         
-        // Get public link config by slug
         const { data: linkData, error: linkError } = await supabase
           .from('public_links')
           .select(`
@@ -76,9 +70,6 @@ const PublicReturnsNew = () => {
           auto_rules: linkData.auto_rules as any,
           messages: linkData.messages as any
         });
-        
-        // Set language from config
-        setLanguage((linkData.auto_rules as any)?.language || 'pt');
       } catch (err: any) {
         console.error('Error fetching store data:', err);
         toast({
@@ -121,7 +112,6 @@ const PublicReturnsNew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica
     if (!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo) {
       toast({
         title: "Campos obrigatórios",
@@ -133,16 +123,11 @@ const PublicReturnsNew = () => {
 
     setStep('validation');
 
-    // Simular processamento
     setTimeout(async () => {
       try {
-        // Verificar elegibilidade baseada nas regras da loja
         const rules = config?.auto_rules || {};
-        const isEligible = true; // Simplificado para demo
-        
         const protocol = `RET-${Date.now().toString().slice(-6)}`;
         
-        // Inserir solicitação no banco
         const { error } = await supabase
           .from('returns')
           .insert({
@@ -163,13 +148,12 @@ const PublicReturnsNew = () => {
         setValidationResult({
           approved: rules.aprovarAuto,
           protocol,
-          message: config?.messages?.[language] || 'Sua solicitação foi recebida e está sendo analisada.',
+          message: config?.messages?.pt || 'Sua solicitação foi recebida e está sendo analisada.',
           rules
         });
         
         setStep('success');
         
-        // Show success toast
         toast({
           title: "Solicitação enviada!",
           description: `Protocolo ${protocol} gerado com sucesso`,
@@ -200,39 +184,41 @@ const PublicReturnsNew = () => {
     setValidationResult(null);
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-background via-secondary/20 to-accent/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass-card">
-          <CardContent className="p-8 text-center">
-            <div className="relative mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-secondary/30 border-t-primary mx-auto"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border bg-card">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-muted border-t-primary mx-auto"></div>
+              <Package className="h-5 w-5 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">Carregando Portal</h3>
-            <p className="text-muted-foreground">
-              Preparando seu portal de trocas e devoluções...
-            </p>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Carregando</h3>
+              <p className="text-sm text-muted-foreground">Preparando seu portal...</p>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Error state
   if (!store || !config) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-background via-destructive/10 to-destructive/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass-card">
-          <CardContent className="p-8 text-center">
-            <div className="bg-destructive/10 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-6">
-              <XCircle className="h-8 w-8 text-destructive" />
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border bg-card">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="rounded-full h-12 w-12 bg-destructive/10 flex items-center justify-center mx-auto">
+              <XCircle className="h-6 w-6 text-destructive" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Portal Não Encontrado</h2>
-            <p className="text-muted-foreground">
-              O link pode estar inativo ou não existir.
-            </p>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Portal Não Encontrado</h2>
+              <p className="text-sm text-muted-foreground">
+                O link pode estar inativo ou não existir.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -242,35 +228,18 @@ const PublicReturnsNew = () => {
   // Validation step
   if (step === 'validation') {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-background via-primary/10 to-primary/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg glass-card">
-          <CardContent className="p-8 text-center">
-            <div className="relative mb-6">
-              <div className="animate-pulse rounded-full h-20 w-20 bg-gradient-to-r from-primary to-accent mx-auto flex items-center justify-center">
-                <CheckCircle className="h-10 w-10 text-primary-foreground" />
-              </div>
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg border-border bg-card">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-2 border-muted border-t-primary mx-auto"></div>
+              <CheckCircle className="h-6 w-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">Validando Solicitação</h3>
-            <p className="text-muted-foreground mb-6">
-              Verificando elegibilidade e processando dados...
-            </p>
-            
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Verificando pedido</span>
-                <CheckCircle className="h-4 w-4 text-success" />
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Validando dados</span>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary/30 border-t-primary"></div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Gerando protocolo</span>
-                <Clock className="h-4 w-4" />
-              </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Processando Solicitação</h3>
+              <p className="text-muted-foreground">Validando dados e gerando protocolo...</p>
             </div>
-            
-            <Progress value={75} className="w-full h-2" />
+            <Progress value={75} className="w-full" />
           </CardContent>
         </Card>
       </div>
@@ -282,68 +251,37 @@ const PublicReturnsNew = () => {
     const isApproved = validationResult?.approved;
     
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-background via-success/10 to-success/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl glass-card">
-          <CardContent className="p-8 text-center">
-            <div className={`mx-auto rounded-full h-20 w-20 flex items-center justify-center mb-6 ${
-              isApproved ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-xl border-border bg-card">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className={`mx-auto rounded-full h-16 w-16 flex items-center justify-center ${
+              isApproved ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
             }`}>
-              {isApproved ? <Check className="h-10 w-10" /> : <Clock className="h-10 w-10" />}
+              {isApproved ? <Check className="h-8 w-8" /> : <Clock className="h-8 w-8" />}
             </div>
             
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              {isApproved ? 'Solicitação Aprovada!' : 'Solicitação Recebida!'}
-            </h2>
-            <p className="text-muted-foreground text-lg mb-8">
-              {validationResult?.message}
-            </p>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                {isApproved ? 'Solicitação Aprovada!' : 'Solicitação Recebida!'}
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                {validationResult?.message}
+              </p>
+            </div>
 
-            <div className="bg-primary/10 rounded-xl p-6 border border-primary/20 mb-8">
-              <p className="text-sm font-medium text-foreground mb-2">Protocolo da solicitação:</p>
-              <p className="text-4xl font-mono font-bold text-primary mb-2">
+            <div className="bg-muted/50 rounded-lg p-4 border border-border">
+              <p className="text-sm font-medium text-foreground mb-1">Protocolo:</p>
+              <p className="text-2xl font-mono font-bold text-primary">
                 {validationResult?.protocol}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Guarde este número para acompanhar o status da sua solicitação
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div className="flex flex-col items-center gap-3 p-4 bg-primary/10 rounded-xl border border-primary/20">
-                <FileText className="h-8 w-8 text-primary" />
-                <div className="text-center">
-                  <p className="font-semibold text-foreground">Protocolo Gerado</p>
-                  <p className="text-xs text-muted-foreground">Identificação única</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-3 p-4 bg-success/10 rounded-xl border border-success/20">
-                <ShieldCheck className="h-8 w-8 text-success" />
-                <div className="text-center">
-                  <p className="font-semibold text-foreground">Dados Verificados</p>
-                  <p className="text-xs text-muted-foreground">Informações validadas</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-3 p-4 bg-accent/10 rounded-xl border border-accent/20">
-                <Clock className="h-8 w-8 text-accent" />
-                <div className="text-center">
-                  <p className="font-semibold text-foreground">Email Enviado</p>
-                  <p className="text-xs text-muted-foreground">Confirmação por email</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button onClick={resetForm} variant="outline" className="flex-1">
                 Nova Solicitação
               </Button>
-              <Button className="flex-1" onClick={() => {
-                const protocol = validationResult?.protocol;
-                const subject = `Protocolo ${protocol} - Solicitação de ${formData.tipo}`;
-                const body = `Olá,\n\nGostaria de acompanhar o status da minha solicitação.\n\nProtocolo: ${protocol}\nTipo: ${formData.tipo}\nPedido: ${formData.pedido}\n\nObrigado!`;
-                const mailtoLink = `mailto:suporte@${store.name.toLowerCase().replace(/\s+/g, '')}.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                window.location.href = mailtoLink;
-              }}>
-                Entrar em Contato
+              <Button className="flex-1">
+                Acompanhar Status
               </Button>
             </div>
           </CardContent>
@@ -352,187 +290,180 @@ const PublicReturnsNew = () => {
     );
   }
 
-  // Form step - Main form with clean professional design
+  // Main form - Clean and centered design
   return (
-    <div className="min-h-screen w-full bg-gradient-premium flex items-center justify-center p-4">
-      <div className="w-full max-w-[35%] min-w-[400px] max-w-2xl">
-        <Card className="glass-card">
-          <CardHeader className="text-center pb-6">
-            {config?.auto_rules?.theme?.logoUrl && (
-              <div className="mb-6">
-                <img 
-                  src={config.auto_rules.theme.logoUrl} 
-                  alt={store.name} 
-                  className="h-16 w-auto mx-auto object-contain" 
+    <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-border bg-card shadow-lg">
+        <CardHeader className="text-center space-y-2 pb-6">
+          {config?.auto_rules?.theme?.logoUrl && (
+            <div className="mb-4">
+              <img 
+                src={config.auto_rules.theme.logoUrl} 
+                alt={store.name} 
+                className="h-12 w-auto mx-auto object-contain" 
+              />
+            </div>
+          )}
+          <CardTitle className="text-xl font-bold text-foreground">
+            {store.name}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Portal de Trocas & Devoluções
+          </p>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pedido" className="text-sm font-medium">
+                Número do Pedido *
+              </Label>
+              <Input
+                id="pedido"
+                type="text"
+                value={formData.pedido}
+                onChange={(e) => setFormData({...formData, pedido: e.target.value})}
+                placeholder="Ex: #12345"
+                className="w-full"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="seu@email.com"
+                className="w-full"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nome" className="text-sm font-medium">
+                Nome Completo *
+              </Label>
+              <Input
+                id="nome"
+                type="text"
+                value={formData.nome}
+                onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                placeholder="Seu nome completo"
+                className="w-full"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tipo" className="text-sm font-medium">
+                Tipo de Solicitação *
+              </Label>
+              <Select value={formData.tipo} onValueChange={(value) => setFormData({...formData, tipo: value})}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="troca">Troca</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                  <SelectItem value="defeito">Produto com Defeito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="motivo" className="text-sm font-medium">
+                Motivo *
+              </Label>
+              <Select value={formData.motivo} onValueChange={(value) => setFormData({...formData, motivo: value})}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tamanho_incorreto">Tamanho Incorreto</SelectItem>
+                  <SelectItem value="nao_gostei">Não Gostei</SelectItem>
+                  <SelectItem value="defeito_fabricacao">Defeito de Fabricação</SelectItem>
+                  <SelectItem value="produto_diferente">Produto Diferente</SelectItem>
+                  <SelectItem value="danificado_transporte">Danificado no Transporte</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observacoes" className="text-sm font-medium">
+                Observações Adicionais
+              </Label>
+              <Textarea
+                id="observacoes"
+                value={formData.observacoes}
+                onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                placeholder="Descreva detalhes sobre sua solicitação..."
+                className="w-full min-h-[80px] resize-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Anexos (Opcional)
+              </Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground mb-2">
+                  Clique para selecionar arquivos
+                </p>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                  accept="image/*,.pdf,.doc,.docx"
                 />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                >
+                  Selecionar
+                </Button>
               </div>
-            )}
-            <CardTitle className="text-2xl font-bold text-foreground">
-              {store.name}
-            </CardTitle>
-            <p className="text-muted-foreground">Portal de Trocas & Devoluções</p>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {formData.anexos.length > 0 && (
                 <div className="space-y-2">
-                  <Label htmlFor="pedido" className="text-sm font-medium text-foreground">
-                    Número do Pedido *
-                  </Label>
-                  <Input
-                    id="pedido"
-                    type="text"
-                    value={formData.pedido}
-                    onChange={(e) => setFormData({...formData, pedido: e.target.value})}
-                    placeholder="Ex: #12345"
-                    className="form-input"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                    Email *
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="seu@email.com"
-                    className="form-input"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nome" className="text-sm font-medium text-foreground">
-                  Nome Completo *
-                </Label>
-                <Input
-                  id="nome"
-                  type="text"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                  placeholder="Seu nome completo"
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tipo" className="text-sm font-medium text-foreground">
-                    Tipo de Solicitação *
-                  </Label>
-                  <Select value={formData.tipo} onValueChange={(value) => setFormData({...formData, tipo: value})}>
-                    <SelectTrigger className="form-input">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="troca">Troca</SelectItem>
-                      <SelectItem value="devolucao">Devolução</SelectItem>
-                      <SelectItem value="defeito">Produto com Defeito</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="motivo" className="text-sm font-medium text-foreground">
-                    Motivo *
-                  </Label>
-                  <Select value={formData.motivo} onValueChange={(value) => setFormData({...formData, motivo: value})}>
-                    <SelectTrigger className="form-input">
-                      <SelectValue placeholder="Selecione o motivo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tamanho_incorreto">Tamanho Incorreto</SelectItem>
-                      <SelectItem value="nao_gostei">Não Gostei</SelectItem>
-                      <SelectItem value="defeito_fabricacao">Defeito de Fabricação</SelectItem>
-                      <SelectItem value="produto_diferente">Produto Diferente</SelectItem>
-                      <SelectItem value="danificado_transporte">Danificado no Transporte</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="observacoes" className="text-sm font-medium text-foreground">
-                  Observações Adicionais
-                </Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-                  placeholder="Descreva detalhes adicionais sobre sua solicitação..."
-                  className="form-input min-h-[100px] resize-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">
-                  Anexos (Opcional)
-                </Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Arraste arquivos aqui ou clique para selecionar
-                  </p>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="file-upload"
-                    accept="image/*,.pdf,.doc,.docx"
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                  >
-                    Selecionar Arquivos
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Máximo 5 arquivos. Formatos: JPG, PNG, PDF, DOC
-                  </p>
-                </div>
-                
-                {formData.anexos.length > 0 && (
-                  <div className="space-y-2">
-                    {formData.anexos.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-foreground truncate">{file.name}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {(file.size / 1024 / 1024).toFixed(1)}MB
-                          </Badge>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  {formData.anexos.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm truncate">{file.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {(file.size / 1024 / 1024).toFixed(1)}MB
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-              <Button type="submit" className="w-full btn-primary h-12 text-base font-medium">
-                Enviar Solicitação
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            <Button type="submit" className="w-full h-11 text-base font-medium">
+              Enviar Solicitação
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
