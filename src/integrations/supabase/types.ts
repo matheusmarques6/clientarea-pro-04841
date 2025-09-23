@@ -125,6 +125,48 @@ export type Database = {
           },
         ]
       }
+      channel_revenue: {
+        Row: {
+          channel: string
+          created_at: string
+          currency: string | null
+          id: string
+          period_end: string
+          period_start: string
+          raw: Json | null
+          revenue: number
+          source: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          raw?: Json | null
+          revenue?: number
+          source: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          raw?: Json | null
+          revenue?: number
+          source?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           created_at: string | null
@@ -170,6 +212,45 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      dashboard_cache: {
+        Row: {
+          created_at: string
+          email_revenue: number
+          id: string
+          order_count: number
+          period_end: string
+          period_start: string
+          sms_revenue: number
+          store_id: string
+          total_order_revenue: number
+          whatsapp_revenue: number
+        }
+        Insert: {
+          created_at?: string
+          email_revenue?: number
+          id?: string
+          order_count?: number
+          period_end: string
+          period_start: string
+          sms_revenue?: number
+          store_id: string
+          total_order_revenue?: number
+          whatsapp_revenue?: number
+        }
+        Update: {
+          created_at?: string
+          email_revenue?: number
+          id?: string
+          order_count?: number
+          period_end?: string
+          period_start?: string
+          sms_revenue?: number
+          store_id?: string
+          total_order_revenue?: number
+          whatsapp_revenue?: number
         }
         Relationships: []
       }
@@ -287,6 +368,9 @@ export type Database = {
           created_at: string | null
           currency: string | null
           id: string
+          raw: Json | null
+          shopify_id: number | null
+          status: string | null
           store_id: string | null
           total: number
         }
@@ -298,6 +382,9 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
+          raw?: Json | null
+          shopify_id?: number | null
+          status?: string | null
           store_id?: string | null
           total?: number
         }
@@ -309,6 +396,9 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
+          raw?: Json | null
+          shopify_id?: number | null
+          status?: string | null
           store_id?: string | null
           total?: number
         }
@@ -841,6 +931,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sync_logs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          message: string | null
+          provider: string
+          records_processed: number | null
+          started_at: string
+          status: string
+          store_id: string
+          sync_type: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          provider: string
+          records_processed?: number | null
+          started_at: string
+          status: string
+          store_id: string
+          sync_type: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          provider?: string
+          records_processed?: number | null
+          started_at?: string
+          status?: string
+          store_id?: string
+          sync_type?: string
+        }
+        Relationships: []
       }
       user_store_roles: {
         Row: {
