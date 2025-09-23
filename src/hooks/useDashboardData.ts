@@ -123,19 +123,36 @@ export const useDashboardData = (storeId: string, period: string) => {
       return;
     }
 
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+    const baseKpis = kpiBaseRef.current;
+    const hasKlaviyoRevenue = typeof klaviyoRevenue === 'number' && !Number.isNaN(klaviyoRevenue);
+
+    setKpis({
+      ...baseKpis,
+      email_revenue: hasKlaviyoRevenue ? klaviyoRevenue : baseKpis.email_revenue,
+      convertfy_revenue: baseKpis.convertfy_revenue, // Preservar valor original do Convertfy
+=======
     const hasKlaviyoRevenue = typeof klaviyoRevenue === 'number' && !Number.isNaN(klaviyoRevenue);
 
     setKpis({
       ...kpiBaseRef.current,
       email_revenue: hasKlaviyoRevenue ? klaviyoRevenue : kpiBaseRef.current.email_revenue,
       convertfy_revenue: kpiBaseRef.current.convertfy_revenue, // Preservar valor original do Convertfy
+>>>>>>> main
     });
   };
 
   const updateKlaviyoState = (klaviyo: KlaviyoSummary['klaviyo'] | null) => {
     if (klaviyo) {
       setKlaviyoData(klaviyo);
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+      const campaignsByRevenue = Array.isArray(klaviyo.top_campaigns_by_revenue)
+        ? (klaviyo.top_campaigns_by_revenue as KlaviyoSummary['klaviyo']['top_campaigns_by_revenue'])
+        : [];
+      setTopCampaigns(campaignsByRevenue);
+=======
       setTopCampaigns(Array.isArray(klaviyo.top_campaigns_by_revenue) ? klaviyo.top_campaigns_by_revenue : []);
+>>>>>>> main
       applyKpis(klaviyo.revenue_total ?? null);
     } else {
       setKlaviyoData(null);
@@ -192,7 +209,11 @@ export const useDashboardData = (storeId: string, period: string) => {
         return;
       }
 
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+      const kpiData = (kpiResult.data as StoreKpiResponse | null) ?? null;
+=======
       const kpiData = (kpiResult.data as unknown as StoreKpiResponse | null) ?? null;
+>>>>>>> main
       const baseKpis: DashboardKPIs = {
         total_revenue: Number(kpiData?.total_revenue ?? 0),
         email_revenue: Number(kpiData?.email_revenue ?? 0),
@@ -328,8 +349,17 @@ export const useDashboardData = (storeId: string, period: string) => {
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
           revenue_flows: Number(cache.revenue_flows) || 0,
           orders_attributed: Number(cache.orders_attributed) || 0,
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+          top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue)
+            ? (cache.top_campaigns_by_revenue as KlaviyoSummary['klaviyo']['top_campaigns_by_revenue'])
+            : [],
+          top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions)
+            ? (cache.top_campaigns_by_conversions as KlaviyoSummary['klaviyo']['top_campaigns_by_conversions'])
+            : [],
+=======
           top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
+>>>>>>> main
           leads_total: Number(cache.leads_total) || 0,
         };
 
