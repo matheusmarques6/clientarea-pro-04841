@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
 import { useLocation, NavLink, useParams } from 'react-router-dom';
 import {
-  Home,
-  Users,
-  ShoppingCart,
-  Package,
+  BarChart3,
   RefreshCw,
   DollarSign,
+  Package,
   Settings,
   HelpCircle,
+  Store,
 } from 'lucide-react';
 
 import {
@@ -21,6 +19,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import convertfyLogo from '@/assets/convertfy-logo.png';
 
 export function AppSidebar() {
   const location = useLocation();
@@ -29,26 +28,14 @@ export function AppSidebar() {
 
   const items = [
     {
+      title: 'Suas Lojas',
+      url: '/stores',
+      icon: Store,
+    },
+    {
       title: 'Dashboard',
-      url: storeId ? `/store/${storeId}` : '/stores',
-      icon: Home,
-    },
-    {
-      title: 'Order Management',
-      url: storeId ? `/store/${storeId}/orders` : '#',
-      icon: ShoppingCart,
-      disabled: !storeId,
-    },
-    {
-      title: 'Customers',
-      url: storeId ? `/store/${storeId}/customers` : '#',
-      icon: Users,
-      disabled: !storeId,
-    },
-    {
-      title: 'Courses Code',
-      url: storeId ? `/store/${storeId}/courses` : '#',
-      icon: Package,
+      url: storeId ? `/store/${storeId}` : '#',
+      icon: BarChart3,
       disabled: !storeId,
     },
     {
@@ -64,40 +51,21 @@ export function AppSidebar() {
       disabled: !storeId,
     },
     {
-      title: 'Reports',
-      url: storeId ? `/store/${storeId}/reports` : '#',
+      title: 'Custo de Produto',
+      url: storeId ? `/store/${storeId}/costs` : '#',
+      icon: Package,
+      disabled: !storeId,
+    },
+    {
+      title: 'Configurações',
+      url: storeId ? `/store/${storeId}/settings` : '#',
       icon: Settings,
       disabled: !storeId,
     },
     {
-      title: 'Email',
-      url: storeId ? `/store/${storeId}/email` : '#',
+      title: 'Ajuda',
+      url: '/help',
       icon: HelpCircle,
-      disabled: !storeId,
-    },
-    {
-      title: 'Ad Products',
-      url: storeId ? `/store/${storeId}/ads` : '#',
-      icon: Package,
-      disabled: !storeId,
-    },
-    {
-      title: 'Product List',
-      url: storeId ? `/store/${storeId}/products` : '#',
-      icon: Package,
-      disabled: !storeId,
-    },
-    {
-      title: 'Active Lists',
-      url: storeId ? `/store/${storeId}/active-lists` : '#',
-      icon: Settings,
-      disabled: !storeId,
-    },
-    {
-      title: 'Archive Activity',
-      url: storeId ? `/store/${storeId}/archive` : '#',
-      icon: Settings,
-      disabled: !storeId,
     },
   ];
 
@@ -109,11 +77,11 @@ export function AppSidebar() {
 
   const getNavClassName = (item: any) => {
     if (item.disabled) {
-      return 'opacity-50 cursor-not-allowed pointer-events-none text-gray-400';
+      return 'opacity-50 cursor-not-allowed pointer-events-none text-muted-foreground';
     }
     return isActive(item.url)
-      ? 'bg-emerald-500 text-white font-medium hover:bg-emerald-600'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900';
+      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+      : 'text-foreground hover:bg-accent hover:text-accent-foreground';
   };
 
   const renderMenuItem = (item: any) => {
@@ -126,14 +94,14 @@ export function AppSidebar() {
 
     if (item.disabled) {
       return (
-        <SidebarMenuButton className={cn("w-full justify-start px-3 py-2 rounded-md", getNavClassName(item))}>
+        <SidebarMenuButton className={cn("w-full justify-start px-3 py-2.5 rounded-lg", getNavClassName(item))}>
           {content}
         </SidebarMenuButton>
       );
     }
 
     return (
-      <SidebarMenuButton asChild className={cn("w-full justify-start px-3 py-2 rounded-md", getNavClassName(item))}>
+      <SidebarMenuButton asChild className={cn("w-full justify-start px-3 py-2.5 rounded-lg", getNavClassName(item))}>
         <NavLink to={item.url} className="flex items-center">
           {content}
         </NavLink>
@@ -142,15 +110,16 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-64 bg-white border-r border-gray-200">
+    <Sidebar className="w-64 bg-card border-r border-border">
       <SidebarContent className="flex flex-col h-full p-4">
         {/* Logo */}
-        <div className="mb-8">
+        <div className="mb-8 px-2">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
-            <span className="font-semibold text-gray-900">DEAL-O-HIT</span>
+            <img 
+              src={convertfyLogo} 
+              alt="Convertfy" 
+              className="h-8 w-auto"
+            />
           </div>
         </div>
 
