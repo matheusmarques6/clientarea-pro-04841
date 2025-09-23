@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,53 +27,73 @@ export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const mounted = useRef(false);
 
   useEffect(() => {
-    console.log('useAuth: Setting up auth state listener');
+    if (mounted.current) return; // evita duplicar no StrictMode
+    mounted.current = true;
+
+    let unsubscribe: (() => void) | undefined;
     
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('useAuth: Auth state changed', { 
-          event, 
+    (async () => {
+      try {
+        console.log('useAuth: Setting up auth state listener');
+        
+        // Get initial session first
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('useAuth: Initial session check', { 
           user: session?.user,
           sessionExists: !!session 
         });
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            console.log('useAuth: Auth state changed', { 
+              event, 
+              user: session?.user,
+              sessionExists: !!session 
+            });
+            setSession(session);
+            setUser(session?.user ?? null);
+            setLoading(false);
+          }
+        );
+        
+        unsubscribe = () => subscription.unsubscribe();
+
+        // Defer reconciliation if already signed in (avoids deadlocks in callback)
+        if (session?.user?.email) {
+          setTimeout(() => {
+            (async () => {
+              try {
+                await supabase.rpc('reconcile_user_profile', {
+                  _email: session.user!.email as string,
+                  _auth_id: session.user!.id,
+                  _name: (session.user!.user_metadata?.full_name as string) || ((session.user!.email as string).split('@')[0] || 'Usuário')
+                });
+              } catch (e) {
+                console.warn('Reconcile on init failed:', e);
+              }
+            })();
+          }, 0);
+        }
+      } catch (error) {
+        console.warn('useAuth init error', error);
+        setUser(null);
+        setSession(null);
+        setLoading(false);
       }
-    );
+    })();
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('useAuth: Initial session check', { 
-        user: session?.user,
-        sessionExists: !!session 
-      });
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      // Defer reconciliation if already signed in (avoids deadlocks in callback)
-      if (session?.user?.email) {
-        setTimeout(() => {
-          (async () => {
-            try {
-              await supabase.rpc('reconcile_user_profile', {
-                _email: session.user!.email as string,
-                _auth_id: session.user!.id,
-                _name: (session.user!.user_metadata?.full_name as string) || ((session.user!.email as string).split('@')[0] || 'Usuário')
-              });
-            } catch (e) {
-              console.warn('Reconcile on init failed:', e);
-            }
-          })();
-        }, 0);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
-    });
-
-    return () => subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
