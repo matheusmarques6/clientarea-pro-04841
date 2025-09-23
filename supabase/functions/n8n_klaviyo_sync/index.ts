@@ -95,10 +95,49 @@ serve(async (req) => {
     // URL do webhook n8n
     const webhookUrl = 'https://n8n-n8n.1fpac5.easypanel.host/webhook/klaviyo/summary'
     
+    // Buscar as configurações da loja para obter as chaves de API
+    const { data: storeConfig, error: configError } = await supabase
+      .from('stores')
+      .select('shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
+      .eq('id', storeId)
+      .single()
+
+    if (configError || !storeConfig) {
+      console.error('Erro ao buscar configurações da loja:', configError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Store configuration not found',
+          details: configError?.message 
+        }), 
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Verificar se as chaves necessárias estão disponíveis
+    if (!storeConfig.klaviyo_private_key || !storeConfig.klaviyo_site_id) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Klaviyo credentials not configured for this store',
+          details: 'Please configure Klaviyo API keys in store settings'
+        }), 
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     const requestBody = {
       storeId,
       from,
-      to
+      to,
+      shopify_domain: storeConfig.shopify_domain || '',
+      shopify_api_key: storeConfig.shopify_access_token || '',
+      klaviyo_private_key: storeConfig.klaviyo_private_key,
+      klaviyo_site_id: storeConfig.klaviyo_site_id
     }
     
     console.log(`Chamando webhook n8n: ${webhookUrl}`)
