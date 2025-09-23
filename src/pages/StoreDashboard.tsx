@@ -1,74 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, RefreshCw, TrendingUp, DollarSign, ShoppingCart, Mail, Package, ArrowLeft } from 'lucide-react';
+import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { mockDashboardStats, mockChannelRevenue, mockChartData } from '@/lib/mockData';
 import { useStore } from '@/hooks/useStores';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { useToast } from '@/hooks/use-toast';
-import { format, subDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 const StoreDashboard = () => {
-  const { id: storeId } = useParams();
-  const { store, isLoading: storeLoading } = useStore(storeId!);
-  const { 
-    kpis, 
-    revenueSeries, 
-    loading, 
-    syncing, 
-    error, 
-    syncData, 
-    refetch,
-    checkIntegrations 
-  } = useDashboardData(storeId!);
-  const { toast } = useToast();
+  const { id } = useParams();
+  const [period, setPeriod] = useState('30d');
+  
+  const { store, isLoading } = useStore(id!);
+  const stats = mockDashboardStats;
 
-  // Estados para filtros de data
-  const [dateRange, setDateRange] = useState({
-    from: subDays(new Date(), 30),
-    to: new Date()
-  });
-  const [integrationStatus, setIntegrationStatus] = useState<Record<string, string>>({});
-
-  // Verificar status das integrações ao carregar
-  useEffect(() => {
-    if (storeId) {
-      checkIntegrations().then(setIntegrationStatus);
-    }
-  }, [storeId]);
-
-  // Atualizar dados quando o período mudar
-  useEffect(() => {
-    if (storeId && dateRange.from && dateRange.to) {
-      const startDate = dateRange.from.toISOString();
-      const endDate = dateRange.to.toISOString();
-      refetch(startDate, endDate);
-    }
-  }, [dateRange, storeId]);
-
-  // Handler para sincronização manual
-  const handleSync = async () => {
-    if (!storeId || !dateRange.from || !dateRange.to) return;
-    
-    try {
-      await syncData(dateRange.from.toISOString(), dateRange.to.toISOString());
-    } catch (error) {
-      console.error('Sync failed:', error);
-    }
-  };
-
-  // Dados para o gráfico de pizza (canais de receita)
-  const channelData = kpis ? [
-    { name: 'E-mail', value: kpis.email_revenue, color: '#10b981' },
-    { name: 'SMS', value: kpis.sms_revenue, color: '#f59e0b' },
-    { name: 'WhatsApp', value: kpis.whatsapp_revenue, color: '#25d366' },
-    { name: 'Outros', value: Math.max(0, kpis.total_revenue - kpis.convertfy_revenue), color: '#6b7280' },
-  ].filter(item => item.value > 0) : [];
-
-  if (storeLoading || loading) {
+  if (isLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -100,146 +47,129 @@ const StoreDashboard = () => {
     );
   }
 
-  // Formatar valores monetários
+  const COLORS = ['#6366f1', '#10b981', '#f59e0b'];
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: kpis?.currency || 'BRL'
-    }).format(value);
+    return `${store.currency === 'BRL' ? 'R$' : store.currency === 'USD' ? '$' : store.currency === 'EUR' ? '€' : '£'} ${value.toLocaleString()}`;
   };
 
-  // Calcular crescimento (simulado por enquanto)
-  const growthRate = 12.5;
-
   return (
-    <div className="space-y-6">
-      {/* Header com controles */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="px-2 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Últimos 30 dias • {kpis?.currency || 'BRL'}
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {store.currency}
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
-          {/* Status das integrações */}
-          <div className="flex gap-2">
-            <Badge variant={integrationStatus.shopify === 'connected' ? 'default' : 'secondary'}>
-              Shopify: {integrationStatus.shopify === 'connected' ? 'Conectado' : 'Desconectado'}
-            </Badge>
-            <Badge variant={integrationStatus.klaviyo === 'connected' ? 'default' : 'secondary'}>
-              Klaviyo: {integrationStatus.klaviyo === 'connected' ? 'Conectado' : 'Desconectado'}
-            </Badge>
-          </div>
-          
-          <Button 
-            onClick={handleSync} 
-            disabled={syncing}
-            size="sm"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Sincronizando...' : 'Sincronizar'}
-          </Button>
-          
-          <select className="px-3 py-2 border rounded-md text-sm bg-background">
-            <option>30 dias</option>
-          </select>
-        </div>
+        <Select value={period} onValueChange={setPeriod}>
+          <SelectTrigger className="w-32 sm:w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">7 dias</SelectItem>
+            <SelectItem value="14d">14 dias</SelectItem>
+            <SelectItem value="30d">30 dias</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Mostrar erro se houver */}
-      {error && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* KPIs Cards */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white border border-gray-200">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Faturamento Total</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(kpis?.total_revenue || 42850)}</p>
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-brand-600" />
               </div>
-              <div className="text-sm text-green-600 font-semibold">+12.5%</div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +12.5%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Faturamento Total</p>
+              <p className="text-2xl font-bold text-ink mt-1">R$ 42.850</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Faturamento Convertfy</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(kpis?.convertfy_revenue || 16400)}</p>
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-brand-600" />
               </div>
-              <div className="text-sm text-green-600 font-semibold">+8.3%</div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +8.3%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Faturamento Convertfy</p>
+              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(stats.faturamentoConvertfy)}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <div className="text-green-600 font-bold text-lg">%</div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Margem CFY</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {kpis?.total_revenue ? ((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1) : '38.3'}%
-                </p>
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
+                <Percent className="w-5 h-5 text-brand-600" />
               </div>
-              <div className="text-sm text-green-600 font-semibold">+2.1%</div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +2.1%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Margem CFY</p>
+              <p className="text-2xl font-bold text-ink mt-1">38.3%</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                  <Package className="h-5 w-5 text-orange-600" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Lucro CFY</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency((kpis?.convertfy_revenue || 16400) * 0.383)}</p>
+              <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg">
+                <ShoppingBag className="w-5 h-5 text-orange-500" />
               </div>
-              <div className="text-sm text-green-600 font-semibold">+15.2%</div>
+              <div className="flex items-center text-success text-sm font-medium">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +15.2%
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Lucro CFY</p>
+              <p className="text-2xl font-bold text-ink mt-1">R$ 6.281</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Convertfy Impact Card */}
-      <Card className="bg-white border border-gray-200">
-        <CardContent className="p-8">
+      <Card className="glass-card bg-gradient-premium shadow-premium animate-hover relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5"></div>
+        <CardContent className="p-6 sm:p-8 relative">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
             <div className="text-center lg:text-left">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
                 Impacto da Convertfy no seu Faturamento
               </h3>
-              <p className="text-gray-600 max-w-md">
+              <p className="text-sm text-muted-foreground max-w-md">
                 Veja quanto a Convertfy representa do seu faturamento total no período
               </p>
             </div>
             <div className="text-center lg:text-right">
-              <div className="text-7xl font-bold text-gray-900 leading-none mb-2">
-                {kpis?.total_revenue ? ((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1) : '13.0'}%
+              <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
+                {((stats.faturamentoConvertfy / stats.faturamentoTotal) * 100).toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-500">
-                {formatCurrency(kpis?.convertfy_revenue || 16400)} de {formatCurrency(kpis?.total_revenue || 126500)}
+              <div className="text-sm text-muted-foreground">
+                {formatCurrency(stats.faturamentoConvertfy)} de {formatCurrency(stats.faturamentoTotal)}
               </div>
             </div>
           </div>
@@ -248,118 +178,94 @@ const StoreDashboard = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Chart */}
-        <Card className="bg-white border border-gray-200">
+        {/* Line Chart */}
+        <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Faturamento por Dia</CardTitle>
+            <CardTitle>Faturamento por Dia</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueSeries.length > 0 ? revenueSeries : [
-                { period: '2025-08-24', total_revenue: 4200 },
-                { period: '2025-08-25', total_revenue: 3800 },
-                { period: '2025-08-26', total_revenue: 5200 },
-                { period: '2025-08-27', total_revenue: 4800 },
-                { period: '2025-08-28', total_revenue: 5400 },
-                { period: '2025-08-29', total_revenue: 4600 },
-                { period: '2025-08-30', total_revenue: 5800 },
-                { period: '2025-08-31', total_revenue: 5200 },
-                { period: '2025-09-01', total_revenue: 4400 },
-                { period: '2025-09-02', total_revenue: 5000 },
-                { period: '2025-09-03', total_revenue: 4700 },
-                { period: '2025-09-04', total_revenue: 5300 },
-                { period: '2025-09-05', total_revenue: 4900 },
-                { period: '2025-09-06', total_revenue: 5100 },
-                { period: '2025-09-07', total_revenue: 5500 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="period" 
-                  tickFormatter={(value) => format(new Date(value), 'MM-dd')}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#666' }}
-                />
-                <YAxis 
-                  tickFormatter={(value) => value.toLocaleString()} 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#666' }}
-                />
-                <Tooltip 
-                  labelFormatter={(value) => format(new Date(value), "dd/MM/yyyy")}
-                  formatter={(value: number) => [value.toLocaleString(), 'Faturamento']}
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #ccc', 
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
+              <LineChart data={mockChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  name="Total"
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="total_revenue" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2, fill: 'white' }}
+                  dataKey="convertfy" 
+                  stroke="#6366f1" 
+                  strokeWidth={2}
+                  name="Convertfy"
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Channel Distribution */}
-        <Card className="bg-white border border-gray-200">
+        {/* Pie Chart */}
+        <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Receita por Canal</CardTitle>
+            <CardTitle>Receita por Canal</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'E-mail', value: 37.8, color: '#8b5cf6' },
-                      { name: 'WhatsApp', value: 35.9, color: '#10b981' },
-                      { name: 'SMS', value: 26.3, color: '#f59e0b' }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={30}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {[
-                      { name: 'E-mail', value: 37.8, color: '#8b5cf6' },
-                      { name: 'WhatsApp', value: 35.9, color: '#10b981' },
-                      { name: 'SMS', value: 26.3, color: '#f59e0b' }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `${value}%`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute top-4 right-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                  <span className="text-purple-600 font-medium">E-mail 37.8%</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-green-600 font-medium">WhatsApp 35.9%</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                  <span className="text-orange-600 font-medium">SMS 26.3%</span>
-                </div>
-              </div>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={mockChannelRevenue}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ channel, percentage }) => `${channel} ${percentage}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="revenue"
+                >
+                  {mockChannelRevenue.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle>Ações Rápidas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button asChild variant="outline" className="h-20 flex-col gap-2">
+              <Link to={`/store/${id}/returns`}>
+                <RefreshCw className="h-6 w-6" />
+                <span>Trocas & Devoluções</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-20 flex-col gap-2">
+              <Link to={`/store/${id}/refunds`}>
+                <DollarSign className="h-6 w-6" />
+                <span>Reembolsos</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-20 flex-col gap-2">
+              <Link to={`/store/${id}/costs`}>
+                <Package className="h-6 w-6" />
+                <span>Custo de Produto</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

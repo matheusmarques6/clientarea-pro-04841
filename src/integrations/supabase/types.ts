@@ -125,48 +125,6 @@ export type Database = {
           },
         ]
       }
-      channel_revenue: {
-        Row: {
-          channel: string
-          created_at: string
-          currency: string | null
-          id: string
-          period_end: string
-          period_start: string
-          raw: Json | null
-          revenue: number
-          source: string
-          store_id: string
-          updated_at: string
-        }
-        Insert: {
-          channel: string
-          created_at?: string
-          currency?: string | null
-          id?: string
-          period_end: string
-          period_start: string
-          raw?: Json | null
-          revenue?: number
-          source: string
-          store_id: string
-          updated_at?: string
-        }
-        Update: {
-          channel?: string
-          created_at?: string
-          currency?: string | null
-          id?: string
-          period_end?: string
-          period_start?: string
-          raw?: Json | null
-          revenue?: number
-          source?: string
-          store_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       clients: {
         Row: {
           created_at: string | null
@@ -212,45 +170,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
-        }
-        Relationships: []
-      }
-      dashboard_cache: {
-        Row: {
-          created_at: string
-          email_revenue: number
-          id: string
-          order_count: number
-          period_end: string
-          period_start: string
-          sms_revenue: number
-          store_id: string
-          total_order_revenue: number
-          whatsapp_revenue: number
-        }
-        Insert: {
-          created_at?: string
-          email_revenue?: number
-          id?: string
-          order_count?: number
-          period_end: string
-          period_start: string
-          sms_revenue?: number
-          store_id: string
-          total_order_revenue?: number
-          whatsapp_revenue?: number
-        }
-        Update: {
-          created_at?: string
-          email_revenue?: number
-          id?: string
-          order_count?: number
-          period_end?: string
-          period_start?: string
-          sms_revenue?: number
-          store_id?: string
-          total_order_revenue?: number
-          whatsapp_revenue?: number
         }
         Relationships: []
       }
@@ -368,9 +287,6 @@ export type Database = {
           created_at: string | null
           currency: string | null
           id: string
-          raw: Json | null
-          shopify_id: number | null
-          status: string | null
           store_id: string | null
           total: number
         }
@@ -382,9 +298,6 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
-          raw?: Json | null
-          shopify_id?: number | null
-          status?: string | null
           store_id?: string | null
           total?: number
         }
@@ -396,9 +309,6 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
-          raw?: Json | null
-          shopify_id?: number | null
-          status?: string | null
           store_id?: string | null
           total?: number
         }
@@ -932,45 +842,6 @@ export type Database = {
           },
         ]
       }
-      sync_logs: {
-        Row: {
-          created_at: string
-          finished_at: string | null
-          id: string
-          message: string | null
-          provider: string
-          records_processed: number | null
-          started_at: string
-          status: string
-          store_id: string
-          sync_type: string
-        }
-        Insert: {
-          created_at?: string
-          finished_at?: string | null
-          id?: string
-          message?: string | null
-          provider: string
-          records_processed?: number | null
-          started_at: string
-          status: string
-          store_id: string
-          sync_type: string
-        }
-        Update: {
-          created_at?: string
-          finished_at?: string | null
-          id?: string
-          message?: string | null
-          provider?: string
-          records_processed?: number | null
-          started_at?: string
-          status?: string
-          store_id?: string
-          sync_type?: string
-        }
-        Relationships: []
-      }
       user_store_roles: {
         Row: {
           created_at: string | null
@@ -1194,34 +1065,6 @@ export type Database = {
           },
         ]
       }
-      vw_channel_email_summary: {
-        Row: {
-          currency: string | null
-          email_revenue: number | null
-          period_end: string | null
-          period_start: string | null
-          store_id: string | null
-        }
-        Relationships: []
-      }
-      vw_store_orders_summary: {
-        Row: {
-          currency: string | null
-          day: string | null
-          order_count: number | null
-          store_id: string | null
-          total_revenue: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       is_admin: {
@@ -1231,24 +1074,6 @@ export type Database = {
       reconcile_user_profile: {
         Args: { _auth_id: string; _email: string; _name: string }
         Returns: undefined
-      }
-      rpc_get_revenue_series: {
-        Args: {
-          _end_date: string
-          _interval?: string
-          _start_date: string
-          _store_id: string
-        }
-        Returns: {
-          email_revenue: number
-          order_count: number
-          period: string
-          total_revenue: number
-        }[]
-      }
-      rpc_get_store_kpis: {
-        Args: { _end_date: string; _start_date: string; _store_id: string }
-        Returns: Json
       }
     }
     Enums: {
