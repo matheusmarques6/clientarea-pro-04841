@@ -123,15 +123,21 @@ serve(async (req) => {
       hasKlaviyoSiteId: !!storeConfig.klaviyo_site_id
     })
 
-    // Preparar o body exatamente como especificado
+    // Verificar se as configurações necessárias estão disponíveis
+    if (!storeConfig.shopify_domain || !storeConfig.shopify_access_token || 
+        !storeConfig.klaviyo_private_key || !storeConfig.klaviyo_site_id) {
+      console.warn('Configurações da loja incompletas, mas prosseguindo com webhook...')
+    }
+
+    // Preparar o body com os dados reais da loja
     const requestBody = {
       storeId,
       from,
       to,
-      shopify_domain: storeConfig.shopify_domain || "minhaloja.myshopify.com",
-      shopify_api_key: storeConfig.shopify_access_token || "shpat_xxx",
-      klaviyo_private_key: storeConfig.klaviyo_private_key || "pk_xxx",
-      klaviyo_site_id: storeConfig.klaviyo_site_id || "AbCdEf"
+      shopify_domain: storeConfig.shopify_domain || "",
+      shopify_api_key: storeConfig.shopify_access_token || "",
+      klaviyo_private_key: storeConfig.klaviyo_private_key || "",
+      klaviyo_site_id: storeConfig.klaviyo_site_id || ""
     }
     
     console.log(`Chamando webhook n8n: ${webhookUrl}`)
