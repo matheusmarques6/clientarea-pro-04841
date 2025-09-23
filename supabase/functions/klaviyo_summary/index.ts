@@ -114,19 +114,39 @@ serve(async (req) => {
 
     console.log(`[${requestId}] Klaviyo integration found, calling n8n webhook`);
 
-    // 2) Chamar o webhook do n8n
+    // 2) Buscar dados da loja para obter credenciais
+    const { data: store, error: storeError } = await supa
+      .from("stores")
+      .select("shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id")
+      .eq("id", storeId)
+      .maybeSingle();
+
+    if (storeError) {
+      console.error(`[${requestId}] Store data error:`, storeError);
+      throw new Error(`Failed to fetch store data: ${storeError.message}`);
+    }
+
+    // 3) Chamar o webhook do n8n com estrutura completa
+    const webhookBody = {
+      storeId,
+      from,
+      to,
+      shopify_domain: store?.shopify_domain || null,
+      shopify_api_key: store?.shopify_access_token || null,
+      klaviyo_private_key: store?.klaviyo_private_key || integ.extra?.private_key || null,
+      klaviyo_site_id: store?.klaviyo_site_id || integ.extra?.site_id || null,
+      webhookUrl: N8N_WEBHOOK_URL,
+      executionMode: "production"
+    };
+
+    console.log(`[${requestId}] Calling webhook with body:`, JSON.stringify(webhookBody, null, 2));
+
     const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        storeId,
-        from,
-        to,
-        fast: fast || false,
-        requestId
-      })
+      body: JSON.stringify(webhookBody)
     });
 
     if (!webhookResponse.ok) {
