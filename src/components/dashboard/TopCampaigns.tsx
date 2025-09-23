@@ -5,11 +5,15 @@ import { TrendingUp, Users } from "lucide-react";
 
 interface Campaign {
   id: string;
-  nome: string;
-  receita: number;
-  conversoes: number;
-  data_envio: string;
-  status: string;
+  nome?: string;
+  name?: string;
+  receita?: number;
+  revenue?: number;
+  conversoes?: number;
+  conversions?: number;
+  data_envio?: string;
+  send_time?: string;
+  status?: string;
 }
 
 interface TopCampaignsProps {
@@ -26,42 +30,48 @@ export const TopCampaigns = ({ campaigns, currency = "BRL" }: TopCampaignsProps)
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'Data não informada';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const getRevenue = (campaign: Campaign) => campaign.receita || campaign.revenue || 0;
+  const getConversions = (campaign: Campaign) => campaign.conversoes || campaign.conversions || 0;
+  const getName = (campaign: Campaign) => campaign.nome || campaign.name || 'Campanha sem nome';
+  const getDate = (campaign: Campaign) => campaign.data_envio || campaign.send_time || '';
+
   const topByRevenue = [...campaigns]
-    .filter(c => c.receita > 0)
-    .sort((a, b) => b.receita - a.receita)
+    .filter(c => getRevenue(c) > 0)
+    .sort((a, b) => getRevenue(b) - getRevenue(a))
     .slice(0, 5);
 
   const topByConversions = [...campaigns]
-    .filter(c => c.conversoes > 0)
-    .sort((a, b) => b.conversoes - a.conversoes)
+    .filter(c => getConversions(c) > 0)
+    .sort((a, b) => getConversions(b) - getConversions(a))
     .slice(0, 5);
 
   const CampaignItem = ({ campaign, showRevenue = true }: { campaign: Campaign; showRevenue?: boolean }) => (
     <div className="flex items-center justify-between p-3 border rounded-lg">
       <div className="flex-1">
-        <h4 className="font-medium text-sm">{campaign.nome}</h4>
+        <h4 className="font-medium text-sm">{getName(campaign)}</h4>
         <p className="text-xs text-muted-foreground">
-          Enviado em {formatDate(campaign.data_envio)}
+          Enviado em {formatDate(getDate(campaign))}
         </p>
       </div>
       <div className="text-right">
         {showRevenue ? (
           <>
-            <p className="font-semibold text-sm">{formatCurrency(campaign.receita)}</p>
-            <p className="text-xs text-muted-foreground">{campaign.conversoes} conversões</p>
+            <p className="font-semibold text-sm">{formatCurrency(getRevenue(campaign))}</p>
+            <p className="text-xs text-muted-foreground">{getConversions(campaign)} conversões</p>
           </>
         ) : (
           <>
-            <p className="font-semibold text-sm">{campaign.conversoes} conversões</p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(campaign.receita)}</p>
+            <p className="font-semibold text-sm">{getConversions(campaign)} conversões</p>
+            <p className="text-xs text-muted-foreground">{formatCurrency(getRevenue(campaign))}</p>
           </>
         )}
       </div>
       <Badge variant={campaign.status === 'Sent' ? 'default' : 'secondary'} className="ml-2 text-xs">
-        {campaign.status}
+        {campaign.status || 'N/A'}
       </Badge>
     </div>
   );

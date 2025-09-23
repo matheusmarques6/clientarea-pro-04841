@@ -193,7 +193,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         return;
       }
 
-      const kpiData = (kpiResult.data as StoreKpiResponse | null) ?? null;
+      const kpiData = (kpiResult.data as unknown as StoreKpiResponse | null) ?? null;
       const baseKpis: DashboardKPIs = {
         total_revenue: Number(kpiData?.total_revenue ?? 0),
         email_revenue: Number(kpiData?.email_revenue ?? 0),
@@ -329,8 +329,8 @@ export const useDashboardData = (storeId: string, period: string) => {
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
           revenue_flows: Number(cache.revenue_flows) || 0,
           orders_attributed: Number(cache.orders_attributed) || 0,
-          top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue : [],
-          top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions : [],
+          top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
+          top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           leads_total: Number(cache.leads_total) || 0,
         };
 

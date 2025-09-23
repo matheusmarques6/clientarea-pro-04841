@@ -78,8 +78,8 @@ const ReturnsSetup = () => {
 
   if (isLoading || configLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-6">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse space-y-6 w-full max-w-4xl mx-auto p-6">
           <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="h-96 bg-muted rounded"></div>
         </div>
@@ -89,8 +89,8 @@ const ReturnsSetup = () => {
 
   if (!store) {
     return (
-      <div className="p-6">
-        <div className="text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <h2 className="text-xl font-semibold mb-2">Loja não encontrada</h2>
           <p className="text-muted-foreground mb-4">A loja solicitada não foi encontrada ou você não tem permissão para acessá-la.</p>
           <Button asChild>
@@ -131,7 +131,6 @@ const ReturnsSetup = () => {
       reader.onload = (e) => {
         const previewUrl = e.target?.result as string;
         setLogoPreview(previewUrl);
-        // Also update the theme state to trigger preview updates
         setTheme(prev => ({ ...prev, logoUrl: previewUrl }));
       };
       reader.readAsDataURL(file);
@@ -218,462 +217,441 @@ const ReturnsSetup = () => {
   } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to={`/store/${storeId}/returns`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Configurar Link Público</h1>
-            <p className="text-muted-foreground">Trocas & Devoluções • {store.name}</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <Button variant="ghost" size="sm" asChild className="self-start">
+              <Link to={`/store/${storeId}/returns`}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Portal de Trocas & Devoluções
+              </h1>
+              <p className="text-muted-foreground text-lg">{store.name}</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <Button variant="outline" onClick={handlePreview} className="w-full sm:w-auto">
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
+            <Button onClick={handleSave} className="w-full sm:w-auto">
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Configurações
+            </Button>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={handlePreview} className="w-full sm:w-auto">
-            <Eye className="h-4 w-4 mr-2" />
-            Preview
-          </Button>
-          <Button onClick={handleSave} className="w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" />
-            Salvar
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Configuration */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          {/* URL */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-foreground">URL do Portal Público</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <Input value={publicUrl} readOnly className="flex-1 text-foreground" />
-                <Button size="sm" onClick={handleCopyUrl} className="w-full sm:w-auto">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <Badge variant="secondary" className="text-foreground">
-                {publicConfig?.slug ? `Slug personalizado: ${publicConfig.slug}` : 'URL será gerada ao salvar configurações'}
-              </Badge>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Configuration Panel */}
+          <div className="xl:col-span-2 space-y-6">
+            
+            {/* URL Section */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  URL do Portal Público
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <Input 
+                    value={publicUrl} 
+                    readOnly 
+                    className="flex-1 text-foreground bg-background/50 font-mono text-sm" 
+                  />
+                  <Button size="sm" onClick={handleCopyUrl} className="w-full sm:w-auto">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copiar
+                  </Button>
+                </div>
+                <Badge variant="outline" className="text-foreground">
+                  {publicConfig?.slug ? `Slug: ${publicConfig.slug}` : 'URL será gerada automaticamente'}
+                </Badge>
+              </CardContent>
+            </Card>
 
-          {/* Visual Customization */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <Palette className="h-5 w-5" />
-                Personalização Visual
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Logo Upload */}
-              <div>
-                <Label className="text-foreground">Logo da Loja</Label>
-                <div className="mt-2 space-y-4">
-                  {logoPreview && (
-                    <div className="flex items-center gap-4">
-                      <img src={logoPreview} alt="Logo preview" className="h-16 w-auto rounded border" />
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setLogoPreview(null);
-                        setLogoFile(null);
-                        setTheme(prev => ({ ...prev, logoUrl: undefined }));
-                        toast({
-                          title: "Logo removida",
-                          description: "Logo foi removida do preview",
-                        });
-                      }}>
-                        Remover
-                      </Button>
+            {/* Visual Customization */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl flex items-center gap-2 text-foreground">
+                  <Palette className="h-5 w-5" />
+                  Personalização Visual
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Logo Upload */}
+                <div>
+                  <Label className="text-foreground text-sm font-medium">Logo da Loja</Label>
+                  <div className="mt-3 space-y-4">
+                    {logoPreview && (
+                      <div className="flex items-center gap-4 p-4 bg-background/50 rounded-lg border border-border/50">
+                        <img src={logoPreview} alt="Logo preview" className="h-16 w-auto rounded border" />
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setLogoPreview(null);
+                          setLogoFile(null);
+                          setTheme(prev => ({ ...prev, logoUrl: undefined }));
+                          toast({
+                            title: "Logo removida",
+                            description: "Logo foi removida do preview",
+                          });
+                        }}>
+                          Remover
+                        </Button>
+                      </div>
+                    )}
+                    <div className="border-2 border-dashed border-border/50 rounded-lg p-6 hover:border-primary/50 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        id="logo-upload"
+                      />
+                      <label htmlFor="logo-upload" className="cursor-pointer block text-center">
+                        <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">
+                          Clique para fazer upload da logo
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG ou SVG (máx. 5MB)
+                        </p>
+                      </label>
                     </div>
-                  )}
-                  <div className="border-2 border-dashed border-muted rounded-lg p-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <label htmlFor="logo-upload" className="cursor-pointer block text-center">
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Clique para fazer upload da logo
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        PNG, JPG ou SVG (máx. 5MB)
-                      </p>
-                    </label>
                   </div>
                 </div>
-              </div>
 
-              {/* Color Customization */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-foreground">Cor Principal</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="color"
-                      value={theme.primaryColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        setTheme({...theme, primaryColor: newColor});
-                        toast({
-                          title: "Cor atualizada",
-                          description: "Cor principal atualizada no preview",
-                        });
-                      }}
-                      className="w-12 h-10 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={theme.primaryColor}
-                      onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
-                      className="flex-1"
-                      placeholder="#3b82f6"
-                    />
+                {/* Color Customization */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-foreground text-sm font-medium">Cor Principal</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input
+                        type="color"
+                        value={theme.primaryColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          setTheme({...theme, primaryColor: newColor});
+                          toast({
+                            title: "Cor atualizada",
+                            description: "Cor principal atualizada no preview",
+                          });
+                        }}
+                        className="w-12 h-10 rounded-lg border cursor-pointer"
+                      />
+                      <Input
+                        value={theme.primaryColor}
+                        onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#3b82f6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-foreground text-sm font-medium">Cor Secundária</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input
+                        type="color"
+                        value={theme.secondaryColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          setTheme({...theme, secondaryColor: newColor});
+                        }}
+                        className="w-12 h-10 rounded-lg border cursor-pointer"
+                      />
+                      <Input
+                        value={theme.secondaryColor}
+                        onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#1e40af"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-foreground text-sm font-medium">Cor de Fundo</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input
+                        type="color"
+                        value={theme.backgroundColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          setTheme({...theme, backgroundColor: newColor});
+                        }}
+                        className="w-12 h-10 rounded-lg border cursor-pointer"
+                      />
+                      <Input
+                        value={theme.backgroundColor}
+                        onChange={(e) => setTheme({...theme, backgroundColor: e.target.value})}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#ffffff"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-foreground text-sm font-medium">Cor do Texto</Label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input
+                        type="color"
+                        value={theme.textColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          setTheme({...theme, textColor: newColor});
+                        }}
+                        className="w-12 h-10 rounded-lg border cursor-pointer"
+                      />
+                      <Input
+                        value={theme.textColor}
+                        onChange={(e) => setTheme({...theme, textColor: e.target.value})}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#1f2937"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <Label className="text-foreground">Cor Secundária</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="color"
-                      value={theme.secondaryColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        setTheme({...theme, secondaryColor: newColor});
-                      }}
-                      className="w-12 h-10 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={theme.secondaryColor}
-                      onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
-                      className="flex-1"
-                      placeholder="#1e40af"
-                    />
+              </CardContent>
+            </Card>
+
+            {/* Automation Settings */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl text-foreground">Configurações de Automação</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50">
+                  <div className="flex-1">
+                    <Label htmlFor="aprovarAuto" className="text-foreground font-medium">Aprovação Automática</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Aprovar automaticamente solicitações dentro das regras
+                    </p>
                   </div>
+                  <Switch
+                    checked={config.aprovarAuto}
+                    onCheckedChange={(checked) => setConfig({...config, aprovarAuto: checked})}
+                  />
                 </div>
+
                 <div>
-                  <Label className="text-foreground">Cor de Fundo</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="color"
-                      value={theme.backgroundColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        setTheme({...theme, backgroundColor: newColor});
-                      }}
-                      className="w-12 h-10 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={theme.backgroundColor}
-                      onChange={(e) => setTheme({...theme, backgroundColor: e.target.value})}
-                      className="flex-1"
-                      placeholder="#ffffff"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-foreground">Cor do Texto</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="color"
-                      value={theme.textColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        setTheme({...theme, textColor: newColor});
-                      }}
-                      className="w-12 h-10 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={theme.textColor}
-                      onChange={(e) => setTheme({...theme, textColor: e.target.value})}
-                      className="flex-1"
-                      placeholder="#1f2937"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Automation */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-foreground">Automação</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label htmlFor="aprovarAuto" className="text-foreground">Aprovação automática</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aprovar automaticamente se dentro da janela e com fotos
-                  </p>
-                </div>
-                <Switch
-                  checked={config.aprovarAuto}
-                  onCheckedChange={(checked) => setConfig({...config, aprovarAuto: checked})}
-                />
-              </div>
-
-              <div>
-                <Label className="text-foreground">Logística reversa</Label>
-                <Select value={config.logisticaReversa} onValueChange={(value) => setConfig({...config, logisticaReversa: value})}>
-                  <SelectTrigger className="text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="etiqueta" className="text-foreground">Gerar etiqueta (mock)</SelectItem>
-                    <SelectItem value="manual" className="text-foreground">Instruções manuais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Eligibility Rules */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-foreground">Regras de Elegibilidade</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="janela" className="text-foreground">Janela de devolução (dias)</Label>
-                <Select value={config.janelaDias.toString()} onValueChange={(value) => setConfig({...config, janelaDias: parseInt(value)})}>
-                  <SelectTrigger className="text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="7" className="text-foreground">7 dias</SelectItem>
-                    <SelectItem value="15" className="text-foreground">15 dias</SelectItem>
-                    <SelectItem value="30" className="text-foreground">30 dias</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="valorMinimo" className="text-foreground">Valor mínimo do pedido (R$)</Label>
-                <Input
-                  type="number"
-                  value={config.valorMinimo}
-                  onChange={(e) => setConfig({...config, valorMinimo: parseFloat(e.target.value)})}
-                  placeholder="50.00"
-                  className="text-foreground"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label htmlFor="exigirFotos" className="text-foreground">Exigir fotos dos produtos</Label>
-                  <p className="text-sm text-muted-foreground">Obrigatório envio de fotos para análise</p>
-                </div>
-                <Switch
-                  checked={config.exigirFotos}
-                  onCheckedChange={(checked) => setConfig({...config, exigirFotos: checked})}
-                />
-              </div>
-
-              <div>
-                <Label className="text-foreground">Categorias bloqueadas</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Produtos destas categorias não poderão ser devolvidos
-                </p>
-                <Input placeholder="Digite categorias separadas por vírgula" className="text-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Automation */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-foreground">Automação</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label htmlFor="aprovarAuto" className="text-foreground">Aprovação automática</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aprovar automaticamente se dentro da janela e com fotos
-                  </p>
-                </div>
-                <Switch
-                  checked={config.aprovarAuto}
-                  onCheckedChange={(checked) => setConfig({...config, aprovarAuto: checked})}
-                />
-              </div>
-
-              <div>
-                <Label className="text-foreground">Logística reversa</Label>
-                <Select value={config.logisticaReversa} onValueChange={(value) => setConfig({...config, logisticaReversa: value})}>
-                  <SelectTrigger className="text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="etiqueta" className="text-foreground">Gerar etiqueta (mock)</SelectItem>
-                    <SelectItem value="manual" className="text-foreground">Instruções manuais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Language Customization */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <Globe className="h-5 w-5" />
-                Idioma e Mensagens
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-foreground">Idioma padrão do portal</Label>
-                  <Select value={returnsLanguage} onValueChange={setReturnsLanguage}>
-                    <SelectTrigger className="text-foreground">
-                      <SelectValue />
+                  <Label className="text-foreground text-sm font-medium">Logística Reversa</Label>
+                  <Select value={config.logisticaReversa} onValueChange={(value) => setConfig({...config, logisticaReversa: value})}>
+                    <SelectTrigger className="mt-2 text-foreground">
+                      <SelectValue placeholder="Selecione o método" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
-                      <SelectItem value="pt" className="text-foreground">Português</SelectItem>
-                      <SelectItem value="en" className="text-foreground">English</SelectItem>
-                      <SelectItem value="es" className="text-foreground">Español</SelectItem>
+                      <SelectItem value="etiqueta" className="text-foreground">Gerar etiqueta automaticamente</SelectItem>
+                      <SelectItem value="manual" className="text-foreground">Instruções manuais</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="border-t pt-4">
-                  <Label className="text-foreground text-base font-medium">Personalizar mensagens por idioma</Label>
-                </div>
-              </div>
-              
-              <Tabs value={returnsLanguage} onValueChange={setReturnsLanguage} className="space-y-4 mt-4">
-                <TabsList className="grid w-full grid-cols-3 bg-muted">
-                  <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
-                  <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
-                  <TabsTrigger value="es" className="text-foreground data-[state=active]:text-foreground">Español</TabsTrigger>
-                </TabsList>
+              </CardContent>
+            </Card>
 
-                <TabsContent value="pt" className="space-y-4">
+            {/* Eligibility Rules */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl text-foreground">Regras de Elegibilidade</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-foreground">Mensagem de confirmação</Label>
-                    <Textarea
-                      value={config.mensagemPt}
-                      onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
-                      placeholder="Mensagem exibida após a solicitação"
-                      rows={4}
-                      className="text-foreground"
+                    <Label htmlFor="janela" className="text-foreground text-sm font-medium">Prazo para Devolução (dias)</Label>
+                    <Input
+                      id="janela"
+                      type="number"
+                      value={config.janelaDias}
+                      onChange={(e) => setConfig({...config, janelaDias: parseInt(e.target.value) || 15})}
+                      min="1"
+                      max="365"
+                      className="mt-2"
+                      placeholder="15"
                     />
                   </div>
-                </TabsContent>
-
-                <TabsContent value="en" className="space-y-4">
                   <div>
-                    <Label className="text-foreground">Confirmation message</Label>
-                    <Textarea
-                      value={config.mensagemEn}
-                      onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
-                      placeholder="Message displayed after request"
-                      rows={4}
-                      className="text-foreground"
+                    <Label htmlFor="valorMinimo" className="text-foreground text-sm font-medium">Valor Mínimo (R$)</Label>
+                    <Input
+                      id="valorMinimo"
+                      type="number"
+                      value={config.valorMinimo}
+                      onChange={(e) => setConfig({...config, valorMinimo: parseFloat(e.target.value) || 0})}
+                      min="0"
+                      step="0.01"
+                      className="mt-2"
+                      placeholder="50.00"
                     />
                   </div>
-                </TabsContent>
-
-                <TabsContent value="es" className="space-y-4">
-                  <div>
-                    <Label className="text-foreground">Mensaje de confirmación</Label>
-                    <Textarea
-                      value={config.mensagemEs}
-                      onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
-                      placeholder="Mensaje mostrado después de la solicitud"
-                      rows={4}
-                      className="text-foreground"
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Preview */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* Preview Card */}
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-foreground">Preview do Portal</CardTitle>
-              <Badge variant="outline" className="text-xs">
-                Idioma: {returnsLanguage === 'pt' ? 'Português' : returnsLanguage === 'en' ? 'English' : 'Español'}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <div 
-                className="rounded-lg p-6 space-y-4 border"
-                style={{
-                  backgroundColor: theme.backgroundColor,
-                  color: theme.textColor,
-                  borderColor: theme.primaryColor + '40'
-                }}
-              >
-                {/* Logo preview */}
-                {logoPreview && (
-                  <div className="flex justify-center mb-4">
-                    <img src={logoPreview} alt="Logo" className="h-12 w-auto" />
-                  </div>
-                )}
-                
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: theme.textColor }}>
-                    {store.name}
-                  </h3>
-                  <p className="text-sm mb-4" style={{ color: theme.textColor + 'cc' }}>
-                    Portal de Trocas & Devoluções
-                  </p>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50">
+                  <div className="flex-1">
+                    <Label htmlFor="exigirFotos" className="text-foreground font-medium">Exigir Fotos</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Obrigar anexar fotos do produto
+                    </p>
+                  </div>
+                  <Switch
+                    checked={config.exigirFotos}
+                    onCheckedChange={(checked) => setConfig({...config, exigirFotos: checked})}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Language and Messages */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl text-foreground">Idioma e Mensagens</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-foreground text-sm font-medium">Idioma Principal</Label>
+                    <Select value={returnsLanguage} onValueChange={setReturnsLanguage}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {supportedLanguages.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.flag} {lang.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Tabs defaultValue="pt" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="pt">🇧🇷 Português</TabsTrigger>
+                      <TabsTrigger value="en">🇺🇸 English</TabsTrigger>
+                      <TabsTrigger value="es">🇪🇸 Español</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="pt" className="space-y-3">
+                      <div>
+                        <Label className="text-foreground text-sm font-medium">Mensagem de Confirmação (Português)</Label>
+                        <Textarea
+                          value={config.mensagemPt}
+                          onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
+                          className="mt-2 min-h-[80px]"
+                          placeholder="Sua solicitação foi recebida e está sendo analisada..."
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="en" className="space-y-3">
+                      <div>
+                        <Label className="text-foreground text-sm font-medium">Confirmation Message (English)</Label>
+                        <Textarea
+                          value={config.mensagemEn}
+                          onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
+                          className="mt-2 min-h-[80px]"
+                          placeholder="Your request has been received and is being reviewed..."
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="es" className="space-y-3">
+                      <div>
+                        <Label className="text-foreground text-sm font-medium">Mensaje de Confirmación (Español)</Label>
+                        <Textarea
+                          value={config.mensagemEs}
+                          onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
+                          className="mt-2 min-h-[80px]"
+                          placeholder="Su solicitud ha sido recibida y está siendo revisada..."
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Preview Panel */}
+          <div className="xl:col-span-1">
+            <div className="sticky top-6">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl text-foreground">Preview em Tempo Real</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div 
-                    className="h-10 rounded border" 
-                    style={{ 
-                      backgroundColor: theme.backgroundColor,
-                      borderColor: theme.primaryColor + '60'
-                    }}
-                  ></div>
-                  <div 
-                    className="h-10 rounded border" 
-                    style={{ 
-                      backgroundColor: theme.backgroundColor,
-                      borderColor: theme.primaryColor + '60'
-                    }}
-                  ></div>
-                  <button 
-                    className="w-full h-10 rounded font-medium"
-                    style={{ 
-                      backgroundColor: theme.primaryColor,
-                      color: '#ffffff'
-                    }}
+                    className="rounded-lg border border-border/50 overflow-hidden shadow-inner"
+                    style={previewStyles}
                   >
-                    Enviar Solicitação
-                  </button>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-4">
-                Preview em tempo real - clique em "Preview" para ver o portal completo
-              </p>
-            </CardContent>
-          </Card>
+                    <div 
+                      className="p-6 space-y-6 min-h-[500px]"
+                      style={{
+                        backgroundColor: theme.backgroundColor,
+                        color: theme.textColor
+                      }}
+                    >
+                      {/* Header with logo */}
+                      <div className="text-center space-y-4">
+                        {logoPreview && (
+                          <div className="flex justify-center">
+                            <img 
+                              src={logoPreview} 
+                              alt="Logo preview" 
+                              className="h-12 w-auto"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <h1 
+                            className="text-2xl font-bold"
+                            style={{ color: theme.primaryColor }}
+                          >
+                            Trocas & Devoluções
+                          </h1>
+                          <p className="text-sm opacity-80">Portal público da {store.name}</p>
+                        </div>
+                      </div>
+
+                      {/* Form preview */}
+                      <div className="space-y-4">
+                        <div>
+                          <h2 className="text-lg font-semibold mb-3">Solicitar Troca ou Devolução</h2>
+                          <p className="text-sm opacity-80 mb-4">
+                            Preencha os dados abaixo para solicitar a troca ou devolução do seu produto.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm font-medium block mb-1">Número do Pedido</label>
+                            <div className="h-9 bg-white/10 rounded border border-white/20"></div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium block mb-1">E-mail do Pedido</label>
+                            <div className="h-9 bg-white/10 rounded border border-white/20"></div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium block mb-1">Nome Completo</label>
+                            <div className="h-9 bg-white/10 rounded border border-white/20"></div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium block mb-1">Tipo de Solicitação</label>
+                            <div className="h-9 bg-white/10 rounded border border-white/20"></div>
+                          </div>
+                        </div>
+
+                        <div 
+                          className="h-10 rounded font-medium text-center flex items-center justify-center text-white"
+                          style={{ backgroundColor: theme.primaryColor }}
+                        >
+                          Enviar Solicitação
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
