@@ -1,17 +1,32 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+const ALLOWED_HEADERS = "authorization, content-type, x-client-info, apikey";
+
+const buildCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin ?? "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+    "Access-Control-Max-Age": "86400",
+  };
+=======
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
 };
+>>>>>>> main
 
-const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...CORS } });
+  if (origin) {
+    corsHeaders["Access-Control-Allow-Credentials"] = "true";
+    corsHeaders["Vary"] = "Origin";
+  }
 
-const bad = (msg: string, extra: Record<string, unknown> = {}) => json({ error: msg, ...extra }, 400);
-const authErr = () => json({ error: "Missing/invalid Authorization bearer token" }, 401);
+  return corsHeaders;
+};
 
 // Definir tipos para melhor type safety
 interface KlaviyoMetric {
@@ -76,16 +91,34 @@ const KLAVIYO_REVISION = Deno.env.get('KLAVIYO_REVISION') || '2024-10-15';
 const DEFAULT_METRIC_ID = 'W8Gk3c'; // Fallback metric ID
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  const corsHeaders = buildCorsHeaders(req);
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...corsHeaders } });
+
+  const bad = (msg: string, extra: Record<string, unknown> = {}) => json({ error: msg, ...extra }, 400);
+  const authErr = () => json({ error: "Missing/invalid Authorization bearer token" }, 401);
+
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method Not Allowed" }, 405);
 
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return authErr();
 
-  let body: any;
-  try { body = await req.json(); } catch { return bad("Invalid JSON body"); }
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return bad("Invalid JSON body");
+  }
 
-  const { storeId, from, to, fast } = body || {};
+  const payload = (body ?? {}) as {
+    storeId?: string;
+    from?: string;
+    to?: string;
+    fast?: boolean;
+  };
+
+  const { storeId, from, to, fast } = payload;
   if (!storeId || !from || !to) {
     return bad("Missing required fields", { required: ["storeId","from","to"] });
   }
@@ -109,12 +142,20 @@ serve(async (req) => {
   const CONCURRENCY = 1;                   // máx. requisições paralelas (reduzido)
   const REQ_TIMEOUT_MS = 15000;           // timeout por request a Klaviyo (reduzido)
 
-  const withTimeout = async <T>(p: Promise<T>, ms: number) => {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort("timeout"), ms);
+  const withTimeout = async <T>(promise: Promise<T>, ms: number, context?: string): Promise<T> => {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutMessage = context ? `${context} timed out after ${ms}ms` : `Request timed out after ${ms}ms`;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    });
+
     try {
-      return await p;
-    } finally { clearTimeout(t); }
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    }
   };
 
   try {
@@ -165,7 +206,8 @@ serve(async (req) => {
         } catch (error) {
           if (attempt === retries) throw error;
           const delay = Math.pow(2, attempt) * 1000;
-          console.log(`[${requestId}] Request failed, retrying in ${delay}ms (${attempt}/${retries}):`, error.message);
+          const message = error instanceof Error ? error.message : String(error);
+          console.log(`[${requestId}] Request failed, retrying in ${delay}ms (${attempt}/${retries}):`, message);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -173,25 +215,31 @@ serve(async (req) => {
     };
 
     // Helper function to paginate through Klaviyo API com limites
-    const paginateKlaviyoAPI = async (url: string, maxPages = PAGE_LIMIT): Promise<any[]> => {
-      const results: any[] = [];
+    const paginateKlaviyoAPI = async <T>(url: string, maxPages = PAGE_LIMIT): Promise<T[]> => {
+      const results: T[] = [];
       let currentUrl = url;
       let pageCount = 0;
 
       while (currentUrl && pageCount < maxPages) {
-        const response = await withTimeout(makeKlaviyoRequest(currentUrl), REQ_TIMEOUT_MS);
-        
+        const response = await withTimeout(
+          makeKlaviyoRequest(currentUrl),
+          REQ_TIMEOUT_MS,
+          `paginate:${currentUrl}`
+        );
+
         if (!response.ok) {
           console.error(`[${requestId}] API error:`, response.status, await response.text());
           break;
         }
 
-        const data = await response.json();
-        results.push(...(data.data || []));
-        
-        currentUrl = data.links?.next || null;
+        const data = (await response.json()) as { data?: T[]; links?: { next?: string | null } };
+        if (Array.isArray(data.data)) {
+          results.push(...data.data);
+        }
+
+        currentUrl = data.links?.next ?? null;
         pageCount++;
-        
+
         if (pageCount >= maxPages) {
           console.warn(`[${requestId}] Reached pagination limit of ${maxPages} pages`);
         }
@@ -220,13 +268,14 @@ serve(async (req) => {
         }
       }
     } catch (error) {
-      console.warn(`[${requestId}] Error fetching metrics, using fallback:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[${requestId}] Error fetching metrics, using fallback:`, message);
     }
 
     // Step 2: Get email campaigns
     console.log(`[${requestId}] Step 2: Fetching email campaigns`);
     const campaignsUrl = 'https://a.klaviyo.com/api/campaigns?filter=equals(messages.channel,"email")';
-    const campaigns: KlaviyoCampaign[] = await paginateKlaviyoAPI(campaignsUrl);
+    const campaigns = await paginateKlaviyoAPI<KlaviyoCampaign>(campaignsUrl);
     
     console.log(`[${requestId}] Found ${campaigns.length} email campaigns`);
 
@@ -276,7 +325,8 @@ serve(async (req) => {
                 }
               })
             }),
-            REQ_TIMEOUT_MS
+            REQ_TIMEOUT_MS,
+            `campaign:${campaign.id}`
           );
 
           if (metricsResponse.ok) {
@@ -299,7 +349,8 @@ serve(async (req) => {
             }
           }
         } catch (error) {
-          console.warn(`[${requestId}] Error fetching metrics for campaign ${campaign.id}:`, error.message);
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`[${requestId}] Error fetching metrics for campaign ${campaign.id}:`, message);
         }
       }));
 
@@ -312,7 +363,7 @@ serve(async (req) => {
     // Step 4: Get flows
     console.log(`[${requestId}] Step 4: Fetching flows`);
     const flowsUrl = 'https://a.klaviyo.com/api/flows';
-    const allFlows: KlaviyoFlow[] = await paginateKlaviyoAPI(flowsUrl);
+    const allFlows = await paginateKlaviyoAPI<KlaviyoFlow>(flowsUrl);
     
     // Filter active flows
     const activeFlows = allFlows.filter(flow => 
@@ -326,23 +377,27 @@ serve(async (req) => {
     let totalFlowConversions = 0;
 
     try {
-      const flowRevenueResponse = await makeKlaviyoRequest('https://a.klaviyo.com/api/flow-values-reports/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: {
-            type: 'flow-values-report',
-            attributes: {
-              timeframe: { 
-                start: `${from}T00:00:00Z`, 
-                end: `${to}T23:59:59Z` 
-              },
-              conversion_metric_id: metricId,
-              statistics: ["conversion_value", "conversions", "conversion_uniques"]
+      const flowRevenueResponse = await withTimeout(
+        makeKlaviyoRequest('https://a.klaviyo.com/api/flow-values-reports/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: {
+              type: 'flow-values-report',
+              attributes: {
+                timeframe: {
+                  start: `${from}T00:00:00Z`,
+                  end: `${to}T23:59:59Z`
+                },
+                conversion_metric_id: metricId,
+                statistics: ["conversion_value", "conversions", "conversion_uniques"]
+              }
             }
-          }
-        })
-      });
+          })
+        }),
+        REQ_TIMEOUT_MS,
+        'flow:aggregate'
+      );
 
       if (flowRevenueResponse.ok) {
         const flowRevenueData = await flowRevenueResponse.json();
@@ -350,7 +405,8 @@ serve(async (req) => {
         totalFlowConversions = flowRevenueData.data?.attributes?.conversions || 0;
       }
     } catch (error) {
-      console.warn(`[${requestId}] Error fetching total flow revenue:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[${requestId}] Error fetching total flow revenue:`, message);
     }
 
     // Step 6: Get individual flow metrics and performance
@@ -388,7 +444,8 @@ serve(async (req) => {
                 }
               })
             }),
-            REQ_TIMEOUT_MS
+            REQ_TIMEOUT_MS,
+            `flow:${flow.id}`
           );
 
           let flowRevenue = 0;
@@ -401,7 +458,7 @@ serve(async (req) => {
           }
 
           // Simplified performance calculation (skip detailed series for speed)
-          let performance = {
+          const performance = {
             opens: 0,
             opens_unique: 0,
             clicks: 0,
@@ -432,7 +489,8 @@ serve(async (req) => {
             });
           }
         } catch (error) {
-          console.warn(`[${requestId}] Error fetching metrics for flow ${flow.id}:`, error.message);
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`[${requestId}] Error fetching metrics for flow ${flow.id}:`, message);
         }
       }));
 
@@ -453,7 +511,8 @@ serve(async (req) => {
         leadsTotal = profilesData.meta?.total || profilesData.meta?.page?.total || profilesData.data?.length || 0;
       }
     } catch (error) {
-      console.warn(`[${requestId}] Error fetching profiles:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[${requestId}] Error fetching profiles:`, message);
     }
 
     // Step 8: Sort and get top lists
@@ -473,6 +532,8 @@ serve(async (req) => {
       .filter(f => f.performance.deliveries > 0)
       .sort((a, b) => b.performance.open_rate - a.performance.open_rate)
       .slice(0, 5);
+
+    flowsWithActivity = flowMetrics.length;
 
     // Step 9: Calculate summary metrics
     const totalRevenue = totalCampaignRevenue + totalFlowRevenue;
@@ -517,7 +578,8 @@ serve(async (req) => {
 
       console.log(`[${requestId}] Cached results in database`);
     } catch (error) {
-      console.warn(`[${requestId}] Error caching results:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[${requestId}] Error caching results:`, message);
     }
 
     // Step 11: Build final response
@@ -588,6 +650,9 @@ serve(async (req) => {
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
     console.log(`[${requestId}] Results: ${totalRevenue} revenue, ${totalOrders} orders, ${leadsTotal} leads`);
 
+<<<<<<< codex/fix-dashboard-api-connection-issues-jkdp3w
+    return json(response, 200);
+=======
     // Build final response with actual data
     const finalResponse = {
       klaviyo: {
@@ -658,7 +723,9 @@ serve(async (req) => {
 
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
     return json(finalResponse, 200);
+>>>>>>> main
   } catch (e) {
-    return json({ error: "Klaviyo summary failed", detail: String(e?.message ?? e) }, 502);
+    const detail = e instanceof Error ? e.message : String(e);
+    return json({ error: "Klaviyo summary failed", detail }, 502);
   }
 });
