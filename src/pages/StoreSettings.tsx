@@ -117,24 +117,29 @@ const StoreSettings = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="klaviyoPublic">Public Key</Label>
+                <Label htmlFor="klaviyoPublic">Chave de API Pública/ID do Site</Label>
                 <Input
                   id="klaviyoPublic"
                   type={showTokens ? "text" : "password"}
                   value={settings.klaviyoPublicKey || ''}
                   onChange={(e) => setSettings({...settings, klaviyoPublicKey: e.target.value})}
-                  placeholder="pk_..."
+                  placeholder="pk_... ou ID do site"
                 />
               </div>
               <div>
-                <Label htmlFor="klaviyoPrivate">Private Key</Label>
-                <Input
-                  id="klaviyoPrivate"
-                  type={showTokens ? "text" : "password"}
-                  value={settings.klaviyoPrivateKey || ''}
-                  onChange={(e) => setSettings({...settings, klaviyoPrivateKey: e.target.value})}
-                  placeholder="pk_..."
-                />
+                <Label htmlFor="klaviyoPrivate">Chave de API Privada</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="klaviyoPrivate"
+                    type={showTokens ? "text" : "password"}
+                    value={settings.klaviyoPrivateKey || ''}
+                    onChange={(e) => setSettings({...settings, klaviyoPrivateKey: e.target.value})}
+                    placeholder="pk_..."
+                  />
+                  <Button variant="outline" size="sm" onClick={toggleTokenVisibility}>
+                    {showTokens ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

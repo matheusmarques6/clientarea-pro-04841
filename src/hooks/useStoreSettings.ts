@@ -65,7 +65,7 @@ export const useStoreSettings = (storeId: string) => {
             integrationsSettings.shopifyToken = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
             break;
           case 'klaviyo':
-            integrationsSettings.klaviyoPublicKey = integration.key_public ? `pk_${'•'.repeat(28)}` : '';
+            integrationsSettings.klaviyoPublicKey = integration.key_public || '';
             integrationsSettings.klaviyoPrivateKey = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
             break;
           case 'sms':
@@ -99,9 +99,68 @@ export const useStoreSettings = (storeId: string) => {
     try {
       setSettings(newSettings);
       
+      // Upsert integrations
+      const integrations = [];
+      
+      // Shopify integration
+      if (newSettings.shopifyUrl || newSettings.shopifyToken) {
+        integrations.push({
+          store_id: storeId,
+          provider: 'shopify',
+          key_public: newSettings.shopifyUrl,
+          key_secret_encrypted: newSettings.shopifyToken === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.shopifyToken,
+          extra: { url: newSettings.shopifyUrl },
+          status: (newSettings.shopifyUrl && newSettings.shopifyToken) ? 'connected' : 'disconnected'
+        });
+      }
+      
+      // Klaviyo integration
+      if (newSettings.klaviyoPublicKey || newSettings.klaviyoPrivateKey) {
+        integrations.push({
+          store_id: storeId,
+          provider: 'klaviyo',
+          key_public: newSettings.klaviyoPublicKey?.startsWith('pk_') ? newSettings.klaviyoPublicKey : newSettings.klaviyoPublicKey,
+          key_secret_encrypted: newSettings.klaviyoPrivateKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.klaviyoPrivateKey,
+          status: (newSettings.klaviyoPublicKey && newSettings.klaviyoPrivateKey) ? 'connected' : 'disconnected'
+        });
+      }
+      
+      // SMS integration
+      if (newSettings.smsApiKey) {
+        integrations.push({
+          store_id: storeId,
+          provider: 'sms',
+          key_secret_encrypted: newSettings.smsApiKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.smsApiKey,
+          status: newSettings.smsApiKey ? 'connected' : 'disconnected'
+        });
+      }
+      
+      // WhatsApp integration
+      if (newSettings.whatsappApiKey) {
+        integrations.push({
+          store_id: storeId,
+          provider: 'whatsapp',
+          key_secret_encrypted: newSettings.whatsappApiKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.whatsappApiKey,
+          status: newSettings.whatsappApiKey ? 'connected' : 'disconnected'
+        });
+      }
+      
+      // Save integrations to database
+      for (const integration of integrations) {
+        const { error } = await supabase
+          .from('integrations')
+          .upsert(integration, {
+            onConflict: 'store_id,provider'
+          });
+          
+        if (error) {
+          throw error;
+        }
+      }
+      
       toast({
         title: "Configurações salvas",
-        description: "Todas as configurações foram atualizadas com sucesso",
+        description: "Todas as configurações foram atualizadas com sucesso no banco de dados",
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
