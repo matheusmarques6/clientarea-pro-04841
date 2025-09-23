@@ -9,6 +9,16 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: cors() });
   }
 
+  if (req.method !== "POST") {
+    return jerr(405, "Method Not Allowed");
+  }
+
+  // Check authorization
+  const auth = req.headers.get("authorization");
+  if (!auth?.startsWith("Bearer ")) {
+    return jerr(401, "Missing/invalid Authorization bearer token");
+  }
+
   try {
     // ✅ Aceita body JSON ou query params (fallback)
     const url = new URL(req.url);
@@ -29,7 +39,14 @@ serve(async (req) => {
       return jerr(400, "Invalid date range", { from, to });
     }
 
-    // ✅ Supabase: usar SERVICE ROLE (passa RLS com segurança em funções)
+    // Use RLS client with user token
+    const supabaseRLS = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: auth } } }
+    );
+
+    // Use service role for internal operations
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -52,8 +69,8 @@ serve(async (req) => {
 
     const logId = logData?.id;
 
-    // 🔐 Buscar integração Shopify
-    const { data: integ, error: iErr } = await supabase
+    // 🔐 Buscar integração Shopify usando RLS (verificar acesso do usuário)
+    const { data: integ, error: iErr } = await supabaseRLS
       .from("integrations")
       .select("key_public, key_secret_encrypted")
       .eq("store_id", storeId)

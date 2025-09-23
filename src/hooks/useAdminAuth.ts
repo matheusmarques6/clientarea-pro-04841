@@ -77,10 +77,10 @@ export const useAdminAuthState = () => {
         .select('*')
         .eq('id', userId)
         .eq('is_admin', true)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.log('User is not an admin:', error);
+        console.warn('Error checking admin status:', error);
         setAdminUser(null);
         return;
       }
@@ -92,7 +92,7 @@ export const useAdminAuthState = () => {
         setAdminUser(null);
       }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.warn('Error checking admin status:', error);
       setAdminUser(null);
     }
   };
@@ -160,7 +160,7 @@ export const useAdminAuthState = () => {
         .select('*')
         .eq('id', authUser.id)
         .eq('is_admin', true)
-        .single();
+        .maybeSingle();
 
       if (adminCheckError || !adminRecord) {
         // Caso ainda não seja admin, negar acesso
@@ -220,11 +220,11 @@ export const useAdminAuthState = () => {
         .select('*')
         .eq('id', adminUser.id)
         .eq('is_admin', true)
-        .single();
+        .maybeSingle();
 
       return !!user && !error;
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.warn('Error checking admin access:', error);
       return false;
     }
   };

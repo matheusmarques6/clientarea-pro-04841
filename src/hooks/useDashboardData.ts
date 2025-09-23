@@ -310,54 +310,82 @@ export const useDashboardData = (storeId: string, period: string) => {
 
       // 1. Sincronizar Shopify
       try {
-        const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke('shopify_orders_sync', {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify_orders_sync`, {
           method: 'POST',
-          body: { 
-            storeId, 
-            from: startDate.toISOString(), 
-            to: endDate.toISOString() 
-          }
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            storeId,
+            from: startDate.toISOString().split('T')[0],
+            to: endDate.toISOString().split('T')[0],
+          }),
         });
 
-        if (shopifyError) {
-          console.error('Erro Shopify:', shopifyError);
-          messages.push(`Shopify: ${shopifyError.message}`);
-        } else {
+        if (response.ok) {
+          const shopifyData = await response.json();
           shopifySuccess = true;
           messages.push(`Shopify: ${shopifyData?.synced || 0} pedidos sincronizados`);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Erro Shopify:', response.status, errorData);
+          messages.push(`Shopify: ${errorData.error || `HTTP ${response.status}`}`);
         }
       } catch (shopifyErr) {
         console.error('Erro Shopify catch:', shopifyErr);
         messages.push(`Shopify: Erro na sincronização`);
       }
 
-      // 2. SEMPRE disparar webhook Klaviyo
-      console.log('Disparando webhook Klaviyo...');
+      // 2. Sincronizar Klaviyo
+      console.log('Sincronizando Klaviyo...');
       
       try {
-        const { data: klaviyoData, error: klaviyoError } = await supabase.functions.invoke('n8n_klaviyo_sync', {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/klaviyo_summary`, {
           method: 'POST',
-          body: {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
             storeId,
-            from: fromISO,
-            to: toISO
-          }
+            from: startDate.toISOString().split('T')[0],
+            to: endDate.toISOString().split('T')[0],
+          }),
         });
 
-        if (klaviyoError) {
-          console.error('Erro Klaviyo:', klaviyoError);
-          messages.push(`Klaviyo: ${klaviyoError.message}`);
-        } else if (klaviyoData?.success && klaviyoData?.data?.klaviyo) {
-          klaviyoSuccess = true;
-          
-          // Atualizar dados do Klaviyo
-          setKlaviyoData(klaviyoData.data.klaviyo);
-          setTopCampaigns(Array.isArray(klaviyoData.data.klaviyo.top_campaigns_by_revenue) ? klaviyoData.data.klaviyo.top_campaigns_by_revenue : []);
-          
-          const revenue = klaviyoData.data.klaviyo.revenue_total || 0;
-          messages.push(`Klaviyo: Receita R$ ${revenue.toLocaleString('pt-BR')}`);
+        if (response.ok) {
+          const klaviyoResult = await response.json();
+          if (klaviyoResult?.klaviyo) {
+            klaviyoSuccess = true;
+            
+            // Atualizar dados do Klaviyo
+            setKlaviyoData(klaviyoResult.klaviyo);
+            setTopCampaigns(Array.isArray(klaviyoResult.klaviyo.top_campaigns_by_revenue) ? klaviyoResult.klaviyo.top_campaigns_by_revenue : []);
+            
+            const revenue = klaviyoResult.klaviyo.revenue_total || 0;
+            messages.push(`Klaviyo: Receita R$ ${revenue.toLocaleString('pt-BR')}`);
+          } else {
+            messages.push('Klaviyo: Sem dados retornados');
+          }
         } else {
-          messages.push('Klaviyo: Sem dados retornados');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Erro Klaviyo:', response.status, errorData);
+          messages.push(`Klaviyo: ${errorData.error || `HTTP ${response.status}`}`);
         }
       } catch (klaviyoErr) {
         console.error('Erro Klaviyo catch:', klaviyoErr);
