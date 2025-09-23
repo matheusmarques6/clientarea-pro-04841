@@ -115,16 +115,31 @@ serve(async (req) => {
     console.log(`[${requestId}] Klaviyo integration found, calling n8n webhook`);
 
     // 2) Buscar dados da loja para obter credenciais
+    console.log(`[${requestId}] Buscando dados da loja ${storeId}`);
+    
     const { data: store, error: storeError } = await supa
       .from("stores")
       .select("shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id")
       .eq("id", storeId)
       .maybeSingle();
 
+    console.log(`[${requestId}] Store query result:`, { store, storeError });
+
     if (storeError) {
       console.error(`[${requestId}] Store data error:`, storeError);
       throw new Error(`Failed to fetch store data: ${storeError.message}`);
     }
+
+    if (!store) {
+      console.warn(`[${requestId}] No store data found for storeId: ${storeId}`);
+    }
+
+    // Debug: verificar integração
+    console.log(`[${requestId}] Integration data:`, { 
+      integration_domain: integ.extra?.domain,
+      integration_private_key: integ.extra?.private_key ? 'EXISTS' : 'NULL',
+      integration_site_id: integ.extra?.site_id ? 'EXISTS' : 'NULL'
+    });
 
     // 3) Chamar o webhook do n8n com estrutura completa
     const webhookBody = {
@@ -142,6 +157,13 @@ serve(async (req) => {
       supabase_anon_key: Deno.env.get("SUPABASE_ANON_KEY"),
       authorization_token: auth // Token de autenticação do usuário
     };
+
+    console.log(`[${requestId}] Webhook body credentials:`, {
+      shopify_domain: webhookBody.shopify_domain,
+      shopify_api_key: webhookBody.shopify_api_key ? 'EXISTS' : 'NULL',
+      klaviyo_private_key: webhookBody.klaviyo_private_key ? 'EXISTS' : 'NULL',
+      klaviyo_site_id: webhookBody.klaviyo_site_id ? 'EXISTS' : 'NULL'
+    });
 
     console.log(`[${requestId}] Calling webhook with body:`, JSON.stringify(webhookBody, null, 2));
 
