@@ -36,7 +36,7 @@ import ProductCosts from "./pages/ProductCosts";
 import StoreSettings from "./pages/StoreSettings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
-import PublicReturns from "./pages/PublicReturns";
+
 import PublicReturnsNew from "./pages/PublicReturnsNew";
 import PublicRefunds from "./pages/PublicRefunds";
 import TrackingPortal from "./components/returns/TrackingPortal";

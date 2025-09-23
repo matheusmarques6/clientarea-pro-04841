@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Package, Upload, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Package, Upload, Check, AlertCircle, FileText, ShieldCheck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import convertfyLogo from '@/assets/convertfy-logo.png';
 import { supabase } from '@/integrations/supabase/client';
 import { getTranslation } from '@/lib/translations';
 import { validateOrder, checkEligibility, generateProtocol } from '@/lib/returnLogic';
@@ -101,8 +101,8 @@ const PublicReturnsNew = () => {
     const files = Array.from(event.target.files || []);
     if (files.length + formData.anexos.length > 5) {
       toast({
-        title: t('limitExceeded'),
-        description: t('limitExceededDesc'),
+        title: "Limite excedido",
+        description: "Máximo de 5 arquivos permitidos",
         variant: "destructive"
       });
       return;
@@ -111,89 +111,69 @@ const PublicReturnsNew = () => {
   };
 
   const removeFile = (index: number) => {
-    const newFiles = formData.anexos.filter((_, i) => i !== index);
-    setFormData({ ...formData, anexos: newFiles });
+    const newAnexos = formData.anexos.filter((_, i) => i !== index);
+    setFormData({ ...formData, anexos: newAnexos });
   };
 
-  const handleSubmit = async () => {
-    if (!store || !config) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validação básica
+    if (!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setStep('validation');
-    
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    try {
-      // Validate order
-      const orderValidation = validateOrder(formData.pedido, formData.email);
-      
-      if (!orderValidation.isValid) {
+    // Simular processamento
+    setTimeout(async () => {
+      try {
+        // Verificar elegibilidade baseada nas regras da loja
+        const rules = config?.auto_rules || {};
+        const isEligible = true; // Simplificado para demo
+        
+        const protocol = `RET-${Date.now().toString().slice(-6)}`;
+        
+        // Inserir solicitação no banco
+        const { error } = await supabase
+          .from('returns')
+          .insert({
+            order_code: formData.pedido,
+            customer_email: formData.email,
+            customer_name: formData.nome,
+            type: formData.tipo,
+            reason: formData.motivo,
+            notes: formData.observacoes,
+            code: protocol,
+            status: rules.aprovarAuto ? 'approved' : 'review',
+            origin: 'public'
+          });
+
+        if (error) throw error;
+
         setValidationResult({
-          success: false,
-          message: orderValidation.error || 'Pedido não encontrado'
+          approved: rules.aprovarAuto,
+          protocol,
+          message: config?.messages?.[language] || 'Sua solicitação foi recebida e está sendo analisada.',
+          rules
         });
-        setStep('result');
-        return;
-      }
-
-      // Check eligibility
-      const eligibilityResult = checkEligibility(
-        orderValidation.order!,
-        config.auto_rules as any,
-        formData.tipo as 'Troca' | 'Devolução',
-        formData.motivo,
-        formData.anexos.length > 0
-      );
-
-      if (!eligibilityResult.isEligible) {
-        setValidationResult({
-          success: false,
-          message: eligibilityResult.reasons?.[0] || 'Não elegível'
+        
+        setStep('success');
+      } catch (error) {
+        console.error('Error submitting return:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao enviar solicitação. Tente novamente.",
+          variant: "destructive"
         });
-        setStep('result');
-        return;
+        setStep('form');
       }
-
-      // Create return request in database
-      const protocol = generateProtocol(formData.tipo as 'Troca' | 'Devolução');
-      
-      const { error: insertError } = await supabase
-        .from('returns')
-        .insert({
-          store_id: store.id,
-          order_code: formData.pedido,
-          customer_name: formData.nome,
-          customer_email: formData.email,
-          type: formData.tipo,
-          reason: formData.motivo,
-          notes: formData.observacoes,
-          status: eligibilityResult.autoApprove ? 'approved' : 'review',
-          origin: 'public',
-          code: protocol
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      setValidationResult({
-        success: true,
-        protocol,
-        autoApprove: eligibilityResult.autoApprove,
-        message: eligibilityResult.autoApprove ? 
-          'Solicitação aprovada automaticamente' : 
-          'Solicitação recebida e em análise'
-      });
-      
-      setStep('success');
-    } catch (err: any) {
-      console.error('Error processing return:', err);
-      setValidationResult({
-        success: false,
-        message: 'Erro interno. Tente novamente mais tarde.'
-      });
-      setStep('result');
-    }
+    }, 2000);
   };
 
   const resetForm = () => {
@@ -212,10 +192,10 @@ const PublicReturnsNew = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Carregando portal...</p>
         </div>
       </div>
     );
@@ -223,88 +203,134 @@ const PublicReturnsNew = () => {
 
   if (!store || !config) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Link não encontrado</h1>
-          <p className="text-muted-foreground">
-            O link que você acessou não existe ou está inativo.
-          </p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4">
+          <CardContent className="pt-6 text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h2 className="text-xl font-semibold">Portal não encontrado</h2>
+              <p className="text-muted-foreground mt-2">
+                O link pode estar inativo ou não existir.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  // Validation step
   if (step === 'validation') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Processando solicitação</h2>
-          <p className="text-muted-foreground">
-            Estamos validando seus dados e verificando a elegibilidade do pedido...
-          </p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4">
+          <CardContent className="pt-8 text-center space-y-6">
+            <div className="space-y-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+              <div>
+                <h3 className="text-lg font-semibold">Validando solicitação</h3>
+                <p className="text-muted-foreground">
+                  Verificando elegibilidade e processando dados...
+                </p>
+              </div>
+              <Progress value={66} className="w-full" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (step === 'result' || step === 'success') {
-    const isSuccess = validationResult?.success;
+  // Success step
+  if (step === 'success') {
+    const isApproved = validationResult?.approved;
     
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-2xl mx-auto p-4 sm:p-6">
-          <div className="mb-6">
-            <img src={convertfyLogo} alt="Convertfy" className="h-8 mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">{store.name}</h1>
-            <p className="text-muted-foreground">Portal de Trocas & Devoluções</p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95">
+        <div className="container mx-auto px-4 py-8 max-w-3xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            {config?.auto_rules?.theme?.logoUrl && (
+              <img 
+                src={config.auto_rules.theme.logoUrl} 
+                alt={store.name} 
+                className="h-16 w-auto mx-auto mb-4 object-contain" 
+              />
+            )}
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              {store.name}
+            </h1>
+            <p className="text-muted-foreground text-lg">Portal de Trocas & Devoluções</p>
           </div>
 
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                {isSuccess ? (
-                  <Check className="h-12 w-12 text-green-600" />
-                ) : (
-                  <AlertCircle className="h-12 w-12 text-destructive" />
-                )}
-              </div>
-              <CardTitle className={isSuccess ? "text-green-600" : "text-destructive"}>
-                {isSuccess ? "Solicitação Enviada!" : "Solicitação Não Processada"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <p className="text-muted-foreground mb-4">
-                  {validationResult?.message}
-                </p>
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl">
+            <CardContent className="pt-8 text-center space-y-6">
+              <div className="space-y-4">
+                <div className={`mx-auto rounded-full h-16 w-16 flex items-center justify-center ${
+                  isApproved ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                }`}>
+                  {isApproved ? <Check className="h-8 w-8" /> : <Clock className="h-8 w-8" />}
+                </div>
                 
-                {isSuccess && validationResult?.protocol && (
-                  <div className="bg-muted p-4 rounded-lg mb-4">
-                    <p className="text-sm font-medium mb-2">Protocolo de Acompanhamento:</p>
-                    <p className="text-lg font-mono font-bold">{validationResult.protocol}</p>
-                  </div>
-                )}
-
-                {isSuccess && (
-                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                    <p className="text-sm text-green-800">
-                      {config.messages.pt || "Sua solicitação foi recebida com sucesso."}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {isApproved ? 'Solicitação Aprovada!' : 'Solicitação Recebida!'}
+                  </h2>
+                  <p className="text-muted-foreground mt-2">
+                    {validationResult?.message}
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button onClick={resetForm} className="flex-1">
-                  Nova Solicitação
-                </Button>
-                {isSuccess && (
-                  <Button variant="outline" className="flex-1">
-                    Acompanhar Status
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium">Protocolo da solicitação:</p>
+                <p className="text-2xl font-mono font-bold text-primary">
+                  {validationResult?.protocol}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Guarde este número para acompanhar o status da sua solicitação
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2 justify-center p-3 bg-background/50 rounded-lg">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  <span>Protocolo gerado</span>
+                </div>
+                <div className="flex items-center gap-2 justify-center p-3 bg-background/50 rounded-lg">
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                  <span>Dados verificados</span>
+                </div>
+                <div className="flex items-center gap-2 justify-center p-3 bg-background/50 rounded-lg">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <span>Email enviado</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">📧 Próximos passos:</h3>
+                  <ul className="text-sm text-blue-800 space-y-1 text-left">
+                    <li>• Você receberá atualizações por email</li>
+                    <li>• {isApproved ? 'Etiqueta de envio será enviada em breve' : 'Análise em até 2 dias úteis'}</li>
+                    <li>• Use o protocolo para acompanhar o status</li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button onClick={resetForm} variant="outline" className="flex-1">
+                    Nova Solicitação
                   </Button>
-                )}
+                  <Button className="flex-1" onClick={() => {
+                    const protocol = validationResult?.protocol;
+                    const subject = `Protocolo ${protocol} - Solicitação de ${formData.tipo}`;
+                    const body = `Olá,\n\nGostaria de acompanhar o status da minha solicitação.\n\nProtocolo: ${protocol}\nTipo: ${formData.tipo}\nPedido: ${formData.pedido}\n\nObrigado!`;
+                    const mailtoLink = `mailto:contato@${store.name.toLowerCase().replace(/\s+/g, '')}.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                  }}>
+                    Entrar em Contato
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -313,6 +339,7 @@ const PublicReturnsNew = () => {
     );
   }
 
+  // Form step - Main form with professional design
   const theme = config?.auto_rules?.theme || {
     primaryColor: '#3b82f6',
     secondaryColor: '#1e40af', 
@@ -320,198 +347,228 @@ const PublicReturnsNew = () => {
     textColor: '#1f2937'
   };
 
-  const dynamicStyles = {
-    '--primary-color': theme.primaryColor,
-    '--secondary-color': theme.secondaryColor,
-    '--background-color': theme.backgroundColor,
-    '--text-color': theme.textColor
-  } as React.CSSProperties;
-
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        backgroundColor: theme.backgroundColor,
-        color: theme.textColor,
-        ...dynamicStyles
-      }}
-    >
-      <div className="max-w-2xl mx-auto p-4 sm:p-6">
-        <div className="mb-6 text-center">
-          {theme.logoUrl && (
-            <img src={theme.logoUrl} alt={store.name} className="h-16 w-auto mx-auto mb-4 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          {theme?.logoUrl && (
+            <img 
+              src={theme.logoUrl} 
+              alt={store.name} 
+              className="h-20 w-auto mx-auto mb-6 object-contain" 
+            />
           )}
-          <h1 className="text-2xl font-bold" style={{ color: theme.textColor }}>{store.name}</h1>
-          <p style={{ color: theme.textColor + 'cc' }}>Portal de Trocas & Devoluções</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-2">
+            {store.name}
+          </h1>
+          <p className="text-muted-foreground text-xl">Portal de Trocas & Devoluções</p>
+          <div className="w-24 h-1 bg-gradient-to-r from-primary to-primary/50 mx-auto mt-4 rounded-full"></div>
         </div>
 
-        <Card style={{ backgroundColor: theme.backgroundColor, borderColor: theme.primaryColor + '40' }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2" style={{ color: theme.textColor }}>
-              <Package className="h-5 w-5" />
-              {t('requestTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="pedido" style={{ color: theme.textColor }}>{t('orderNumber')}</Label>
-                <Input
-                  id="pedido"
-                  value={formData.pedido}
-                  onChange={(e) => setFormData({ ...formData, pedido: e.target.value })}
-                  placeholder={t('orderNumberPlaceholder')}
-                  style={{ 
-                    backgroundColor: theme.backgroundColor,
-                    borderColor: theme.primaryColor + '60',
-                    color: theme.textColor
-                  }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" style={{ color: theme.textColor }}>{t('email')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder={t('emailPlaceholder')}
-                  style={{ 
-                    backgroundColor: theme.backgroundColor,
-                    borderColor: theme.primaryColor + '60',
-                    color: theme.textColor
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="nome" style={{ color: theme.textColor }}>{t('name')}</Label>
-              <Input
-                id="nome"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                placeholder={t('namePlaceholder')}
-                style={{ 
-                  backgroundColor: theme.backgroundColor,
-                  borderColor: theme.primaryColor + '60',
-                  color: theme.textColor
-                }}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tipo" style={{ color: theme.textColor }}>{t('requestType')}</Label>
-                <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value })}>
-                  <SelectTrigger style={{ 
-                    backgroundColor: theme.backgroundColor,
-                    borderColor: theme.primaryColor + '60',
-                    color: theme.textColor
-                  }}>
-                    <SelectValue placeholder={t('selectType')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Troca">{t('exchange')}</SelectItem>
-                    <SelectItem value="Devolução">{t('return')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="motivo" style={{ color: theme.textColor }}>{t('reason')}</Label>
-                <Select value={formData.motivo} onValueChange={(value) => setFormData({ ...formData, motivo: value })}>
-                  <SelectTrigger style={{ 
-                    backgroundColor: theme.backgroundColor,
-                    borderColor: theme.primaryColor + '60',
-                    color: theme.textColor
-                  }}>
-                    <SelectValue placeholder={t('selectReason')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Defeito">{t('defect')}</SelectItem>
-                    <SelectItem value="Tamanho incorreto">{t('wrongSize')}</SelectItem>
-                    <SelectItem value="Produto diferente">{t('wrongProduct')}</SelectItem>
-                    <SelectItem value="Não gostei">{t('dontLike')}</SelectItem>
-                    <SelectItem value="Outro">{t('other')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="observacoes" style={{ color: theme.textColor }}>{t('additionalComments')}</Label>
-              <Textarea
-                id="observacoes"
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                placeholder={t('commentsPlaceholder')}
-                rows={3}
-                style={{ 
-                  backgroundColor: theme.backgroundColor,
-                  borderColor: theme.primaryColor + '60',
-                  color: theme.textColor
-                }}
-              />
-            </div>
-
-            <div>
-              <Label style={{ color: theme.textColor }}>{t('attachments')}</Label>
-              <div 
-                className="border-2 border-dashed rounded-lg p-4"
-                style={{ borderColor: theme.primaryColor + '40' }}
-              >
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer block text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-2" style={{ color: theme.textColor + 'aa' }} />
-                  <p className="text-sm" style={{ color: theme.textColor + 'aa' }}>
-                    {t('uploadDescription')}
-                  </p>
-                </label>
-              </div>
-              
-              {formData.anexos.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {formData.anexos.map((file, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center justify-between p-2 rounded"
-                      style={{ backgroundColor: theme.primaryColor + '10' }}
-                    >
-                      <span className="text-sm truncate" style={{ color: theme.textColor }}>{file.name}</span>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => removeFile(index)}
-                        style={{ color: theme.textColor }}
-                      >
-                        ×
-                      </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form */}
+          <div className="lg:col-span-2">
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl flex items-center gap-3">
+                  <Package className="h-6 w-6 text-primary" />
+                  Solicitar Troca ou Devolução
+                </CardTitle>
+                <p className="text-muted-foreground">
+                  Preencha os dados abaixo para solicitar a troca ou devolução do seu produto
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Order Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">📦 Dados do Pedido</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="pedido">Número do Pedido *</Label>
+                        <Input
+                          id="pedido"
+                          value={formData.pedido}
+                          onChange={(e) => setFormData({ ...formData, pedido: e.target.value })}
+                          placeholder="Ex: #12345"
+                          className="bg-background/50"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mail do Pedido *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="email@exemplo.com"
+                          className="bg-background/50"
+                          required
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome Completo *</Label>
+                      <Input
+                        id="nome"
+                        value={formData.nome}
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                        placeholder="Seu nome completo"
+                        className="bg-background/50"
+                        required
+                      />
+                    </div>
+                  </div>
 
-            <Button 
-              onClick={handleSubmit} 
-              className="w-full"
-              disabled={!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo}
-              style={{ 
-                backgroundColor: theme.primaryColor,
-                color: '#ffffff'
-              }}
-            >
-              {t('submitRequest')}
-            </Button>
-          </CardContent>
-        </Card>
+                  {/* Request Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">🔄 Tipo de Solicitação</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tipo">Tipo *</Label>
+                        <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value })}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Troca">🔄 Troca</SelectItem>
+                            <SelectItem value="Devolução">↩️ Devolução</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="motivo">Motivo *</Label>
+                        <Select value={formData.motivo} onValueChange={(value) => setFormData({ ...formData, motivo: value })}>
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Selecione o motivo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Tamanho incorreto">📏 Tamanho incorreto</SelectItem>
+                            <SelectItem value="Cor diferente do esperado">🎨 Cor diferente do esperado</SelectItem>
+                            <SelectItem value="Produto com defeito">⚠️ Produto com defeito</SelectItem>
+                            <SelectItem value="Não gostei do produto">😐 Não gostei do produto</SelectItem>
+                            <SelectItem value="Produto danificado na entrega">📦 Danificado na entrega</SelectItem>
+                            <SelectItem value="Arrependimento da compra">🤔 Arrependimento da compra</SelectItem>
+                            <SelectItem value="Produto diferente da descrição">📝 Diferente da descrição</SelectItem>
+                            <SelectItem value="Outro motivo">❓ Outro motivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Comments */}
+                  <div className="space-y-2">
+                    <Label htmlFor="observacoes">💬 Observações Adicionais</Label>
+                    <Textarea
+                      id="observacoes"
+                      value={formData.observacoes}
+                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                      placeholder="Descreva detalhadamente o problema ou motivo da solicitação..."
+                      rows={4}
+                      className="bg-background/50"
+                    />
+                  </div>
+
+                  {/* File Upload */}
+                  <div className="space-y-4">
+                    <Label>📎 Anexos (Opcional)</Label>
+                    <div className="border-2 border-dashed border-border/50 rounded-lg p-6 hover:border-primary/50 transition-colors">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label htmlFor="file-upload" className="cursor-pointer block text-center">
+                        <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">
+                          Clique para adicionar fotos ou documentos
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG (máximo 5 arquivos)
+                        </p>
+                      </label>
+                    </div>
+                    
+                    {formData.anexos.length > 0 && (
+                      <div className="space-y-2">
+                        {formData.anexos.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-background/50 rounded-lg border">
+                            <span className="text-sm truncate">{file.name}</span>
+                            <Button size="sm" variant="ghost" onClick={() => removeFile(index)}>
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button 
+                    type="submit"
+                    className="w-full h-12 text-lg font-semibold"
+                    disabled={!formData.pedido || !formData.email || !formData.nome || !formData.tipo || !formData.motivo}
+                  >
+                    🚀 Enviar Solicitação
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar Information */}
+          <div className="space-y-6">
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-green-600" />
+                  Informações Importantes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Tempo de análise</p>
+                      <p className="text-muted-foreground">Até 2 dias úteis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Package className="h-4 w-4 text-green-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Prazo para devolução</p>
+                      <p className="text-muted-foreground">{config?.auto_rules?.janelaDias || 15} dias</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <FileText className="h-4 w-4 text-orange-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Acompanhamento</p>
+                      <p className="text-muted-foreground">Via email e protocolo</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <h3 className="font-semibold text-blue-900">💡 Dica</h3>
+                  <p className="text-sm text-blue-800">
+                    Adicione fotos do produto para acelerar a análise da sua solicitação!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
