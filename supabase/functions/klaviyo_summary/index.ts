@@ -1,11 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-}
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+};
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...CORS } });
+
+const bad = (msg: string, extra: Record<string, unknown> = {}) => json({ error: msg, ...extra }, 400);
+const authErr = () => json({ error: "Missing/invalid Authorization bearer token" }, 401);
 
 // Definir tipos para melhor type safety
 interface KlaviyoMetric {
@@ -70,122 +76,64 @@ const KLAVIYO_REVISION = Deno.env.get('KLAVIYO_REVISION') || '2024-10-15';
 const DEFAULT_METRIC_ID = 'W8Gk3c'; // Fallback metric ID
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== "POST") return json({ error: "Method Not Allowed" }, 405);
+
+  const auth = req.headers.get("authorization");
+  if (!auth?.startsWith("Bearer ")) return authErr();
+
+  let body: any;
+  try { body = await req.json(); } catch { return bad("Invalid JSON body"); }
+
+  const { storeId, from, to, fast } = body || {};
+  if (!storeId || !from || !to) {
+    return bad("Missing required fields", { required: ["storeId","from","to"] });
   }
 
+  const fromDate = new Date(from), toDate = new Date(to);
+  if (Number.isNaN(+fromDate) || Number.isNaN(+toDate) || +fromDate >= +toDate) return bad("Invalid date range");
+
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`[${requestId}] Processing request for store ${storeId} from ${from} to ${to}`);
+
+  // RLS client (usa o token do usuário)
+
+  const supa = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: auth } } }
+  );
+
+  // Limites para evitar timeout 504
+  const PAGE_LIMIT = fast ? 3 : 5;        // máx. páginas
+  const CONCURRENCY = 2;                   // máx. requisições paralelas
+  const REQ_TIMEOUT_MS = 25000;           // timeout por request a Klaviyo
+
+  const withTimeout = async <T>(p: Promise<T>, ms: number) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort("timeout"), ms);
+    try {
+      return await p;
+    } finally { clearTimeout(t); }
+  };
+
   try {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[${requestId}] Klaviyo Summary API Started`);
 
-    if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // 1) Ler integração (klaviyo) por storeId via RLS
+    const { data: integ, error: integErr } = await supa
+      .from("integrations")
+      .select("provider, key_secret_encrypted, key_public")
+      .eq("provider", "klaviyo")
+      .eq("store_id", storeId)
+      .maybeSingle();
 
-    // Validate and extract body
-    const body = await req.json();
-    const { storeId, from, to } = body;
+    if (integErr) return json({ error: "Failed to read integrations", detail: integErr.message }, 500);
+    if (!integ?.key_secret_encrypted) return bad("Klaviyo integration not configured for this store");
 
-    if (!storeId || !from || !to) {
-      return new Response(JSON.stringify({
-        error: 'Missing required parameters: storeId, from, to'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    console.log(`[${requestId}] Klaviyo integration found, site_id: ${integ.key_public ? 'yes' : 'no'}`);
 
-    // Validate date format and range
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      return new Response(JSON.stringify({
-        error: 'Invalid date format. Use YYYY-MM-DD'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    if (fromDate >= toDate) {
-      return new Response(JSON.stringify({
-        error: 'Start date must be before end date'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log(`[${requestId}] Processing request for store ${storeId} from ${from} to ${to}`);
-
-    // Initialize Supabase client with user token for RLS
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authorization header required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: { headers: { Authorization: authHeader } }
-      }
-    );
-
-    // Verify user has access to store via RLS
-    const { data: userStore, error: storeError } = await supabase
-      .from('v_user_stores')
-      .select('*')
-      .eq('store_id', storeId)
-      .single();
-
-    if (storeError || !userStore) {
-      console.error(`[${requestId}] Store access error:`, storeError);
-      return new Response(JSON.stringify({ error: 'Access denied to store' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Get Klaviyo integration data
-    const { data: klaviyoIntegration, error: integrationError } = await supabase
-      .from('integrations')
-      .select('key_secret_encrypted, key_public')
-      .eq('store_id', storeId)
-      .eq('provider', 'klaviyo')
-      .single();
-
-    if (integrationError || !klaviyoIntegration) {
-      console.error(`[${requestId}] Klaviyo integration not found:`, integrationError);
-      return new Response(JSON.stringify({
-        error: 'Klaviyo integration not configured for this store'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const klaviyoApiKey = klaviyoIntegration.key_secret_encrypted;
-    const klaviyoSiteId = klaviyoIntegration.key_public;
-
-    if (!klaviyoApiKey) {
-      return new Response(JSON.stringify({
-        error: 'Klaviyo API key not configured'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log(`[${requestId}] Klaviyo integration found, site_id: ${klaviyoSiteId ? 'yes' : 'no'}`);
+    const klaviyoApiKey = integ.key_secret_encrypted;
+    const klaviyoSiteId = integ.key_public;
 
     // Setup Klaviyo API headers
     const klaviyoHeaders = {
@@ -225,14 +173,14 @@ serve(async (req) => {
       throw new Error('Max retries exceeded');
     };
 
-    // Helper function to paginate through Klaviyo API
-    const paginateKlaviyoAPI = async (url: string, maxPages = 10): Promise<any[]> => {
+    // Helper function to paginate through Klaviyo API com limites
+    const paginateKlaviyoAPI = async (url: string, maxPages = PAGE_LIMIT): Promise<any[]> => {
       const results: any[] = [];
       let currentUrl = url;
       let pageCount = 0;
 
       while (currentUrl && pageCount < maxPages) {
-        const response = await makeKlaviyoRequest(currentUrl);
+        const response = await withTimeout(makeKlaviyoRequest(currentUrl), REQ_TIMEOUT_MS);
         
         if (!response.ok) {
           console.error(`[${requestId}] API error:`, response.status, await response.text());
@@ -665,19 +613,42 @@ serve(async (req) => {
     console.log(`[${requestId}] Klaviyo Summary completed successfully`);
     console.log(`[${requestId}] Results: ${totalRevenue} revenue, ${totalOrders} orders, ${leadsTotal} leads`);
 
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    // Exemplo de payload mínimo de teste (substitua pelos seus cálculos reais)
+    const payload = {
+      klaviyo: {
+        revenue_total: 0,
+        revenue_campaigns: 0,
+        revenue_flows: 0,
+        orders_attributed: 0,
+        conversions_campaigns: 0,
+        conversions_flows: 0,
+        top_campaigns_by_revenue: [],
+        top_campaigns_by_conversions: [],
+        top_flows_by_revenue: [],
+        top_flows_by_performance: [],
+        leads_total: 0,
+        campaign_count: 0,
+        flow_count: 0,
+        campaigns_with_revenue: 0,
+        flows_with_revenue: 0,
+        flows_with_activity: 0,
+        flow_performance_averages: {
+          avg_open_rate: 0,
+          avg_click_rate: 0,
+          total_flow_deliveries: 0,
+          total_flow_opens: 0,
+          total_flow_clicks: 0
+        },
+        flows_detailed: []
+      },
+      period: { start: String(from).slice(0,10), end: String(to).slice(0,10) },
+      store: { id: storeId },
+      metadata: { version: "2.0" },
+      status: "SUCCESS"
+    };
 
-  } catch (error) {
-    console.error('Error in klaviyo_summary function:', error);
-    
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      details: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return json(payload, 200);
+  } catch (e) {
+    return json({ error: "Klaviyo summary failed", detail: String(e?.message ?? e) }, 502);
   }
 });

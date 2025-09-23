@@ -121,21 +121,19 @@ export const useDashboardData = (storeId: string, period: string) => {
       const customersReturning = customersReturningResult.data || 0;
       const currency = storeResult.data?.currency || 'BRL';
 
-      // Buscar contagem de pedidos no período
-      const { data: orderCountResult } = await supabase
+      // Buscar contagem de pedidos no período usando supabase-js
+      const { count: orderCount } = await supabase
         .from('orders')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('store_id', storeId)
         .gte('created_at', startDate.toISOString())
         .lt('created_at', endDate.toISOString());
-
-      const orderCount = orderCountResult ? 0 : 0; // count is in the count property
 
       setKpis({
         total_revenue: Number(totalRevenue),
         email_revenue: klaviyoData?.revenue_total || Number(emailRevenue),
         convertfy_revenue: klaviyoData?.revenue_total || Number(emailRevenue),
-        order_count: orderCount,
+        order_count: orderCount || 0,
         customers_distinct: Number(customersDistinct),
         customers_returning: Number(customersReturning),
         currency: currency,
@@ -233,14 +231,24 @@ export const useDashboardData = (storeId: string, period: string) => {
           throw new Error('No authentication token available');
         }
         
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://bsotblbtrshqfiqyzisy.supabase.co'}/functions/v1/klaviyo_summary`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${token}` 
-          },
-          body: JSON.stringify({ storeId, from: fromDate, to: toDate })
-        });
+        // Usar timeout e fallback no cache
+        const fetchWithTimeout = <T>(p: Promise<T>, ms: number) =>
+          new Promise<T>((resolve, reject) => {
+            const t = setTimeout(() => reject(new Error('timeout')), ms);
+            p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
+          });
+
+        const response = await fetchWithTimeout(
+          fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/klaviyo_summary`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ storeId, from: fromDate, to: toDate, fast: true })
+          }),
+          20000 // 20s timeout
+        );
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -317,7 +325,7 @@ export const useDashboardData = (storeId: string, period: string) => {
           throw new Error('No auth token available');
         }
 
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify_orders_sync`, {
+        const response = await fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/shopify_orders_sync`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -355,7 +363,7 @@ export const useDashboardData = (storeId: string, period: string) => {
           throw new Error('No auth token available');
         }
 
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/klaviyo_summary`, {
+        const response = await fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/klaviyo_summary`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -365,6 +373,7 @@ export const useDashboardData = (storeId: string, period: string) => {
             storeId,
             from: startDate.toISOString().split('T')[0],
             to: endDate.toISOString().split('T')[0],
+            fast: true
           }),
         });
 
