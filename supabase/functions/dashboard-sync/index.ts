@@ -17,8 +17,19 @@ serve(async (req) => {
   }
 
   try {
+    // Extrair storeId tanto da query string quanto do body
     const url = new URL(req.url);
-    const storeId = url.searchParams.get('storeId');
+    let storeId = url.searchParams.get('storeId');
+    
+    // Se não estiver na query string, tentar extrair do body
+    if (!storeId) {
+      try {
+        const body = await req.json();
+        storeId = body.storeId;
+      } catch {
+        // Body vazio ou inválido
+      }
+    }
 
     if (!storeId) {
       return new Response(JSON.stringify({ error: 'storeId is required' }), {

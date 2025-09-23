@@ -64,3 +64,6 @@ verify_jwt = true
 
 [functions.dashboard-backfill]
 verify_jwt = true
+
+[functions.create-sample-data]
+verify_jwt = true

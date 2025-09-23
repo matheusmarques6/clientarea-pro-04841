@@ -7,13 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
+  const { toast } = useToast();
   
   const { store, isLoading: storeLoading } = useStore(id!);
-  const { kpis, chartData, channelRevenue, isLoading: dataLoading, isSyncing, syncData } = useDashboardData(id!, period);
+  const { kpis, chartData, channelRevenue, isLoading: dataLoading, isSyncing, syncData, refetch } = useDashboardData(id!, period);
 
   if (storeLoading || dataLoading) {
     return (
@@ -75,6 +78,41 @@ const StoreDashboard = () => {
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+          </Button>
+          
+          <Button 
+            onClick={async () => {
+              try {
+                const { data, error } = await supabase.functions.invoke('create-sample-data', {
+                  body: JSON.stringify({ storeId: id }),
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+                
+                if (error) throw error;
+                
+                toast({
+                  title: "Dados de exemplo criados",
+                  description: "Dashboard agora mostra dados simulados",
+                });
+                
+                // Recarregar dados
+                await refetch();
+              } catch (error) {
+                console.error('Sample data error:', error);
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível criar dados de exemplo",
+                  variant: "destructive",
+                });
+              }
+            }}
+            disabled={isSyncing}
+            variant="secondary"
+            size="sm"
+          >
+            📊 Dados Demo
           </Button>
         </div>
         
