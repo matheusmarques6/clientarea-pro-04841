@@ -120,42 +120,6 @@ const StoreCard = ({ store, index }: StoreCardProps) => {
               <span className="font-semibold">Acessar Dashboard</span>
             </Link>
           </Button>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
-            <Button asChild size="sm" variant="outline" className="group/card hover-scale border-border/40 hover:border-blue-300/60 hover:bg-blue-50/80 transition-all duration-300 shadow-sm hover:shadow-md bg-white/50 backdrop-blur-sm">
-              <Link to={`/store/${store.id}/returns`} className="flex items-center sm:flex-col justify-start sm:justify-center gap-3 sm:gap-2 h-12 sm:h-20 p-3 sm:p-4">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-600/25 flex items-center justify-center border border-blue-200/40 group-hover/card:border-blue-300/60 transition-colors flex-shrink-0">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 group-hover/card:text-blue-700 transition-colors" />
-                </div>
-                <div className="flex flex-col sm:items-center">
-                  <span className="text-sm sm:text-xs font-semibold text-blue-700 group-hover/card:text-blue-800 transition-colors">Trocas</span>
-                  <span className="text-xs text-blue-600/70 sm:hidden">Gerenciar trocas</span>
-                </div>
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="group/card hover-scale border-border/40 hover:border-green-300/60 hover:bg-green-50/80 transition-all duration-300 shadow-sm hover:shadow-md bg-white/50 backdrop-blur-sm">
-              <Link to={`/store/${store.id}/refunds`} className="flex items-center sm:flex-col justify-start sm:justify-center gap-3 sm:gap-2 h-12 sm:h-20 p-3 sm:p-4">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500/15 to-green-600/25 flex items-center justify-center border border-green-200/40 group-hover/card:border-green-300/60 transition-colors flex-shrink-0">
-                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 group-hover/card:text-green-700 transition-colors" />
-                </div>
-                <div className="flex flex-col sm:items-center">
-                  <span className="text-sm sm:text-xs font-semibold text-green-700 group-hover/card:text-green-800 transition-colors">Reembolsos</span>
-                  <span className="text-xs text-green-600/70 sm:hidden">Processar reembolsos</span>
-                </div>
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="group/card hover-scale border-border/40 hover:border-purple-300/60 hover:bg-purple-50/80 transition-all duration-300 shadow-sm hover:shadow-md bg-white/50 backdrop-blur-sm">
-              <Link to={`/store/${store.id}/costs`} className="flex items-center sm:flex-col justify-start sm:justify-center gap-3 sm:gap-2 h-12 sm:h-20 p-3 sm:p-4">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500/15 to-purple-600/25 flex items-center justify-center border border-purple-200/40 group-hover/card:border-purple-300/60 transition-colors flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 group-hover/card:text-purple-700 transition-colors" />
-                </div>
-                <div className="flex flex-col sm:items-center">
-                  <span className="text-sm sm:text-xs font-semibold text-purple-700 group-hover/card:text-purple-800 transition-colors">Custos</span>
-                  <span className="text-xs text-purple-600/70 sm:hidden">Analisar custos</span>
-                </div>
-              </Link>
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>
