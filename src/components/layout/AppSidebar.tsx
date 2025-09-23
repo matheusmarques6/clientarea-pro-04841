@@ -80,7 +80,7 @@ export function AppSidebar() {
       return 'opacity-50 cursor-not-allowed pointer-events-none text-muted-foreground';
     }
     return isActive(item.url)
-      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/90'
+      ? 'bg-primary text-primary-foreground font-medium hover:bg-primary/80'
       : 'text-foreground hover:bg-muted/80 hover:text-foreground';
   };
 
