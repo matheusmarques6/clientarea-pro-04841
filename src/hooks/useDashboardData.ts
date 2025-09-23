@@ -325,18 +325,23 @@ export const useDashboardData = (storeId: string, period: string) => {
           throw new Error('No auth token available');
         }
 
-        const response = await fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/shopify_orders_sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            storeId,
-            from: startDate.toISOString().split('T')[0],
-            to: endDate.toISOString().split('T')[0],
+        const response = await Promise.race([
+          fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/shopify_orders_sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              storeId,
+              from: startDate.toISOString().split('T')[0],
+              to: endDate.toISOString().split('T')[0],
+            }),
           }),
-        });
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 15000)
+          )
+        ]);
 
         if (response.ok) {
           const shopifyData = await response.json();
@@ -344,7 +349,7 @@ export const useDashboardData = (storeId: string, period: string) => {
           messages.push(`Shopify: ${shopifyData?.synced || 0} pedidos sincronizados`);
         } else {
           const errorData = await response.json().catch(() => ({}));
-          console.error('Erro Shopify:', response.status, errorData);
+          console.warn('Erro Shopify:', response.status, errorData);
           messages.push(`Shopify: ${errorData.error || `HTTP ${response.status}`}`);
         }
       } catch (shopifyErr) {
@@ -363,19 +368,24 @@ export const useDashboardData = (storeId: string, period: string) => {
           throw new Error('No auth token available');
         }
 
-        const response = await fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/klaviyo_summary`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            storeId,
-            from: startDate.toISOString().split('T')[0],
-            to: endDate.toISOString().split('T')[0],
-            fast: true
+        const response = await Promise.race([
+          fetch(`https://bsotblbtrshqfiqyzisy.supabase.co/functions/v1/klaviyo_summary`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              storeId,
+              from: startDate.toISOString().split('T')[0],
+              to: endDate.toISOString().split('T')[0],
+              fast: true
+            }),
           }),
-        });
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 15000)
+          )
+        ]);
 
         if (response.ok) {
           const klaviyoResult = await response.json();

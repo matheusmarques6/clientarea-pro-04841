@@ -105,9 +105,9 @@ serve(async (req) => {
   );
 
   // Limites para evitar timeout 504
-  const PAGE_LIMIT = fast ? 3 : 5;        // máx. páginas
-  const CONCURRENCY = 2;                   // máx. requisições paralelas
-  const REQ_TIMEOUT_MS = 25000;           // timeout por request a Klaviyo
+  const PAGE_LIMIT = fast ? 2 : 3;        // máx. páginas (reduzido)
+  const CONCURRENCY = 1;                   // máx. requisições paralelas (reduzido)
+  const REQ_TIMEOUT_MS = 15000;           // timeout por request a Klaviyo (reduzido)
 
   const withTimeout = async <T>(p: Promise<T>, ms: number) => {
     const ctrl = new AbortController();
@@ -118,7 +118,6 @@ serve(async (req) => {
   };
 
   try {
-
     // 1) Ler integração (klaviyo) por storeId via RLS
     const { data: integ, error: integErr } = await supa
       .from("integrations")
@@ -130,7 +129,7 @@ serve(async (req) => {
     if (integErr) return json({ error: "Failed to read integrations", detail: integErr.message }, 500);
     if (!integ?.key_secret_encrypted) return bad("Klaviyo integration not configured for this store");
 
-    console.log(`[${requestId}] Klaviyo integration found, site_id: ${integ.key_public ? 'yes' : 'no'}`);
+    console.log(`[${requestId}] Klaviyo integration found`);
 
     const klaviyoApiKey = integ.key_secret_encrypted;
     const klaviyoSiteId = integ.key_public;

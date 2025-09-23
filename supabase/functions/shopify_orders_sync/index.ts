@@ -125,12 +125,17 @@ serve(async (req) => {
     let pageInfo: string | undefined;
 
     do {
+      // ✅ Corrigir erro de paginação: quando há page_info, não usar outros filtros
       const qs = new URLSearchParams({
-        status: "any",
-        created_at_min: fromDate.toISOString(),
-        created_at_max: toDate.toISOString(),
         limit: "250",
-        ...(pageInfo ? { page_info: pageInfo } : {})
+        ...(pageInfo ? 
+          { page_info: pageInfo } : 
+          { 
+            status: "any",
+            created_at_min: fromDate.toISOString(),
+            created_at_max: toDate.toISOString(),
+          }
+        )
       });
 
       const resp = await fetch(`https://${domain}/admin/api/${SHOPIFY_API_VER}/orders.json?${qs}`, {
