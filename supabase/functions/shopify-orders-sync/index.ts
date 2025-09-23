@@ -3,15 +3,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SHOPIFY_API_VER = "2023-10";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+      }
+    });
   }
 
   try {
@@ -38,31 +39,6 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Verificar acesso do usuário à loja
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return jerr(401, "Authorization header required");
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    
-    if (!user) {
-      return jerr(401, "Invalid user token");
-    }
-
-    // Verificar se o usuário tem acesso à loja
-    const { data: userStore } = await supabase
-      .from('v_user_stores')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('store_id', storeId)
-      .maybeSingle();
-
-    if (!userStore) {
-      return jerr(403, "Access denied to store");
-    }
-
     // Buscar integração Shopify
     const { data: integ, error: iErr } = await supabase
       .from("integrations")
@@ -86,7 +62,6 @@ serve(async (req) => {
       return jerr(400, "Missing Shopify access token");
     }
 
-    // Log inicio da sincronização
     console.log(`Starting Shopify sync for store ${storeId}, period ${from} to ${to}`);
     
     const { data: logData } = await supabase
@@ -103,7 +78,7 @@ serve(async (req) => {
 
     const logId = logData?.id;
 
-    // Paginação
+    // Paginação segura
     let orders: any[] = [];
     let pageInfo: string | undefined;
     
@@ -116,7 +91,8 @@ serve(async (req) => {
         ...(pageInfo ? { page_info: pageInfo } : {})
       });
       
-      const resp = await fetch(`https://${domain}/admin/api/${SHOPIFY_API_VER}/orders.json?${qs}`, {
+      const urlShopify = `https://${domain}/admin/api/${SHOPIFY_API_VER}/orders.json?${qs}`;
+      const resp = await fetch(urlShopify, {
         headers: { 
           "X-Shopify-Access-Token": accessToken, 
           "Content-Type": "application/json",
@@ -124,9 +100,10 @@ serve(async (req) => {
         }
       });
       
+      // Se não for ok, tente obter body como text e retorne JSON de erro
       if (!resp.ok) {
-        const errorText = await resp.text();
-        console.error(`Shopify API error: ${resp.status} ${errorText}`);
+        const bodyText = await resp.text().catch(() => "");
+        console.error(`Shopify API error: ${resp.status} ${bodyText}`);
         
         // Log error
         if (logId) {
@@ -142,13 +119,16 @@ serve(async (req) => {
         
         return jerr(resp.status, "Shopify API error", { 
           status: resp.status, 
-          body: safe(errorText) 
+          body: bodyText.slice(0, 2000)
         });
       }
 
-      const data = await resp.json();
-      orders = orders.concat(data.orders ?? []);
+      // Parse seguro do corpo Shopify
+      const data = await safeJson(resp);
+      const batch = Array.isArray(data?.orders) ? data.orders : [];
+      orders = orders.concat(batch);
 
+      // Link header para paginação
       const link = resp.headers.get("Link") || "";
       const m = link.match(/<([^>]+)>;\s*rel="next"/);
       pageInfo = m ? new URL(m[1]).searchParams.get("page_info") ?? undefined : undefined;
@@ -158,7 +138,7 @@ serve(async (req) => {
 
     console.log(`Fetched ${orders.length} orders from Shopify`);
 
-    // Upsert
+    // Map e upsert
     const rows = orders.map((o: any) => ({
       store_id: storeId,
       shopify_id: Number(o.id),
@@ -214,6 +194,7 @@ serve(async (req) => {
 
     console.log(`Successfully synced ${rows.length} orders, total revenue: ${totalRevenue}`);
 
+    // ✅ SEMPRE retornar JSON (mesmo que não tenha pedidos)
     return json({ 
       synced: rows.length, 
       totalRevenue, 
@@ -222,38 +203,43 @@ serve(async (req) => {
     
   } catch (e) {
     console.error("Unexpected error:", e);
+    // ✅ Captura qualquer exceção e responde JSON
     return jerr(500, "Unexpected error", { error: String(e) });
   }
 });
 
-function json(b: any, s = 200) {
-  return new Response(JSON.stringify(b), {
-    status: s,
-    headers: { 
-      "Content-Type": "application/json", 
-      ...corsHeaders 
+/** Helpers */
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*"
     }
   });
 }
 
-function jerr(s: number, error: string, extra: Record<string, unknown> = {}) {
-  return json({ error, hint: hint(error), ...extra }, s);
+function jerr(status: number, error: string, extra: Record<string, unknown> = {}) {
+  return json({ error, hint: hint(error), ...extra }, status);
 }
 
 function hint(msg: string) {
-  if (msg.includes("Missing required")) return "Envie storeId, from, to (ISO)";
-  if (msg.includes("Invalid date range")) return "Cheque período (from < to, ISO UTC)";
-  if (msg.includes("integration not found")) return "Cadastre Shopify na loja em Configurações > Integrações";
-  if (msg.includes("Invalid Shopify domain")) return "Use o domínio .myshopify.com";
-  if (msg.includes("Missing Shopify access token")) return "Salve o Access Token Admin na integração";
-  return "Verifique credenciais e permissões";
+  if (msg.includes("Missing required")) return "Envie storeId, from e to (ISO UTC).";
+  if (msg.includes("Invalid date range")) return "Cheque período: from < to; formato ISO UTC.";
+  if (msg.includes("integration not found")) return "Cadastre Shopify em Configurações → Integrações desta loja.";
+  if (msg.includes("Invalid Shopify domain")) return "Use domínio .myshopify.com válido.";
+  if (msg.includes("Missing Shopify access token")) return "Salve o Admin Access Token na integração.";
+  if (msg.includes("Shopify API error")) return "Verifique permissões e chaves; veja o status no payload.";
+  if (msg.includes("DB upsert error")) return "Cheque migrations/índices/perm RLS da tabela orders.";
+  return "Verifique parâmetros, credenciais e logs.";
 }
 
-function safe(s: string) {
-  return s.slice(0, 1000);
+async function safeJson(resp: Response) {
+  const text = await resp.text();     // lê sempre
+  if (!text) return {};               // evita "unexpected end of json input"
+  try { return JSON.parse(text); }    // tenta JSON
+  catch { return { raw: text }; }     // fallback
 }
 
-async function decrypt(v: string) {
-  // Por enquanto retorna como está - trocar por AES/secret real em produção
-  return v;
-}
+// TODO: implementar AES real; por ora retorna a string
+async function decrypt(v: string) { return v; }

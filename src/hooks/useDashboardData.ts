@@ -214,14 +214,44 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
+  // Helper para parsing seguro de JSON
+  const fetchJsonSafe = async (input: RequestInfo, init?: RequestInit) => {
+    const resp = await fetch(input, { 
+      ...init, 
+      headers: { 
+        ...(init?.headers || {}), 
+        'Accept': 'application/json' 
+      } 
+    });
+    
+    let data: any = null;
+    const text = await resp.text(); // ler sempre
+    
+    if (text) { 
+      try { 
+        data = JSON.parse(text); 
+      } catch { 
+        data = { raw: text }; 
+      } 
+    }
+    
+    if (!resp.ok) {
+      const err = (data && (data.error || data.message)) || `HTTP ${resp.status}`;
+      const hint = data?.hint;
+      throw new Error(hint ? `${err} — ${hint}` : err);
+    }
+    
+    return data ?? {};
+  };
+
   const syncData = async () => {
     setIsSyncing(true);
     
     try {
       const { startDate, endDate } = getPeriodDates(period);
       
-      // Usar a nova Edge Function corrigida
-      const response = await fetch(
+      // Usar fetchJsonSafe para evitar "unexpected end of json input"
+      const data = await fetchJsonSafe(
         `/functions/v1/shopify-orders-sync?storeId=${storeId}&from=${startDate.toISOString()}&to=${endDate.toISOString()}`,
         {
           method: 'POST',
@@ -231,12 +261,6 @@ export const useDashboardData = (storeId: string, period: string) => {
           },
         }
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro na sincronização');
-      }
 
       if (data.synced !== undefined) {
         toast({
