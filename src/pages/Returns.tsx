@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, Filter, Search, ExternalLink, Settings, User, Calendar } from 'lucide-react';
+import { Plus, Filter, Search, ExternalLink, Settings, User, Calendar, Menu } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,6 +51,7 @@ const originLabel = (origin?: string): 'Interna' | 'Link público' => {
 const Returns = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const { returns: rawReturns, loading, refetch } = useReturnsHook(storeId as string);
   const { stores } = useStores();
@@ -136,35 +138,36 @@ const Returns = () => {
 
   const KanbanCard = ({ item }: { item: UIReturn }) => (
     <Card className="bg-white border border-border shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer group" onClick={() => handleReturnClick(item)}>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-3 sm:p-4 space-y-2 sm:space-y-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="font-semibold text-brand-600 text-sm">{item.id}</p>
-            <p className="text-xs text-ink-3">{item.pedido}</p>
+            <p className="font-semibold text-brand-600 text-sm truncate max-w-[120px] sm:max-w-none">{item.id}</p>
+            <p className="text-xs text-ink-3 truncate">{item.pedido}</p>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <ExternalLink className="h-3 w-3 text-ink-3" />
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <User className="h-3 w-3 text-ink-3" />
-          <span className="text-sm font-medium text-ink">{item.cliente}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <User className="h-3 w-3 text-ink-3 shrink-0" />
+          <span className="text-sm font-medium text-ink truncate">{item.cliente}</span>
         </div>
 
         <div className="space-y-2">
           <Badge className="bg-warning/10 text-warning border-warning/20 text-xs font-medium px-2 py-0.5">{item.tipo}</Badge>
-          <p className="text-xs text-ink-2 leading-relaxed">Motivo: {item.motivo || '-'}</p>
+          <p className="text-xs text-ink-2 leading-relaxed line-clamp-2">Motivo: {item.motivo || '-'}</p>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between pt-2 gap-2">
+          <div className="flex items-center gap-1 min-w-0">
             <span className="text-xs text-ink-3">$</span>
-            <span className="text-sm font-semibold text-success">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-semibold text-success truncate">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <Calendar className="h-3 w-3 text-ink-3" />
-            <span className="text-xs text-ink-3">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            <span className="text-xs text-ink-3 hidden sm:inline">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            <span className="text-xs text-ink-3 sm:hidden">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
           </div>
         </div>
       </CardContent>
@@ -173,122 +176,144 @@ const Returns = () => {
 
   return (
     <div className="min-h-screen bg-bg-page">
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-ink">Trocas & Devoluções</h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-ink truncate">Trocas & Devoluções</h1>
             <p className="text-ink-2 text-sm">{uiReturns.length} solicitações • {statusCounts.pendentes} pendentes</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size={isMobile ? "sm" : "default"} className="flex-1 sm:flex-initial">
               <Settings className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">Configurar</span>}
             </Button>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Solicitação
+            <Button size={isMobile ? "sm" : "default"} className="flex-1 sm:flex-initial">
+              <Plus className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">Nova Solicitação</span>}
             </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-500">{statusCounts.abertas}</div>
-              <div className="text-sm text-ink-2">Abertas</div>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-lg sm:text-2xl font-bold text-orange-500">{statusCounts.abertas}</div>
+              <div className="text-xs sm:text-sm text-ink-2">Abertas</div>
             </CardContent>
           </Card>
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-500">{statusCounts.aprovadas}</div>
-              <div className="text-sm text-ink-2">Aprovadas</div>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-lg sm:text-2xl font-bold text-green-500">{statusCounts.aprovadas}</div>
+              <div className="text-xs sm:text-sm text-ink-2">Aprovadas</div>
             </CardContent>
           </Card>
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-500">{statusCounts.concluidas}</div>
-              <div className="text-sm text-ink-2">Concluídas</div>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-lg sm:text-2xl font-bold text-blue-500">{statusCounts.concluidas}</div>
+              <div className="text-xs sm:text-sm text-ink-2">Concluídas</div>
             </CardContent>
           </Card>
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-gray-500">{statusCounts.recusadas}</div>
-              <div className="text-sm text-ink-2">Recusadas</div>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-lg sm:text-2xl font-bold text-gray-500">{statusCounts.recusadas}</div>
+              <div className="text-xs sm:text-sm text-ink-2">Recusadas</div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="kanban" className="space-y-6">
-          <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-background border border-border/80 p-1.5 text-muted-foreground w-full max-w-md shadow-lg shadow-black/5">
-            <TabsTrigger value="kanban" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+        <Tabs defaultValue={isMobile ? "lista" : "kanban"} className="space-y-4 sm:space-y-6">
+          <TabsList className="inline-flex h-10 sm:h-12 items-center justify-center rounded-xl bg-background border border-border/80 p-1 sm:p-1.5 text-muted-foreground w-full shadow-lg shadow-black/5">
+            <TabsTrigger value="kanban" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
               <span className="relative z-10">Kanban</span>
             </TabsTrigger>
-            <TabsTrigger value="lista" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+            <TabsTrigger value="lista" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
               <span className="relative z-10">Lista</span>
             </TabsTrigger>
-            <TabsTrigger value="resumo" className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
+            <TabsTrigger value="resumo" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
               <span className="relative z-10">Resumo</span>
             </TabsTrigger>
             <TabsTrigger value="config" asChild>
-              <Link to={`/store/${storeId}/returns/setup`} className="relative px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg group">
-                <span className="relative z-10">Configurar</span>
+              <Link to={`/store/${storeId}/returns/setup`} className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg group">
+                <span className="relative z-10">Config</span>
               </Link>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="kanban" className="space-y-6">
+          <TabsContent value="kanban" className="space-y-4 sm:space-y-6">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              <div className="relative flex-1 max-w-full sm:max-w-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por código, pedido ou cliente..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-8 bg-white border-gray-200" />
+                <Input 
+                  placeholder={isMobile ? "Buscar..." : "Buscar por código, pedido ou cliente..."} 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="pl-8 bg-white border-gray-200 text-sm" 
+                />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48 bg-white border-gray-200">
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="Nova">Nova</SelectItem>
-                  <SelectItem value="Em análise">Em análise</SelectItem>
-                  <SelectItem value="Aprovada">Aprovada</SelectItem>
-                  <SelectItem value="Concluída">Concluída</SelectItem>
-                  <SelectItem value="Recusada">Recusada</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-48 bg-white border-gray-200">
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="Devolução">Devolução</SelectItem>
-                  <SelectItem value="Troca">Troca</SelectItem>
-                </SelectContent>
-              </Select>
+              {!isMobile && (
+                <>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="Nova">Nova</SelectItem>
+                      <SelectItem value="Em análise">Em análise</SelectItem>
+                      <SelectItem value="Aprovada">Aprovada</SelectItem>
+                      <SelectItem value="Concluída">Concluída</SelectItem>
+                      <SelectItem value="Recusada">Recusada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                      <SelectValue placeholder="Tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="Devolução">Devolução</SelectItem>
+                      <SelectItem value="Troca">Troca</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              {isMobile && (
+                <Button variant="outline" size="sm" className="w-full bg-white border-gray-200">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filtros
+                </Button>
+              )}
             </div>
 
             {/* Kanban Board */}
             <div className="overflow-x-auto pb-4">
-              <div className="grid grid-cols-7 gap-4 min-h-[70vh] min-w-[1400px]">
-                {filteredColumns.map((column) => (
-                  <div key={column.id} className="min-w-[200px] bg-white rounded-xl border border-border shadow-xs">
-                    <div className="p-4 border-b border-border">
+              <div className={`grid gap-3 sm:gap-4 min-h-[60vh] sm:min-h-[70vh] ${
+                isMobile 
+                  ? 'grid-cols-2 min-w-[600px]' 
+                  : 'grid-cols-7 min-w-[1400px]'
+              }`}>
+                {(isMobile ? filteredColumns.slice(0, 4) : filteredColumns).map((column) => (
+                  <div key={column.id} className={`bg-white rounded-xl border border-border shadow-xs ${
+                    isMobile ? 'min-w-[280px]' : 'min-w-[200px]'
+                  }`}>
+                    <div className="p-3 sm:p-4 border-b border-border">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-ink">{column.title}</h3>
-                        <div className="flex items-center justify-center w-6 h-6 bg-ink-3/10 rounded-full">
+                        <h3 className="text-xs sm:text-sm font-semibold text-ink truncate">{column.title}</h3>
+                        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-ink-3/10 rounded-full shrink-0">
                           <span className="text-xs font-medium text-ink-2">{(column as any).items.length}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 space-y-3 min-h-[calc(70vh-80px)] max-h-[calc(70vh-80px)] overflow-y-auto">
+                    <div className="p-2 sm:p-3 space-y-2 sm:space-y-3 min-h-[calc(60vh-60px)] sm:min-h-[calc(70vh-80px)] max-h-[calc(60vh-60px)] sm:max-h-[calc(70vh-80px)] overflow-y-auto">
                       {(column as any).items.map((item: UIReturn) => (
                         <KanbanCard key={item.id} item={item} />
                       ))}
                       {(column as any).items.length === 0 && (
-                        <div className="text-center py-12">
-                          <p className="text-sm text-ink-3">Nenhum item</p>
+                        <div className="text-center py-8 sm:py-12">
+                          <p className="text-xs sm:text-sm text-ink-3">Nenhum item</p>
                         </div>
                       )}
                     </div>
@@ -298,122 +323,193 @@ const Returns = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="lista" className="space-y-6">
+          <TabsContent value="lista" className="space-y-4 sm:space-y-6">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              <div className="relative flex-1 max-w-full sm:max-w-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por código, pedido ou cliente..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-8 bg-white border-gray-200" />
+                <Input 
+                  placeholder={isMobile ? "Buscar..." : "Buscar por código, pedido ou cliente..."} 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="pl-8 bg-white border-gray-200 text-sm" 
+                />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48 bg-white border-gray-200">
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="Nova">Nova</SelectItem>
-                  <SelectItem value="Em análise">Em análise</SelectItem>
-                  <SelectItem value="Aprovada">Aprovada</SelectItem>
-                  <SelectItem value="Concluída">Concluída</SelectItem>
-                  <SelectItem value="Recusada">Recusada</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-48 bg-white border-gray-200">
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="Devolução">Devolução</SelectItem>
-                  <SelectItem value="Troca">Troca</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="bg-white border-gray-200">
-                <Filter className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
+              {!isMobile && (
+                <>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="Nova">Nova</SelectItem>
+                      <SelectItem value="Em análise">Em análise</SelectItem>
+                      <SelectItem value="Aprovada">Aprovada</SelectItem>
+                      <SelectItem value="Concluída">Concluída</SelectItem>
+                      <SelectItem value="Recusada">Recusada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                      <SelectValue placeholder="Tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="Devolução">Devolução</SelectItem>
+                      <SelectItem value="Troca">Troca</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" className="bg-white border-gray-200">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Exportar
+                  </Button>
+                </>
+              )}
+              {isMobile && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 bg-white border-gray-200">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filtros
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 bg-white border-gray-200">
+                    <Menu className="h-4 w-4 mr-2" />
+                    Menu
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Header with title and count */}
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-ink">Solicitações ({uiReturns.length})</h2>
-              <Button variant="outline" className="bg-white border-gray-200">
-                <Filter className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
+              <h2 className="text-base sm:text-lg font-semibold text-ink">Solicitações ({uiReturns.length})</h2>
+              {!isMobile && (
+                <Button variant="outline" className="bg-white border-gray-200">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              )}
             </div>
 
             {/* Lista */}
             <Card className="bg-white border border-gray-200 shadow-sm">
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="border-b border-gray-200 bg-gray-50">
-                      <tr className="text-left">
-                        <th className="p-4 font-medium text-ink-2 text-sm">Código</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Pedido</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Cliente</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Tipo</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Status</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Valor</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Data</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm">Origem</th>
-                        <th className="p-4 font-medium text-ink-2 text-sm"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {uiReturns
-                        .filter((item) => {
-                          const matchesSearch =
-                            item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            item.cliente.toLowerCase().includes(searchTerm.toLowerCase());
-                          const matchesStatus = statusFilter === 'all' || item.status === (statusFilter as any);
-                          const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
-                          return matchesSearch && matchesStatus && matchesType;
-                        })
-                        .map((item) => (
-                          <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => handleReturnClick(item)}>
-                            <td className="p-4">
-                              <span className="font-medium text-brand-600">{item.id}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-ink">{item.pedido}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-ink">{item.cliente}</span>
-                            </td>
-                            <td className="p-4">
-                              <Badge variant="secondary" className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0`}>
+                {isMobile ? (
+                  // Mobile Card Layout
+                  <div className="space-y-3 p-3">
+                    {uiReturns
+                      .filter((item) => {
+                        const matchesSearch =
+                          item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.cliente.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesStatus = statusFilter === 'all' || item.status === (statusFilter as any);
+                        const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
+                        return matchesSearch && matchesStatus && matchesType;
+                      })
+                      .map((item) => (
+                        <Card key={item.id} className="border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleReturnClick(item)}>
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <p className="font-semibold text-brand-600 text-sm truncate">{item.id}</p>
+                                <p className="text-xs text-ink-3 truncate">Pedido: {item.pedido}</p>
+                              </div>
+                              <Badge variant="secondary" className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0 shrink-0`}>
                                 {item.tipo}
                               </Badge>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-ink text-sm">{item.status}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className="font-medium text-green-600">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-ink-3 text-sm">
-                                {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
-                            </td>
-                            <td className="p-4">
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-ink truncate">{item.cliente}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-ink-2">{item.status}</span>
+                                <span className="font-medium text-green-600">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between text-xs text-ink-3">
+                              <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
                               <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600'} text-xs`}>
                                 {item.origem === 'Link público' ? 'Portal' : item.origem}
                               </Badge>
-                            </td>
-                            <td className="p-4">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <ExternalLink className="h-4 w-4 text-ink-3" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                ) : (
+                  // Desktop Table Layout
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-gray-200 bg-gray-50">
+                        <tr className="text-left">
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Código</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Pedido</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Cliente</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Tipo</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Status</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Valor</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Data</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Origem</th>
+                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uiReturns
+                          .filter((item) => {
+                            const matchesSearch =
+                              item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              item.pedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              item.cliente.toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchesStatus = statusFilter === 'all' || item.status === (statusFilter as any);
+                            const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
+                            return matchesSearch && matchesStatus && matchesType;
+                          })
+                          .map((item) => (
+                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => handleReturnClick(item)}>
+                              <td className="p-3 sm:p-4">
+                                <span className="font-medium text-brand-600 text-sm truncate block max-w-[100px]">{item.id}</span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="text-ink text-sm truncate block max-w-[120px]">{item.pedido}</span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="text-ink text-sm truncate block max-w-[150px]">{item.cliente}</span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <Badge variant="secondary" className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0 text-xs`}>
+                                  {item.tipo}
+                                </Badge>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="text-ink text-xs sm:text-sm">{item.status}</span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="font-medium text-green-600 text-sm">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="text-ink-3 text-xs sm:text-sm">
+                                  {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600'} text-xs`}>
+                                  {item.origem === 'Link público' ? 'Portal' : item.origem}
+                                </Badge>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-ink-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                
                 {uiReturns.filter((item) => {
                   const matchesSearch =
                     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -423,17 +519,17 @@ const Returns = () => {
                   const matchesType = typeFilter === 'all' || item.tipo === typeFilter;
                   return matchesSearch && matchesStatus && matchesType;
                 }).length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-ink-3">Nenhuma solicitação encontrada</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <p className="text-ink-3 text-sm">Nenhuma solicitação encontrada</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="resumo" className="space-y-6">
+          <TabsContent value="resumo" className="space-y-4 sm:space-y-6">
             {/* Cards de Resumo */}
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Card className="glass-card">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
