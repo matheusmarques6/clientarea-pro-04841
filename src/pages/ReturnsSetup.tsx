@@ -129,19 +129,37 @@ const ReturnsSetup = () => {
       setLogoFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
+        const previewUrl = e.target?.result as string;
+        setLogoPreview(previewUrl);
+        // Also update the theme state to trigger preview updates
+        setTheme(prev => ({ ...prev, logoUrl: previewUrl }));
       };
       reader.readAsDataURL(file);
+      
+      toast({
+        title: "Logo carregada",
+        description: "Logo foi carregada e será enviada ao salvar as configurações",
+      });
     }
   };
 
   const handleSave = async () => {
     try {
+      toast({
+        title: "Salvando...",
+        description: "Salvando configurações do portal público",
+      });
+
       let logoUrl = theme.logoUrl;
       
       // Upload logo if a new file was selected
       if (logoFile) {
+        toast({
+          title: "Enviando logo...",
+          description: "Fazendo upload da nova logo",
+        });
         logoUrl = await uploadLogo(logoFile);
+        setTheme(prev => ({ ...prev, logoUrl }));
       }
 
       // Generate clean slug from store name
@@ -177,6 +195,11 @@ const ReturnsSetup = () => {
       
       // Clear logo file after successful upload
       setLogoFile(null);
+      
+      toast({
+        title: "Configurações salvas!",
+        description: `Portal configurado com sucesso. Idioma: ${returnsLanguage === 'pt' ? 'Português' : returnsLanguage === 'en' ? 'English' : 'Español'}`,
+      });
     } catch (error) {
       // Error handled in saveConfig
     }
@@ -263,6 +286,11 @@ const ReturnsSetup = () => {
                       <Button variant="outline" size="sm" onClick={() => {
                         setLogoPreview(null);
                         setLogoFile(null);
+                        setTheme(prev => ({ ...prev, logoUrl: undefined }));
+                        toast({
+                          title: "Logo removida",
+                          description: "Logo foi removida do preview",
+                        });
                       }}>
                         Remover
                       </Button>
@@ -279,7 +307,10 @@ const ReturnsSetup = () => {
                     <label htmlFor="logo-upload" className="cursor-pointer block text-center">
                       <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
-                        Clique para fazer upload da logo (máx. 5MB)
+                        Clique para fazer upload da logo
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PNG, JPG ou SVG (máx. 5MB)
                       </p>
                     </label>
                   </div>
@@ -294,7 +325,14 @@ const ReturnsSetup = () => {
                     <input
                       type="color"
                       value={theme.primaryColor}
-                      onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        setTheme({...theme, primaryColor: newColor});
+                        toast({
+                          title: "Cor atualizada",
+                          description: "Cor principal atualizada no preview",
+                        });
+                      }}
                       className="w-12 h-10 rounded border cursor-pointer"
                     />
                     <Input
@@ -311,7 +349,10 @@ const ReturnsSetup = () => {
                     <input
                       type="color"
                       value={theme.secondaryColor}
-                      onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        setTheme({...theme, secondaryColor: newColor});
+                      }}
                       className="w-12 h-10 rounded border cursor-pointer"
                     />
                     <Input
@@ -328,7 +369,10 @@ const ReturnsSetup = () => {
                     <input
                       type="color"
                       value={theme.backgroundColor}
-                      onChange={(e) => setTheme({...theme, backgroundColor: e.target.value})}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        setTheme({...theme, backgroundColor: newColor});
+                      }}
                       className="w-12 h-10 rounded border cursor-pointer"
                     />
                     <Input
@@ -345,7 +389,10 @@ const ReturnsSetup = () => {
                     <input
                       type="color"
                       value={theme.textColor}
-                      onChange={(e) => setTheme({...theme, textColor: e.target.value})}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        setTheme({...theme, textColor: newColor});
+                      }}
                       className="w-12 h-10 rounded border cursor-pointer"
                     />
                     <Input
@@ -489,7 +536,27 @@ const ReturnsSetup = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="pt" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-foreground">Idioma padrão do portal</Label>
+                  <Select value={returnsLanguage} onValueChange={setReturnsLanguage}>
+                    <SelectTrigger className="text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="pt" className="text-foreground">Português</SelectItem>
+                      <SelectItem value="en" className="text-foreground">English</SelectItem>
+                      <SelectItem value="es" className="text-foreground">Español</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <Label className="text-foreground text-base font-medium">Personalizar mensagens por idioma</Label>
+                </div>
+              </div>
+              
+              <Tabs value={returnsLanguage} onValueChange={setReturnsLanguage} className="space-y-4 mt-4">
                 <TabsList className="grid w-full grid-cols-3 bg-muted">
                   <TabsTrigger value="pt" className="text-foreground data-[state=active]:text-foreground">Português</TabsTrigger>
                   <TabsTrigger value="en" className="text-foreground data-[state=active]:text-foreground">English</TabsTrigger>
@@ -543,8 +610,11 @@ const ReturnsSetup = () => {
         <div className="space-y-4 sm:space-y-6">
           {/* Preview Card */}
           <Card className="bg-card border-border shadow-sm">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-foreground">Preview do Portal</CardTitle>
+              <Badge variant="outline" className="text-xs">
+                Idioma: {returnsLanguage === 'pt' ? 'Português' : returnsLanguage === 'en' ? 'English' : 'Español'}
+              </Badge>
             </CardHeader>
             <CardContent>
               <div 

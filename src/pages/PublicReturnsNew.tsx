@@ -34,7 +34,7 @@ const PublicReturnsNew = () => {
   const [loading, setLoading] = useState(true);
   const [validationResult, setValidationResult] = useState<any>(null);
   
-  const language = 'pt'; // Default to Portuguese, can be made dynamic later
+  const [language, setLanguage] = useState('pt');
   
   const [formData, setFormData] = useState({
     pedido: '',
@@ -77,6 +77,9 @@ const PublicReturnsNew = () => {
           auto_rules: linkData.auto_rules as any,
           messages: linkData.messages as any
         });
+        
+        // Set language from config
+        setLanguage((linkData.auto_rules as any)?.language || 'pt');
       } catch (err: any) {
         console.error('Error fetching store data:', err);
         toast({
