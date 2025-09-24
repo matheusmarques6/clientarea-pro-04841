@@ -70,8 +70,8 @@ serve(async (req) => {
       return new Response('Access denied to store', { status: 403, headers: corsHeaders })
     }
 
-    // Check for existing processing job
-    const { data: existingJob } = await supabase
+    // Check for existing processing job for this specific store and period
+    const { data: existingJob, error: jobCheckError } = await supabase
       .from('n8n_jobs')
       .select('*')
       .eq('store_id', store_id)
@@ -80,17 +80,29 @@ serve(async (req) => {
       .in('status', ['QUEUED', 'PROCESSING'])
       .maybeSingle()
 
+    console.log('Existing job check:', { 
+      existingJob, 
+      jobCheckError,
+      store_id,
+      period_start,
+      period_end
+    })
+
     if (existingJob) {
+      console.log('Job already exists for this store and period:', existingJob)
       return new Response(JSON.stringify({
         job_id: existingJob.id,
         request_id: existingJob.request_id,
         status: existingJob.status,
-        message: 'Job already in progress'
+        message: `Job already in progress for store ${store_id} (${period_start} to ${period_end})`,
+        store_id: store_id
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    console.log('No existing job found, proceeding with new job creation...')
 
     // Get store credentials and details
     const { data: store, error: storeError } = await supabase
@@ -113,6 +125,8 @@ serve(async (req) => {
     // Generate request ID
     const request_id = generateRequestId()
 
+    console.log('Creating new job with request_id:', request_id)
+
     // Create job record
     const { data: job, error: jobError } = await supabase
       .from('n8n_jobs')
@@ -127,7 +141,9 @@ serve(async (req) => {
         meta: {
           n8n_webhook_triggered_at: new Date().toISOString(),
           store_name: store.name,
-          shopify_domain: store.shopify_domain
+          shopify_domain: store.shopify_domain,
+          user_id: user.id,
+          user_email: user.email
         }
       })
       .select()
@@ -137,6 +153,8 @@ serve(async (req) => {
       console.error('Error creating job:', jobError)
       return new Response('Failed to create job', { status: 500, headers: corsHeaders })
     }
+
+    console.log('Job created successfully:', job.id, 'for store:', store_id)
 
     // Prepare n8n webhook payload with complete store data
     const n8nPayload = {
@@ -196,6 +214,8 @@ serve(async (req) => {
     }
 
     try {
+      console.log('Calling N8N webhook for job:', job.id, 'store:', store_id)
+      
       const n8nHeaders = {
         'Content-Type': 'application/json'
       }
@@ -206,9 +226,13 @@ serve(async (req) => {
         body: JSON.stringify(n8nPayload)
       })
 
+      console.log('N8N webhook response status:', n8nResponse.status)
+
       if (!n8nResponse.ok) {
         throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`)
       }
+
+      console.log('N8N webhook called successfully for job:', job.id)
 
       // Update job status to processing
       await supabase
@@ -228,10 +252,16 @@ serve(async (req) => {
         })
         .eq('id', job.id)
 
+      console.log('Job successfully started and webhook triggered for store:', store_id)
+      
       return new Response(JSON.stringify({
         job_id: job.id,
         request_id: request_id,
-        status: 'PROCESSING'
+        status: 'PROCESSING',
+        store_id: store_id,
+        period_start: period_start,
+        period_end: period_end,
+        message: 'Webhook triggered successfully'
       }), {
         status: 202,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
