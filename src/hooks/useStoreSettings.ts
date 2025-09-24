@@ -49,35 +49,22 @@ export const useStoreSettings = (storeId: string) => {
       setLoading(true);
       setError(null);
       
-      // Fetch integrations
-      const { data: integrations } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('store_id', storeId);
+      // Fetch store data directly
+      const { data: store } = await supabase
+        .from('stores')
+        .select('shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
+        .eq('id', storeId)
+        .single();
 
-      // Create settings object from integrations
-      const integrationsSettings: Partial<StoreSettings> = {};
-      
-      integrations?.forEach(integration => {
-        switch (integration.provider) {
-          case 'shopify':
-            integrationsSettings.shopifyUrl = integration.extra && typeof integration.extra === 'object' && 'url' in integration.extra ? integration.extra.url as string : '';
-            integrationsSettings.shopifyToken = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
-            break;
-          case 'klaviyo':
-            integrationsSettings.klaviyoPublicKey = integration.key_public || '';
-            integrationsSettings.klaviyoPrivateKey = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
-            break;
-          case 'sms':
-            integrationsSettings.smsApiKey = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
-            break;
-          case 'whatsapp':
-            integrationsSettings.whatsappApiKey = integration.key_secret_encrypted ? '••••••••••••••••••••••••••••••••' : '';
-            break;
-        }
-      });
-
-      setSettings(prev => ({ ...prev, ...integrationsSettings }));
+      if (store) {
+        setSettings(prev => ({
+          ...prev,
+          shopifyUrl: store.shopify_domain || '',
+          shopifyToken: store.shopify_access_token ? '••••••••••••••••••••••••••••••••' : '',
+          klaviyoPublicKey: store.klaviyo_site_id || '',
+          klaviyoPrivateKey: store.klaviyo_private_key ? '••••••••••••••••••••••••••••••••' : '',
+        }));
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
@@ -99,59 +86,32 @@ export const useStoreSettings = (storeId: string) => {
     try {
       setSettings(newSettings);
       
-      // Upsert integrations
-      const integrations = [];
+      // Prepare update object for stores table
+      const storeUpdate: any = {};
       
-      // Shopify integration
-      if (newSettings.shopifyUrl || newSettings.shopifyToken) {
-        integrations.push({
-          store_id: storeId,
-          provider: 'shopify',
-          key_public: newSettings.shopifyUrl,
-          key_secret_encrypted: newSettings.shopifyToken === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.shopifyToken,
-          extra: { url: newSettings.shopifyUrl },
-          status: (newSettings.shopifyUrl && newSettings.shopifyToken) ? 'connected' : 'disconnected'
-        });
+      // Only update fields that are not masked (••••••••••••••••••••••••••••••••)
+      if (newSettings.shopifyUrl !== undefined) {
+        storeUpdate.shopify_domain = newSettings.shopifyUrl || null;
       }
       
-      // Klaviyo integration
-      if (newSettings.klaviyoPublicKey || newSettings.klaviyoPrivateKey) {
-        integrations.push({
-          store_id: storeId,
-          provider: 'klaviyo',
-          key_public: newSettings.klaviyoPublicKey?.startsWith('pk_') ? newSettings.klaviyoPublicKey : newSettings.klaviyoPublicKey,
-          key_secret_encrypted: newSettings.klaviyoPrivateKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.klaviyoPrivateKey,
-          status: (newSettings.klaviyoPublicKey && newSettings.klaviyoPrivateKey) ? 'connected' : 'disconnected'
-        });
+      if (newSettings.shopifyToken && newSettings.shopifyToken !== '••••••••••••••••••••••••••••••••') {
+        storeUpdate.shopify_access_token = newSettings.shopifyToken || null;
       }
       
-      // SMS integration
-      if (newSettings.smsApiKey) {
-        integrations.push({
-          store_id: storeId,
-          provider: 'sms',
-          key_secret_encrypted: newSettings.smsApiKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.smsApiKey,
-          status: newSettings.smsApiKey ? 'connected' : 'disconnected'
-        });
+      if (newSettings.klaviyoPublicKey !== undefined) {
+        storeUpdate.klaviyo_site_id = newSettings.klaviyoPublicKey || null;
       }
       
-      // WhatsApp integration
-      if (newSettings.whatsappApiKey) {
-        integrations.push({
-          store_id: storeId,
-          provider: 'whatsapp',
-          key_secret_encrypted: newSettings.whatsappApiKey === '••••••••••••••••••••••••••••••••' ? undefined : newSettings.whatsappApiKey,
-          status: newSettings.whatsappApiKey ? 'connected' : 'disconnected'
-        });
+      if (newSettings.klaviyoPrivateKey && newSettings.klaviyoPrivateKey !== '••••••••••••••••••••••••••••••••') {
+        storeUpdate.klaviyo_private_key = newSettings.klaviyoPrivateKey || null;
       }
       
-      // Save integrations to database
-      for (const integration of integrations) {
+      // Update stores table
+      if (Object.keys(storeUpdate).length > 0) {
         const { error } = await supabase
-          .from('integrations')
-          .upsert(integration, {
-            onConflict: 'store_id,provider'
-          });
+          .from('stores')
+          .update(storeUpdate)
+          .eq('id', storeId);
           
         if (error) {
           throw error;
@@ -160,8 +120,11 @@ export const useStoreSettings = (storeId: string) => {
       
       toast({
         title: "Configurações salvas",
-        description: "Todas as configurações foram atualizadas com sucesso no banco de dados",
+        description: "Credenciais da loja atualizadas com sucesso!",
       });
+      
+      // Refresh settings to show masked values
+      await fetchSettings();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       console.error('Error saving settings:', err);
