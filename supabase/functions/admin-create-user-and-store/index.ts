@@ -119,7 +119,7 @@ serve(async (req: Request) => {
     if (foundAuthUser) {
       authUserId = foundAuthUser.id
       const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
-      if (!alreadyConfirmed) {
+      if (!alreadyConfirmed && authUserId) {
         await supabaseAdmin.auth.admin.updateUserById(authUserId, {
           email_confirm: true,
           user_metadata: { ...(foundAuthUser.user_metadata || {}), name: user_name, email_verified: true, email_confirmed_at: new Date().toISOString() }
@@ -170,7 +170,9 @@ serve(async (req: Request) => {
     if (publicUserError) {
       console.error('admin-create-user-and-store: Public user creation error:', publicUserError)
       // Rollback: delete auth user
-      await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      if (authUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      }
       return new Response(
         JSON.stringify({ error: publicUserError.message || 'Falha ao salvar perfil do usuário' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -197,8 +199,10 @@ serve(async (req: Request) => {
     if (storeError) {
       console.error('admin-create-user-and-store: Store creation error:', storeError)
       // Rollback: delete user and auth user
-      await supabaseAdmin.from('users').delete().eq('id', authUserId)
-      await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      if (authUserId) {
+        await supabaseAdmin.from('users').delete().eq('id', authUserId)
+        await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      }
       return new Response(
         JSON.stringify({ error: storeError.message || 'Falha ao criar loja' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -226,8 +230,10 @@ serve(async (req: Request) => {
       console.error('admin-create-user-and-store: Association errors:', { associationError, vusError })
       // Rollback: delete store, user, and auth user
       await supabaseAdmin.from('stores').delete().eq('id', storeData.id)
-      await supabaseAdmin.from('users').delete().eq('id', authUserId)
-      await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      if (authUserId) {
+        await supabaseAdmin.from('users').delete().eq('id', authUserId)
+        await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      }
       return new Response(
         JSON.stringify({ error: (associationError || vusError)?.message || 'Falha ao associar usuário à loja' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

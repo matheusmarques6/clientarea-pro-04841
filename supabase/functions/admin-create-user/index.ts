@@ -110,7 +110,7 @@ serve(async (req: Request) => {
       if (foundAuthUser) {
         authUserId = foundAuthUser.id
         const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
-        if (!alreadyConfirmed) {
+        if (!alreadyConfirmed && authUserId) {
           await supabaseAdmin.auth.admin.updateUserById(authUserId, {
             email_confirm: true,
             user_metadata: { ...(foundAuthUser.user_metadata || {}), email_verified: true, email_confirmed_at: new Date().toISOString() }
