@@ -30,12 +30,23 @@ export const useStores = () => {
         throw new Error('User not authenticated');
       }
 
+      // Ensure public.users id matches auth uid and migrate mappings
+      try {
+        await supabase.rpc('reconcile_user_profile', {
+          _email: user.email ?? '',
+          _auth_id: user.id,
+          _name: (user.user_metadata as any)?.name ?? null,
+        });
+      } catch (e) {
+        console.warn('reconcile_user_profile failed (non-fatal):', e);
+      }
+
       // Check if user is admin
       const { data: userRecord } = await supabase
         .from('users')
         .select('is_admin')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       let query;
       
