@@ -363,54 +363,54 @@ export const useDashboardData = (storeId: string, period: string) => {
       
       console.log('Starting sync for store:', storeId, 'period:', periodStart, 'to', periodEnd);
       
-      // Check for specific stuck jobs for this store and period
+      // Clean up stuck jobs more aggressively - any job older than 30 minutes
       const currentTime = new Date();
-      const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+      const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
       
-      // Check for stuck jobs for this specific store and period combination
-      const { data: stuckJobs } = await supabase
+      // First, clean up any stuck jobs for this store regardless of period (older than 30min)
+      const { data: allStuckJobs } = await supabase
         .from('n8n_jobs')
-        .select('id, status, started_at, period_start, period_end')
+        .select('id, status, started_at, period_start, period_end, request_id')
+        .eq('store_id', storeId)
+        .in('status', ['QUEUED', 'PROCESSING'])
+        .lt('started_at', thirtyMinutesAgo.toISOString());
+      
+      if (allStuckJobs && allStuckJobs.length > 0) {
+        console.log('Found stuck jobs older than 30min, cleaning up:', allStuckJobs);
+        await supabase
+          .from('n8n_jobs')
+          .update({ 
+            status: 'ERROR', 
+            error: 'Job timeout - cleaned up (30min+ old)',
+            finished_at: new Date().toISOString()
+          })
+          .in('id', allStuckJobs.map(job => job.id));
+        
+        console.log('Cleaned up', allStuckJobs.length, 'stuck jobs');
+      }
+      
+      // Double check - clean up any jobs for this specific period that are still stuck (10min+)
+      const tenMinutesAgo = new Date(currentTime.getTime() - 10 * 60 * 1000);
+      
+      const { data: specificStuckJobs } = await supabase
+        .from('n8n_jobs')
+        .select('id, status, started_at')
         .eq('store_id', storeId)
         .eq('period_start', periodStart)
         .eq('period_end', periodEnd)
         .in('status', ['QUEUED', 'PROCESSING'])
-        .lt('started_at', oneHourAgo.toISOString());
+        .lt('started_at', tenMinutesAgo.toISOString());
       
-      if (stuckJobs && stuckJobs.length > 0) {
-        console.log('Found stuck jobs for this store and period, cleaning up:', stuckJobs);
+      if (specificStuckJobs && specificStuckJobs.length > 0) {
+        console.log('Found stuck jobs for this specific period, force cleaning:', specificStuckJobs);
         await supabase
           .from('n8n_jobs')
           .update({ 
             status: 'ERROR', 
-            error: 'Job timeout - cleaned up for new sync attempt',
+            error: 'Job timeout - force cleaned for new sync',
             finished_at: new Date().toISOString()
           })
-          .in('id', stuckJobs.map(job => job.id));
-        
-        console.log('Cleaned up stuck jobs, proceeding with new sync...');
-      }
-      
-      // Also clean up any very old stuck jobs for this store (more than 4 hours)
-      const fourHoursAgo = new Date(currentTime.getTime() - 4 * 60 * 60 * 1000);
-      
-      const { data: veryOldJobs } = await supabase
-        .from('n8n_jobs')
-        .select('id')
-        .eq('store_id', storeId)
-        .in('status', ['QUEUED', 'PROCESSING'])
-        .lt('started_at', fourHoursAgo.toISOString());
-      
-      if (veryOldJobs && veryOldJobs.length > 0) {
-        console.log('Cleaning up very old stuck jobs for store:', storeId, veryOldJobs);
-        await supabase
-          .from('n8n_jobs')
-          .update({ 
-            status: 'ERROR', 
-            error: 'Job timeout - cleaned up (4h+ old)',
-            finished_at: new Date().toISOString()
-          })
-          .in('id', veryOldJobs.map(job => job.id));
+          .in('id', specificStuckJobs.map(job => job.id));
       }
       
       // Start the job

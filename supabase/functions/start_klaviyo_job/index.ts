@@ -70,6 +70,31 @@ serve(async (req) => {
       return new Response('Access denied to store', { status: 403, headers: corsHeaders })
     }
 
+    // Clean up stuck jobs older than 20 minutes before checking for existing jobs
+    const currentTime = new Date()
+    const twentyMinutesAgo = new Date(currentTime.getTime() - 20 * 60 * 1000)
+    
+    const { data: stuckJobs } = await supabase
+      .from('n8n_jobs')
+      .select('id, status, started_at, request_id')
+      .eq('store_id', store_id)
+      .in('status', ['QUEUED', 'PROCESSING'])
+      .lt('started_at', twentyMinutesAgo.toISOString())
+
+    if (stuckJobs && stuckJobs.length > 0) {
+      console.log('Found and cleaning up stuck jobs older than 20min:', stuckJobs.length)
+      await supabase
+        .from('n8n_jobs')
+        .update({ 
+          status: 'ERROR', 
+          error: 'Job timeout - auto cleaned before new sync',
+          finished_at: new Date().toISOString()
+        })
+        .in('id', stuckJobs.map(job => job.id))
+      
+      console.log('Cleaned up stuck jobs:', stuckJobs.map(j => j.request_id))
+    }
+
     // Check for existing processing job for this specific store and period
     const { data: existingJob, error: jobCheckError } = await supabase
       .from('n8n_jobs')
@@ -215,6 +240,13 @@ serve(async (req) => {
 
     try {
       console.log('Calling N8N webhook for job:', job.id, 'store:', store_id)
+      console.log('N8N Webhook URL:', n8nWebhookUrl)
+      console.log('Payload preview:', {
+        storeId: store_id,
+        period: `${period_start} to ${period_end}`,
+        hasKlaviyoCredentials: !!(store.klaviyo_private_key && store.klaviyo_site_id),
+        hasShopifyCredentials: !!(store.shopify_domain && store.shopify_access_token)
+      })
       
       const n8nHeaders = {
         'Content-Type': 'application/json'
@@ -227,9 +259,12 @@ serve(async (req) => {
       })
 
       console.log('N8N webhook response status:', n8nResponse.status)
+      console.log('N8N webhook response headers:', Object.fromEntries(n8nResponse.headers.entries()))
 
       if (!n8nResponse.ok) {
-        throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`)
+        const responseText = await n8nResponse.text()
+        console.error('N8N webhook error response:', responseText)
+        throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText} - ${responseText}`)
       }
 
       console.log('N8N webhook called successfully for job:', job.id)
