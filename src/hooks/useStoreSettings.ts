@@ -50,20 +50,29 @@ export const useStoreSettings = (storeId: string) => {
       setError(null);
       
       // Fetch store data directly
-      const { data: store } = await supabase
+      const { data: store, error: storeError } = await supabase
         .from('stores')
         .select('shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
         .eq('id', storeId)
         .single();
 
+      console.log('Fetched store data:', { store, storeError, storeId });
+
+      if (storeError) {
+        throw storeError;
+      }
+
       if (store) {
-        setSettings(prev => ({
-          ...prev,
+        const newSettings = {
+          ...settings,
           shopifyUrl: store.shopify_domain || '',
           shopifyToken: store.shopify_access_token ? '••••••••••••••••••••••••••••••••' : '',
           klaviyoPublicKey: store.klaviyo_site_id || '',
           klaviyoPrivateKey: store.klaviyo_private_key ? '••••••••••••••••••••••••••••••••' : '',
-        }));
+        };
+        
+        console.log('Setting new settings:', newSettings);
+        setSettings(newSettings);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -84,7 +93,8 @@ export const useStoreSettings = (storeId: string) => {
 
   const saveSettings = async (newSettings: StoreSettings) => {
     try {
-      setSettings(newSettings);
+      console.log('Saving settings for store:', storeId);
+      console.log('New settings:', newSettings);
       
       // Prepare update object for stores table
       const storeUpdate: any = {};
@@ -106,12 +116,17 @@ export const useStoreSettings = (storeId: string) => {
         storeUpdate.klaviyo_private_key = newSettings.klaviyoPrivateKey || null;
       }
       
+      console.log('Store update object:', storeUpdate);
+      
       // Update stores table
       if (Object.keys(storeUpdate).length > 0) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('stores')
           .update(storeUpdate)
-          .eq('id', storeId);
+          .eq('id', storeId)
+          .select();
+          
+        console.log('Update result:', { data, error });
           
         if (error) {
           throw error;
@@ -123,8 +138,13 @@ export const useStoreSettings = (storeId: string) => {
         description: "Credenciais da loja atualizadas com sucesso!",
       });
       
-      // Refresh settings to show masked values
-      await fetchSettings();
+      // Update local state immediately with the new values
+      setSettings(newSettings);
+      
+      // Refresh settings to show masked values after a short delay
+      setTimeout(() => {
+        fetchSettings();
+      }, 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       console.error('Error saving settings:', err);
