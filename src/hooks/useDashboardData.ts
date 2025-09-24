@@ -329,7 +329,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
 
-      // Always fetch the most recent data from database
+      // Always fetch the most recent data from database for the specific period
       const { data: cache, error: cacheError } = await supabase
         .from('klaviyo_summaries')
         .select('*')
@@ -354,15 +354,15 @@ export const useDashboardData = (storeId: string, period: string) => {
         };
 
         updateKlaviyoState(klaviyoFromCache);
-        console.log('Using most recent Klaviyo data from database:', new Date(cache.created_at).toLocaleString());
+        console.log(`Using Klaviyo data for ${period} period:`, new Date(cache.created_at).toLocaleString());
         
         // Show notification if data is very recent (less than 10 minutes old)
         const dataAge = Date.now() - new Date(cache.created_at).getTime();
         if (dataAge < 10 * 60 * 1000) { // 10 minutes
-          console.log('Fresh data detected, age:', Math.round(dataAge / 60000), 'minutes');
+          console.log(`Fresh ${period} data detected, age:`, Math.round(dataAge / 60000), 'minutes');
         }
       } else {
-        console.log('No Klaviyo data available');
+        console.log(`No Klaviyo data available for ${period} period`);
         updateKlaviyoState(null);
       }
     } catch (error) {
@@ -380,7 +380,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       const periodStart = startDate.toISOString().split('T')[0];
       const periodEnd = endDate.toISOString().split('T')[0];
       
-      console.log('Starting sync for store:', storeId, 'period:', periodStart, 'to', periodEnd);
+      console.log(`Starting sync for store: ${storeId}, period: ${periodStart} to ${periodEnd} (${period})`);
       
       // Clean up stuck jobs more aggressively - any job older than 30 minutes
       const currentTime = new Date();
@@ -458,7 +458,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         setSyncJobId(data.job_id);
       }
       
-      sonnerToast.success('Sincronização iniciada. Os dados serão processados automaticamente pelo sistema.');
+      sonnerToast.success(`Sincronização ${period} iniciada. Os dados serão processados automaticamente pelo sistema.`);
       
       // Start lightweight polling for job status updates (independent of user presence)
       if (data?.request_id) {
@@ -547,10 +547,10 @@ export const useDashboardData = (storeId: string, period: string) => {
           filter: `store_id=eq.${storeId}`
         },
         (payload) => {
-          console.log('Klaviyo data updated:', payload);
+          console.log(`Klaviyo data updated for ${period}:`, payload);
           // Automatically fetch new data when klaviyo_summaries is updated
           fetchKlaviyoData();
-          sonnerToast.success('Dados de sincronização atualizados automaticamente!');
+          sonnerToast.success(`Dados ${period} atualizados automaticamente!`);
         }
       )
       .on(
