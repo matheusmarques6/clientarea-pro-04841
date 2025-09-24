@@ -1422,6 +1422,10 @@ export type Database = {
         Args: { _end_date: string; _start_date: string; _store_id: string }
         Returns: Json
       }
+      trigger_auto_sync: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       channel_attribution: "email" | "sms" | "whatsapp" | "none"
