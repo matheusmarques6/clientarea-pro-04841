@@ -439,11 +439,11 @@ export const useDashboardData = (storeId: string, period: string) => {
         setSyncJobId(data.job_id);
       }
       
-      sonnerToast.success('Sincronização iniciada. Aguardando processamento do N8N (até 5 minutos)...');
+      sonnerToast.success('Sincronização iniciada. Os dados serão processados automaticamente pelo sistema.');
       
-      // Start polling for job status
+      // Start lightweight polling for job status updates (independent of user presence)
       if (data?.request_id) {
-        pollJobStatus(data.request_id, periodStart, periodEnd);
+        checkJobStatusOnce(data.request_id);
       }
       
     } catch (error: any) {
@@ -459,63 +459,49 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   }, [storeId, period, isSyncing]);
 
-  const pollJobStatus = useCallback(async (requestId: string, periodStart: string, periodEnd: string) => {
-    const maxAttempts = 60; // 5 minutes max (60 attempts * 5 seconds = 5 minutes)
-    let attempts = 0;
-    
-    const poll = async () => {
-      attempts++;
-      
-      try {
-        const { data: jobs } = await supabase
-          .from('n8n_jobs')
-          .select('status, finished_at, error, request_id')
-          .eq('request_id', requestId)
-          .single();
+  // Check job status once without continuous polling
+  const checkJobStatusOnce = useCallback(async (requestId: string) => {
+    try {
+      const { data: job } = await supabase
+        .from('n8n_jobs')
+        .select('status, finished_at, error, request_id')
+        .eq('request_id', requestId)
+        .single();
 
-        if (!jobs) {
-          console.error('Job not found');
-          setIsSyncing(false);
-          return;
-        }
+      if (!job) {
+        console.log('Job not found for request_id:', requestId);
+        setIsSyncing(false);
+        return;
+      }
 
-        if (jobs.status === 'SUCCESS') {
-          // Fetch updated data
-          await fetchKlaviyoData();
-          await loadData();
-          sonnerToast.success('Sincronização concluída com sucesso!');
-          setIsSyncing(false);
-          setSyncJobId(null);
-          return;
-        }
-
-        if (jobs.status === 'ERROR') {
-          sonnerToast.error(`Erro na sincronização: ${jobs.error || 'Erro desconhecido'}`);
-          setIsSyncing(false);
-          setSyncJobId(null);
-          return;
-        }
-
-        if (attempts >= maxAttempts) {
-          sonnerToast.warning('Sincronização ainda processando no N8N. Os dados aparecerão automaticamente quando prontos (até 5 minutos).');
-          setIsSyncing(false);
-          return;
-        }
-
-        // Continue polling
-        setTimeout(poll, 5000); // 5 seconds
-        
-      } catch (error) {
-        console.error('Error polling job status:', error);
-        sonnerToast.error('Falha ao verificar o status da sincronização. Tente novamente.');
+      if (job.status === 'SUCCESS') {
+        // Job completed, data should be available via realtime
         setIsSyncing(false);
         setSyncJobId(null);
         return;
       }
-    };
 
-    poll();
+      if (job.status === 'ERROR') {
+        sonnerToast.error(`Erro na sincronização: ${job.error || 'Erro desconhecido'}`);
+        setIsSyncing(false);
+        setSyncJobId(null);
+        return;
+      }
+
+      // Job still processing - let realtime handle updates
+      console.log('Job still processing, realtime will handle updates');
+      
+    } catch (error) {
+      console.error('Error checking job status:', error);
+      setIsSyncing(false);
+    }
   }, []);
+
+  // Remove the old pollJobStatus function and replace with the above
+  const pollJobStatus = useCallback(async (requestId: string, periodStart: string, periodEnd: string) => {
+    // Deprecated - using realtime updates instead
+    checkJobStatusOnce(requestId);
+  }, [checkJobStatusOnce]);
 
   // Carregar dados iniciais
   const loadData = useCallback(async () => {
