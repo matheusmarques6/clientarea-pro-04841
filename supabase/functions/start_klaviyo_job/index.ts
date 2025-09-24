@@ -84,12 +84,17 @@ serve(async (req) => {
       })
     }
 
-    // Get store credentials
-    const { data: store } = await supabase
+    // Get store credentials and details
+    const { data: store, error: storeError } = await supabase
       .from('stores')
-      .select('shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
+      .select('id, name, shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id, country, currency, status')
       .eq('id', store_id)
       .single()
+
+    if (storeError) {
+      console.error('Error fetching store:', storeError)
+      return new Response('Store not found', { status: 404, headers: corsHeaders })
+    }
 
     if (!store?.shopify_domain || !store?.shopify_access_token || !store?.klaviyo_private_key || !store?.klaviyo_site_id) {
       return new Response('Store credentials not configured', { status: 400, headers: corsHeaders })
@@ -110,7 +115,9 @@ serve(async (req) => {
         source: 'klaviyo',
         created_by: user.id,
         meta: {
-          n8n_webhook_triggered_at: new Date().toISOString()
+          n8n_webhook_triggered_at: new Date().toISOString(),
+          store_name: store.name,
+          shopify_domain: store.shopify_domain
         }
       })
       .select()
@@ -121,17 +128,44 @@ serve(async (req) => {
       return new Response('Failed to create job', { status: 500, headers: corsHeaders })
     }
 
-    // Prepare n8n webhook payload
+    // Prepare n8n webhook payload with complete store data
     const n8nPayload = {
+      // Job information
       storeId: store_id,
       from: period_start + 'T00:00:00.000Z',
       to: period_end + 'T23:59:59.000Z',
+      request_id: request_id,
+      callback_url: `${supabaseUrl}/functions/v1/klaviyo_callback`,
+      
+      // Store information
+      store: {
+        id: store.id,
+        name: store.name,
+        domain: store.shopify_domain,
+        country: store.country || 'BR',
+        currency: store.currency || 'BRL',
+        status: store.status
+      },
+      
+      // Shopify credentials
+      shopify: {
+        domain: store.shopify_domain,
+        access_token: store.shopify_access_token,
+        api_version: '2024-01' // Versão da API do Shopify
+      },
+      
+      // Klaviyo credentials
+      klaviyo: {
+        private_key: store.klaviyo_private_key,
+        site_id: store.klaviyo_site_id,
+        api_version: '2024-02-15' // Versão da API do Klaviyo
+      },
+      
+      // Legacy fields for backward compatibility
       shopify_domain: store.shopify_domain,
       shopify_api_key: store.shopify_access_token,
       klaviyo_private_key: store.klaviyo_private_key,
-      klaviyo_site_id: store.klaviyo_site_id,
-      request_id: request_id,
-      callback_url: `${supabaseUrl}/functions/v1/klaviyo_callback`
+      klaviyo_site_id: store.klaviyo_site_id
     }
 
     // Trigger n8n webhook
@@ -174,7 +208,12 @@ serve(async (req) => {
           meta: {
             ...job.meta,
             n8n_response_status: n8nResponse.status,
-            n8n_triggered_at: new Date().toISOString()
+            n8n_triggered_at: new Date().toISOString(),
+            payload_sent: {
+              store_name: store.name,
+              shopify_domain: store.shopify_domain,
+              has_klaviyo_credentials: !!(store.klaviyo_private_key && store.klaviyo_site_id)
+            }
           }
         })
         .eq('id', job.id)

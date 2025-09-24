@@ -42,7 +42,7 @@ serve(async (req) => {
     // Get all active stores with Klaviyo credentials
     const { data: stores, error: storesError } = await supabase
       .from('stores')
-      .select('id, name, shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id')
+      .select('id, name, shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id, country, currency, status')
       .eq('status', 'connected')
       .not('klaviyo_private_key', 'is', null)
       .not('klaviyo_site_id', 'is', null)
@@ -120,7 +120,8 @@ serve(async (req) => {
             created_by: '00000000-0000-0000-0000-000000000000', // system user
             meta: {
               auto_sync_triggered_at: new Date().toISOString(),
-              store_name: store.name
+              store_name: store.name,
+              shopify_domain: store.shopify_domain
             }
           })
           .select()
@@ -137,17 +138,44 @@ serve(async (req) => {
           continue
         }
 
-        // Prepare n8n webhook payload
+        // Prepare n8n webhook payload with complete store data
         const n8nPayload = {
+          // Job information
           storeId: store.id,
           from: periodStart + 'T00:00:00.000Z',
           to: periodEnd + 'T23:59:59.000Z',
+          request_id: request_id,
+          callback_url: `${supabaseUrl}/functions/v1/klaviyo_callback`,
+          
+          // Store information
+          store: {
+            id: store.id,
+            name: store.name,
+            domain: store.shopify_domain,
+            country: store.country || 'BR',
+            currency: store.currency || 'BRL',
+            status: store.status
+          },
+          
+          // Shopify credentials
+          shopify: {
+            domain: store.shopify_domain,
+            access_token: store.shopify_access_token,
+            api_version: '2024-01'
+          },
+          
+          // Klaviyo credentials
+          klaviyo: {
+            private_key: store.klaviyo_private_key,
+            site_id: store.klaviyo_site_id,
+            api_version: '2024-02-15'
+          },
+          
+          // Legacy fields for backward compatibility
           shopify_domain: store.shopify_domain,
           shopify_api_key: store.shopify_access_token,
           klaviyo_private_key: store.klaviyo_private_key,
-          klaviyo_site_id: store.klaviyo_site_id,
-          request_id: request_id,
-          callback_url: `${supabaseUrl}/functions/v1/klaviyo_callback`
+          klaviyo_site_id: store.klaviyo_site_id
         }
 
         // Trigger n8n webhook
@@ -168,7 +196,12 @@ serve(async (req) => {
               meta: {
                 ...job.meta,
                 n8n_response_status: n8nResponse.status,
-                n8n_triggered_at: new Date().toISOString()
+                n8n_triggered_at: new Date().toISOString(),
+                payload_sent: {
+                  store_name: store.name,
+                  shopify_domain: store.shopify_domain,
+                  has_klaviyo_credentials: !!(store.klaviyo_private_key && store.klaviyo_site_id)
+                }
               }
             })
             .eq('id', job.id)
