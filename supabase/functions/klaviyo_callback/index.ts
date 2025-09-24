@@ -48,6 +48,9 @@ serve(async (req) => {
     const data = payload[0]
     const { klaviyo, period, store, metadata, status, summary } = data
 
+    // Log the full data for debugging
+    console.log('Processing Klaviyo callback data:', JSON.stringify(data, null, 2))
+
     if (!metadata?.request_id) {
       console.error('Missing request_id in metadata')
       return new Response('Missing request_id', { status: 400, headers: corsHeaders })
@@ -85,6 +88,19 @@ serve(async (req) => {
 
     // If successful, update klaviyo_summaries
     if (status === 'SUCCESS' && klaviyo) {
+      console.log('Processing Klaviyo data for store:', store?.id || job.store_id)
+      
+      // Parse leads_total (it comes as string "1+", need to convert to number)
+      let leadsTotal = 0
+      if (klaviyo.leads_total) {
+        const leadsStr = klaviyo.leads_total.toString()
+        if (leadsStr.includes('+')) {
+          leadsTotal = parseInt(leadsStr.replace('+', '')) || 0
+        } else {
+          leadsTotal = parseInt(leadsStr) || 0
+        }
+      }
+
       const summaryData = {
         store_id: store?.id || job.store_id,
         period_start: period?.start || job.period_start,
@@ -95,28 +111,35 @@ serve(async (req) => {
         orders_attributed: klaviyo.orders_attributed || 0,
         conversions_campaigns: klaviyo.conversions_campaigns || 0,
         conversions_flows: klaviyo.conversions_flows || 0,
-        leads_total: klaviyo.leads_total || "0",
+        leads_total: leadsTotal,
         campaign_count: klaviyo.campaign_count || 0,
         flow_count: klaviyo.flow_count || 0,
         campaigns_with_revenue: klaviyo.campaigns_with_revenue || 0,
         flows_with_revenue: klaviyo.flows_with_revenue || 0,
         flows_with_activity: klaviyo.flows_with_activity || 0,
         flow_perf: klaviyo.flow_performance_averages || null,
-        raw: klaviyo,
+        top_campaigns_by_revenue: klaviyo.top_campaigns_by_revenue || [],
+        top_campaigns_by_conversions: klaviyo.top_campaigns_by_conversions || [],
+        raw: data,
         updated_at: new Date().toISOString()
       }
 
+      console.log('Saving klaviyo_summaries data:', JSON.stringify(summaryData, null, 2))
+
       // Upsert klaviyo_summaries
-      const { error: summaryError } = await supabase
+      const { data: summaryResult, error: summaryError } = await supabase
         .from('klaviyo_summaries')
         .upsert(summaryData, {
           onConflict: 'store_id,period_start,period_end',
           ignoreDuplicates: false
         })
+        .select()
 
       if (summaryError) {
         console.error('Error upserting klaviyo_summaries:', summaryError)
         // Don't fail the callback, but log the error
+      } else {
+        console.log('Successfully saved klaviyo_summaries:', summaryResult)
       }
 
       // Also save to channel_revenue for dashboard compatibility
@@ -134,12 +157,21 @@ serve(async (req) => {
           updated_at: new Date().toISOString()
         }
 
-        await supabase
+        console.log('Saving channel_revenue data:', JSON.stringify(channelRevenueData, null, 2))
+
+        const { data: channelResult, error: channelError } = await supabase
           .from('channel_revenue')
           .upsert(channelRevenueData, {
             onConflict: 'store_id,period_start,period_end,channel,source',
             ignoreDuplicates: false
           })
+          .select()
+
+        if (channelError) {
+          console.error('Error saving channel_revenue:', channelError)
+        } else {
+          console.log('Successfully saved channel_revenue:', channelResult)
+        }
       }
     }
 
