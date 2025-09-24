@@ -133,7 +133,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     setKpis({
       ...kpiBaseRef.current,
       email_revenue: hasKlaviyoRevenue ? klaviyoRevenue : kpiBaseRef.current.email_revenue,
-      convertfy_revenue: kpiBaseRef.current.convertfy_revenue, // Preservar valor original do Convertfy
+      convertfy_revenue: hasKlaviyoRevenue ? klaviyoRevenue : kpiBaseRef.current.convertfy_revenue,
     });
   };
 
@@ -165,7 +165,10 @@ export const useDashboardData = (storeId: string, period: string) => {
         byRevenue: webhookData.klaviyo.top_campaigns_by_revenue || [],
         byConversions: webhookData.klaviyo.top_campaigns_by_conversions || []
       });
-      applyKpis(klaviyoData.revenue_total ?? null);
+      
+      // Somar revenue_campaigns + revenue_flows para o faturamento Convertfy
+      const convertfyRevenue = (webhookData.klaviyo.revenue_campaigns || 0) + (webhookData.klaviyo.revenue_flows || 0);
+      applyKpis(convertfyRevenue);
     } else {
       // Handle legacy format
       const klaviyoData = data as KlaviyoSummary['klaviyo'];
