@@ -50,6 +50,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "admin_audit_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admin_sessions: {
@@ -80,6 +87,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -351,6 +365,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
             referencedColumns: ["id"]
           },
           {
@@ -998,6 +1019,54 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_members: {
         Row: {
           created_at: string | null
@@ -1126,6 +1195,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_auth_data: {
+        Row: {
+          created_at: string | null
+          failed_login_attempts: number | null
+          last_password_change: string | null
+          locked_until: string | null
+          password_hash: string | null
+          twofa_secret: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          failed_login_attempts?: number | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          password_hash?: string | null
+          twofa_secret?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          failed_login_attempts?: number | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          password_hash?: string | null
+          twofa_secret?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_auth_data_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_auth_data_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_store_roles: {
         Row: {
           created_at: string | null
@@ -1163,6 +1280,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_store_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       users: {
@@ -1171,10 +1295,9 @@ export type Database = {
           email: string
           id: string
           is_admin: boolean | null
+          last_login_attempt: string | null
           name: string
-          password_hash: string | null
           role: Database["public"]["Enums"]["role_type"] | null
-          twofa_secret: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1182,10 +1305,9 @@ export type Database = {
           email: string
           id?: string
           is_admin?: boolean | null
+          last_login_attempt?: string | null
           name: string
-          password_hash?: string | null
           role?: Database["public"]["Enums"]["role_type"] | null
-          twofa_secret?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1193,10 +1315,9 @@ export type Database = {
           email?: string
           id?: string
           is_admin?: boolean | null
+          last_login_attempt?: string | null
           name?: string
-          password_hash?: string | null
           role?: Database["public"]["Enums"]["role_type"] | null
-          twofa_secret?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1326,6 +1447,36 @@ export type Database = {
       }
     }
     Views: {
+      users_safe: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_admin: boolean | null
+          name: string | null
+          role: Database["public"]["Enums"]["role_type"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["role_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["role_type"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       v_user_stores: {
         Row: {
           store_id: string | null
@@ -1383,6 +1534,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      is_admin_with_audit: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       kpi_customers_distinct: {
         Args: { p_end: string; p_start: string; p_store: string }
         Returns: number
@@ -1402,6 +1557,15 @@ export type Database = {
       kpi_total_revenue: {
         Args: { p_end: string; p_start: string; p_store: string }
         Returns: number
+      }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_success?: boolean
+          p_user_id: string
+        }
+        Returns: undefined
       }
       reconcile_user_profile: {
         Args: { _auth_id: string; _email: string; _name: string }
@@ -1428,6 +1592,10 @@ export type Database = {
       trigger_auto_sync: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      verify_user_password: {
+        Args: { p_email: string; p_password_hash: string }
+        Returns: boolean
       }
     }
     Enums: {
