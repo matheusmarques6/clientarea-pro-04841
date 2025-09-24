@@ -70,20 +70,25 @@ serve(async (req) => {
       return new Response('Access denied to store', { status: 403, headers: corsHeaders })
     }
 
-    // Clean up stuck jobs older than 20 minutes before checking for existing jobs
+    // Quick cleanup of stuck jobs older than 20 minutes before checking for existing jobs
     const currentTime = new Date()
     const twentyMinutesAgo = new Date(currentTime.getTime() - 20 * 60 * 1000)
     
-    const { data: stuckJobs } = await supabase
+    console.log('Checking for stuck jobs older than:', twentyMinutesAgo.toISOString())
+    
+    const { data: stuckJobs, error: stuckJobsError } = await supabase
       .from('n8n_jobs')
       .select('id, status, started_at, request_id')
       .eq('store_id', store_id)
       .in('status', ['QUEUED', 'PROCESSING'])
       .lt('started_at', twentyMinutesAgo.toISOString())
 
-    if (stuckJobs && stuckJobs.length > 0) {
+    if (stuckJobsError) {
+      console.error('Error checking stuck jobs:', stuckJobsError)
+    } else if (stuckJobs && stuckJobs.length > 0) {
       console.log('Found and cleaning up stuck jobs older than 20min:', stuckJobs.length)
-      await supabase
+      
+      const { error: updateError } = await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
@@ -92,26 +97,32 @@ serve(async (req) => {
         })
         .in('id', stuckJobs.map(job => job.id))
       
-      console.log('Cleaned up stuck jobs:', stuckJobs.map(j => j.request_id))
+      if (updateError) {
+        console.error('Error updating stuck jobs:', updateError)
+      } else {
+        console.log('Cleaned up stuck jobs:', stuckJobs.map(j => j.request_id))
+      }
+    } else {
+      console.log('No stuck jobs found')
     }
 
-    // Check for existing processing job for this specific store and period
+    // Check for existing processing job for this specific store and period (lightweight query)
+    console.log('Checking for existing jobs for store:', store_id, 'period:', period_start, 'to', period_end)
+    
     const { data: existingJob, error: jobCheckError } = await supabase
       .from('n8n_jobs')
-      .select('*')
+      .select('id, request_id, status, started_at')
       .eq('store_id', store_id)
       .eq('period_start', period_start)
       .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
+      .limit(1)
       .maybeSingle()
 
-    console.log('Existing job check:', { 
-      existingJob, 
-      jobCheckError,
-      store_id,
-      period_start,
-      period_end
-    })
+    if (jobCheckError) {
+      console.error('Error checking existing jobs:', jobCheckError)
+      return new Response('Error checking existing jobs', { status: 500, headers: corsHeaders })
+    }
 
     if (existingJob) {
       console.log('Job already exists for this store and period:', existingJob)
@@ -129,7 +140,9 @@ serve(async (req) => {
 
     console.log('No existing job found, proceeding with new job creation...')
 
-    // Get store credentials and details
+    // Get store credentials efficiently (only required fields)
+    console.log('Fetching store credentials for:', store_id)
+    
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select('id, name, shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id, country, currency, status')
@@ -252,11 +265,18 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       }
 
+      // Set a shorter timeout to avoid edge function timeout
+      const timeoutController = new AbortController()
+      const timeoutId = setTimeout(() => timeoutController.abort(), 30000) // 30 second timeout
+
       const n8nResponse = await fetch(n8nWebhookUrl, {
         method: 'POST',
         headers: n8nHeaders,
-        body: JSON.stringify(n8nPayload)
+        body: JSON.stringify(n8nPayload),
+        signal: timeoutController.signal
       })
+
+      clearTimeout(timeoutId)
 
       console.log('N8N webhook response status:', n8nResponse.status)
       console.log('N8N webhook response headers:', Object.fromEntries(n8nResponse.headers.entries()))
