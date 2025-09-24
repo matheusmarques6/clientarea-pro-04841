@@ -324,18 +324,22 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  // Buscar dados do Klaviyo apenas do banco de dados (dados vindos do n8n)
+  // Buscar dados do Klaviyo para o período específico da loja
   const fetchKlaviyoData = async () => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
+      const periodStart = startDate.toISOString().split('T')[0];
+      const periodEnd = endDate.toISOString().split('T')[0];
 
-      // Always fetch the most recent data from database for the specific period
+      console.log(`Fetching Klaviyo data for store ${storeId}, period ${period} (${periodStart} to ${periodEnd})`);
+
+      // Buscar dados específicos para este período e loja
       const { data: cache, error: cacheError } = await supabase
         .from('klaviyo_summaries')
         .select('*')
         .eq('store_id', storeId)
-        .eq('period_start', startDate.toISOString().split('T')[0])
-        .eq('period_end', endDate.toISOString().split('T')[0])
+        .eq('period_start', periodStart)
+        .eq('period_end', periodEnd)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -354,19 +358,26 @@ export const useDashboardData = (storeId: string, period: string) => {
         };
 
         updateKlaviyoState(klaviyoFromCache);
-        console.log(`Using Klaviyo data for ${period} period:`, new Date(cache.created_at).toLocaleString());
+        console.log(`[${period}] Klaviyo data loaded for store ${storeId}:`, {
+          revenue_total: klaviyoFromCache.revenue_total,
+          revenue_campaigns: klaviyoFromCache.revenue_campaigns,
+          revenue_flows: klaviyoFromCache.revenue_flows,
+          conversions_campaigns: klaviyoFromCache.conversions_campaigns,
+          conversions_flows: klaviyoFromCache.conversions_flows,
+          data_age: new Date(cache.created_at).toLocaleString()
+        });
         
         // Show notification if data is very recent (less than 10 minutes old)
         const dataAge = Date.now() - new Date(cache.created_at).getTime();
         if (dataAge < 10 * 60 * 1000) { // 10 minutes
-          console.log(`Fresh ${period} data detected, age:`, Math.round(dataAge / 60000), 'minutes');
+          console.log(`[${period}] Fresh data detected for store ${storeId}, age:`, Math.round(dataAge / 60000), 'minutes');
         }
       } else {
-        console.log(`No Klaviyo data available for ${period} period`);
+        console.log(`[${period}] No Klaviyo data available for store ${storeId} (${periodStart} to ${periodEnd})`);
         updateKlaviyoState(null);
       }
     } catch (error) {
-      console.error('Error fetching Klaviyo data:', error);
+      console.error(`[${period}] Error fetching Klaviyo data for store ${storeId}:`, error);
       updateKlaviyoState(null);
     }
   };
@@ -380,13 +391,13 @@ export const useDashboardData = (storeId: string, period: string) => {
       const periodStart = startDate.toISOString().split('T')[0];
       const periodEnd = endDate.toISOString().split('T')[0];
       
-      console.log(`Starting sync for store: ${storeId}, period: ${periodStart} to ${periodEnd} (${period})`);
+      console.log(`[${period}] Starting sync for store: ${storeId}, period: ${periodStart} to ${periodEnd}`);
       
-      // Clean up stuck jobs more aggressively - any job older than 30 minutes
+      // Clean up stuck jobs mais agressivamente - qualquer job mais antigo que 30 minutos
       const currentTime = new Date();
       const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
       
-      // First, clean up any stuck jobs for this store regardless of period (older than 30min)
+      // Primeiro, limpar qualquer job travado para esta loja independente do período (mais de 30min)
       const { data: allStuckJobs } = await supabase
         .from('n8n_jobs')
         .select('id, status, started_at, period_start, period_end, request_id')
@@ -395,7 +406,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         .lt('started_at', thirtyMinutesAgo.toISOString());
       
       if (allStuckJobs && allStuckJobs.length > 0) {
-        console.log('Found stuck jobs older than 30min, cleaning up:', allStuckJobs);
+        console.log(`[${period}] Found stuck jobs older than 30min, cleaning up:`, allStuckJobs);
         await supabase
           .from('n8n_jobs')
           .update({ 
@@ -405,10 +416,10 @@ export const useDashboardData = (storeId: string, period: string) => {
           })
           .in('id', allStuckJobs.map(job => job.id));
         
-        console.log('Cleaned up', allStuckJobs.length, 'stuck jobs');
+        console.log(`[${period}] Cleaned up ${allStuckJobs.length} stuck jobs`);
       }
       
-      // Double check - clean up any jobs for this specific period that are still stuck (10min+)
+      // Verificação dupla - limpar qualquer job para este período específico que ainda esteja travado (10min+)
       const tenMinutesAgo = new Date(currentTime.getTime() - 10 * 60 * 1000);
       
       const { data: specificStuckJobs } = await supabase
@@ -421,7 +432,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         .lt('started_at', tenMinutesAgo.toISOString());
       
       if (specificStuckJobs && specificStuckJobs.length > 0) {
-        console.log('Found stuck jobs for this specific period, force cleaning:', specificStuckJobs);
+        console.log(`[${period}] Found stuck jobs for this specific period, force cleaning:`, specificStuckJobs);
         await supabase
           .from('n8n_jobs')
           .update({ 
@@ -432,7 +443,9 @@ export const useDashboardData = (storeId: string, period: string) => {
           .in('id', specificStuckJobs.map(job => job.id));
       }
       
-      // Start the job
+      // Iniciar o job específico para este período
+      console.log(`[${period}] Triggering webhook for store ${storeId}, period ${periodStart} to ${periodEnd}`);
+      
       const { data, error } = await supabase.functions.invoke('start_klaviyo_job', {
         body: {
           store_id: storeId,
@@ -441,10 +454,10 @@ export const useDashboardData = (storeId: string, period: string) => {
         }
       });
 
-      console.log('Sync response:', { data, error });
+      console.log(`[${period}] Sync response:`, { data, error });
 
       if (error) {
-        console.error('Sync error details:', error);
+        console.error(`[${period}] Sync error details:`, error);
         if (error.message === 'Klaviyo credentials not configured') {
           throw new Error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
         }
@@ -456,9 +469,10 @@ export const useDashboardData = (storeId: string, period: string) => {
 
       if (data?.job_id) {
         setSyncJobId(data.job_id);
+        console.log(`[${period}] Job created with ID: ${data.job_id} for store ${storeId}`);
       }
       
-      sonnerToast.success(`Sincronização ${period} iniciada. Os dados serão processados automaticamente pelo sistema.`);
+      sonnerToast.success(`Sincronização ${period} iniciada para a loja. Dados específicos do período ${period} serão processados.`);
       
       // Start lightweight polling for job status updates (independent of user presence)
       if (data?.request_id) {
@@ -466,13 +480,13 @@ export const useDashboardData = (storeId: string, period: string) => {
       }
       
     } catch (error: any) {
-      console.error('Sync failed:', error);
+      console.error(`[${period}] Sync failed for store ${storeId}:`, error);
       if (error.message === 'Klaviyo credentials not configured') {
         sonnerToast.error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
       } else if (error.message === 'Store credentials not configured') {
         sonnerToast.error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
       } else {
-        sonnerToast.error(error.message || 'Erro ao iniciar sincronização');
+        sonnerToast.error(`Erro ao iniciar sincronização ${period}: ${error.message}`);
       }
       setIsSyncing(false);
     }
@@ -547,10 +561,26 @@ export const useDashboardData = (storeId: string, period: string) => {
           filter: `store_id=eq.${storeId}`
         },
         (payload) => {
-          console.log(`Klaviyo data updated for ${period}:`, payload);
-          // Automatically fetch new data when klaviyo_summaries is updated
-          fetchKlaviyoData();
-          sonnerToast.success(`Dados ${period} atualizados automaticamente!`);
+          // Verificar se a atualização é para o período atual
+          const { startDate, endDate } = getPeriodDates(period);
+          const periodStart = startDate.toISOString().split('T')[0];
+          const periodEnd = endDate.toISOString().split('T')[0];
+          
+          const updatedData = payload.new;
+          
+          if (updatedData && 
+              (updatedData as any).period_start === periodStart && 
+              (updatedData as any).period_end === periodEnd) {
+            console.log(`[${period}] Klaviyo data updated for store ${storeId}:`, updatedData);
+            // Automatically fetch new data when klaviyo_summaries is updated for this specific period
+            fetchKlaviyoData();
+            sonnerToast.success(`Dados ${period} atualizados automaticamente para a loja!`);
+          } else {
+            console.log(`[${period}] Klaviyo data updated for different period, ignoring:`, {
+              expected: `${periodStart} to ${periodEnd}`,
+              received: `${(updatedData as any)?.period_start} to ${(updatedData as any)?.period_end}`
+            });
+          }
         }
       )
       .on(
@@ -576,19 +606,37 @@ export const useDashboardData = (storeId: string, period: string) => {
           filter: `store_id=eq.${storeId}`
         },
         (payload) => {
-          console.log('Job status updated:', payload);
+          const jobData = payload.new;
+          console.log(`[${period}] Job status updated for store ${storeId}:`, jobData);
           
-          if (payload.new?.status === 'SUCCESS') {
-            // Job completed successfully, refresh all data
-            loadData();
-            setIsSyncing(false);
-            setSyncJobId(null);
-            sonnerToast.success('Sincronização concluída com sucesso!');
-          } else if (payload.new?.status === 'ERROR') {
-            // Job failed
-            setIsSyncing(false);
-            setSyncJobId(null);
-            sonnerToast.error(`Erro na sincronização: ${payload.new?.error || 'Erro desconhecido'}`);
+          // Verificar se o job é para o período atual
+          const { startDate, endDate } = getPeriodDates(period);
+          const periodStart = startDate.toISOString().split('T')[0];
+          const periodEnd = endDate.toISOString().split('T')[0];
+          
+          if (jobData && 
+              (jobData as any).period_start === periodStart && 
+              (jobData as any).period_end === periodEnd) {
+            
+            if ((jobData as any).status === 'SUCCESS') {
+              // Job completed successfully, refresh all data for this specific period
+              console.log(`[${period}] Job completed successfully for store ${storeId}`);
+              loadData();
+              setIsSyncing(false);
+              setSyncJobId(null);
+              sonnerToast.success(`Sincronização ${period} concluída com sucesso!`);
+            } else if ((jobData as any).status === 'ERROR') {
+              // Job failed
+              console.log(`[${period}] Job failed for store ${storeId}:`, (jobData as any).error);
+              setIsSyncing(false);
+              setSyncJobId(null);
+              sonnerToast.error(`Erro na sincronização ${period}: ${(jobData as any).error || 'Erro desconhecido'}`);
+            }
+          } else {
+            console.log(`[${period}] Job update for different period, ignoring:`, {
+              expected: `${periodStart} to ${periodEnd}`,
+              received: `${(jobData as any)?.period_start} to ${(jobData as any)?.period_end}`
+            });
           }
         }
       )
