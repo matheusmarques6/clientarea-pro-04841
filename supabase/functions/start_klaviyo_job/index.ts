@@ -51,14 +51,22 @@ serve(async (req) => {
     }
 
     // Validate user has access to store
-    const { data: storeAccess } = await supabase
+    const { data: storeAccess, error: accessError } = await supabase
       .from('v_user_stores')
       .select('store_id')
       .eq('user_id', user.id)
       .eq('store_id', store_id)
-      .single()
+      .maybeSingle()
 
-    if (!storeAccess) {
+    console.log('Store access check:', { 
+      user_id: user.id, 
+      store_id, 
+      storeAccess, 
+      accessError 
+    })
+
+    if (accessError || !storeAccess) {
+      console.error('Store access error:', accessError)
       return new Response('Access denied to store', { status: 403, headers: corsHeaders })
     }
 
