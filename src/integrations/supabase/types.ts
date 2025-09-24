@@ -364,12 +364,21 @@ export type Database = {
       }
       klaviyo_summaries: {
         Row: {
+          campaign_count: number | null
+          campaigns_with_revenue: number | null
+          conversions_campaigns: number | null
+          conversions_flows: number | null
           created_at: string
+          flow_count: number | null
+          flow_perf: Json | null
+          flows_with_activity: number | null
+          flows_with_revenue: number | null
           id: string
           leads_total: number
           orders_attributed: number
           period_end: string
           period_start: string
+          raw: Json | null
           revenue_campaigns: number
           revenue_flows: number
           revenue_total: number
@@ -378,12 +387,21 @@ export type Database = {
           top_campaigns_by_revenue: Json | null
         }
         Insert: {
+          campaign_count?: number | null
+          campaigns_with_revenue?: number | null
+          conversions_campaigns?: number | null
+          conversions_flows?: number | null
           created_at?: string
+          flow_count?: number | null
+          flow_perf?: Json | null
+          flows_with_activity?: number | null
+          flows_with_revenue?: number | null
           id?: string
           leads_total?: number
           orders_attributed?: number
           period_end: string
           period_start: string
+          raw?: Json | null
           revenue_campaigns?: number
           revenue_flows?: number
           revenue_total?: number
@@ -392,12 +410,21 @@ export type Database = {
           top_campaigns_by_revenue?: Json | null
         }
         Update: {
+          campaign_count?: number | null
+          campaigns_with_revenue?: number | null
+          conversions_campaigns?: number | null
+          conversions_flows?: number | null
           created_at?: string
+          flow_count?: number | null
+          flow_perf?: Json | null
+          flows_with_activity?: number | null
+          flows_with_revenue?: number | null
           id?: string
           leads_total?: number
           orders_attributed?: number
           period_end?: string
           period_start?: string
+          raw?: Json | null
           revenue_campaigns?: number
           revenue_flows?: number
           revenue_total?: number
@@ -406,6 +433,65 @@ export type Database = {
           top_campaigns_by_revenue?: Json | null
         }
         Relationships: []
+      }
+      n8n_jobs: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          meta: Json | null
+          payload: Json | null
+          period_end: string
+          period_start: string
+          request_id: string
+          source: string
+          started_at: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          meta?: Json | null
+          payload?: Json | null
+          period_end: string
+          period_start: string
+          request_id: string
+          source?: string
+          started_at?: string | null
+          status: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          meta?: Json | null
+          payload?: Json | null
+          period_end?: string
+          period_start?: string
+          request_id?: string
+          source?: string
+          started_at?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "n8n_jobs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {

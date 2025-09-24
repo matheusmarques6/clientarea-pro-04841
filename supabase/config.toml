@@ -73,3 +73,9 @@ verify_jwt = true
 
 [functions.n8n_klaviyo_sync]
 verify_jwt = false
+
+[functions.start_klaviyo_job]
+verify_jwt = true
+
+[functions.klaviyo_callback]
+verify_jwt = false

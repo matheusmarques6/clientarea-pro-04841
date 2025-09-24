@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { KlaviyoSummary, KlaviyoWebhookResponse, Campaign } from '@/api/klaviyo';
+import { toast as sonnerToast } from 'sonner';
 
 interface DashboardKPIs {
   total_revenue: number;
@@ -50,6 +51,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   }>({ byRevenue: [], byConversions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncJobId, setSyncJobId] = useState<string | null>(null);
   const { toast } = useToast();
   const kpiBaseRef = useRef<DashboardKPIs | null>(null);
 
@@ -382,121 +384,155 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  const syncData = async () => {
+  const syncData = useCallback(async () => {
+    if (!storeId || isSyncing) return;
+    
     setIsSyncing(true);
-
     try {
       const { startDate, endDate } = getPeriodDates(period);
-
-      let shopifySuccess = false;
-      let klaviyoSuccess = false;
-      const messages: string[] = [];
-
-      // 1. Sincronizar Shopify
-      try {
-        const shopifyData = await invokeEdgeFunction<{ synced?: number; totalRevenue?: number }>(
-          'shopify_orders_sync',
-          {
-            storeId,
-            from: startDate.toISOString().split('T')[0],
-            to: endDate.toISOString().split('T')[0],
-          },
-          30000
-        );
-
-        if (shopifyData) {
-          shopifySuccess = true;
-          messages.push(`Shopify: ${shopifyData.synced || 0} pedidos sincronizados`);
-        } else {
-          messages.push('Shopify: Nenhum dado retornado');
+      const periodStart = startDate.toISOString().split('T')[0];
+      const periodEnd = endDate.toISOString().split('T')[0];
+      
+      // Start the job
+      const { data, error } = await supabase.functions.invoke('start_klaviyo_job', {
+        body: {
+          store_id: storeId,
+          period_start: periodStart,
+          period_end: periodEnd
         }
-      } catch (shopifyErr) {
-        console.error('Erro Shopify catch:', shopifyErr);
-        const errorMessage = shopifyErr instanceof Error ? shopifyErr.message : 'Erro na sincronização';
-        messages.push(`Shopify: ${errorMessage}`);
-      }
-
-      // 2. Sincronizar Klaviyo
-      console.log('Sincronizando Klaviyo...');
-
-      try {
-        const klaviyoResult = await invokeEdgeFunction<KlaviyoWebhookResponse[] | KlaviyoSummary>(
-          'klaviyo_summary',
-          {
-            storeId,
-            from: startDate.toISOString().split('T')[0],
-            to: endDate.toISOString().split('T')[0],
-            fast: true,
-          },
-          30000
-        );
-
-        // Handle both new webhook format and legacy format
-        if (Array.isArray(klaviyoResult) && klaviyoResult.length > 0) {
-          klaviyoSuccess = true;
-          updateKlaviyoState(klaviyoResult[0]);
-          const revenue = klaviyoResult[0].klaviyo.revenue_total || 0;
-          messages.push(`Klaviyo: Receita ${formatToastCurrency(revenue)}`);
-        } else if (klaviyoResult && 'klaviyo' in klaviyoResult) {
-          klaviyoSuccess = true;
-          updateKlaviyoState(klaviyoResult.klaviyo);
-          const revenue = klaviyoResult.klaviyo.revenue_total || 0;
-          messages.push(`Klaviyo: Receita ${formatToastCurrency(revenue)}`);
-        } else {
-          messages.push('Klaviyo: Sem dados retornados');
-        }
-      } catch (klaviyoErr) {
-        console.error('Erro Klaviyo catch:', klaviyoErr);
-        const errorMessage = klaviyoErr instanceof Error ? klaviyoErr.message : 'Erro na comunicação';
-        messages.push(`Klaviyo: ${errorMessage}`);
-      }
-
-      // 3. Recarregar dados sempre
-      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue()]);
-
-      if (!klaviyoSuccess) {
-        await fetchKlaviyoData();
-      }
-
-      // 4. Mostrar resultado final
-      const title = (shopifySuccess && klaviyoSuccess) ? "Sincronização completa" :
-                    (shopifySuccess || klaviyoSuccess) ? "Sincronização parcial" :
-                    "Erro na sincronização";
-
-      const variant = (shopifySuccess && klaviyoSuccess) ? undefined :
-                      (shopifySuccess || klaviyoSuccess) ? undefined :
-                      "destructive";
-
-      toast({
-        title,
-        description: messages.join(' | '),
-        variant,
       });
+
+      if (error) throw error;
+
+      setSyncJobId(data.job_id);
+      sonnerToast.success('Sincronização iniciada. Aguarde alguns minutos...');
+      
+      // Start polling for job status
+      pollJobStatus(data.request_id, periodStart, periodEnd);
       
     } catch (error) {
-      console.error('Erro geral sync:', error);
-
-      const errorMessage = error instanceof Error ? error.message : 'Não foi possível sincronizar os dados';
-
-      toast({
-        title: "Erro na sincronização",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
+      console.error('Sync failed:', error);
+      sonnerToast.error('Erro ao iniciar sincronização');
       setIsSyncing(false);
     }
-  };
+  }, [storeId, period, isSyncing]);
+
+  const pollJobStatus = useCallback(async (requestId: string, periodStart: string, periodEnd: string) => {
+    const maxAttempts = 48; // 4 minutes max
+    let attempts = 0;
+    
+    const poll = async () => {
+      attempts++;
+      
+      try {
+        const { data: jobs } = await supabase
+          .from('n8n_jobs')
+          .select('status, finished_at, error, request_id')
+          .eq('request_id', requestId)
+          .single();
+
+        if (!jobs) {
+          console.error('Job not found');
+          setIsSyncing(false);
+          return;
+        }
+
+        if (jobs.status === 'SUCCESS') {
+          // Fetch updated data
+          await fetchKlaviyoSummary(periodStart, periodEnd);
+          await loadData();
+          sonnerToast.success('Sincronização concluída com sucesso!');
+          setIsSyncing(false);
+          setSyncJobId(null);
+          return;
+        }
+
+        if (jobs.status === 'ERROR') {
+          sonnerToast.error(`Erro na sincronização: ${jobs.error || 'Erro desconhecido'}`);
+          setIsSyncing(false);
+          setSyncJobId(null);
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          sonnerToast.warning('Sincronização ainda processando. Você pode continuar usando o sistema.');
+          setIsSyncing(false);
+          return;
+        }
+
+        // Continue polling
+        setTimeout(poll, 5000); // 5 seconds
+        
+      } catch (error) {
+        console.error('Error polling job status:', error);
+        if (attempts >= maxAttempts) {
+          setIsSyncing(false);
+        } else {
+          setTimeout(poll, 5000);
+        }
+      }
+    };
+
+    poll();
+  }, []);
+
+  const fetchKlaviyoSummary = useCallback(async (periodStart: string, periodEnd: string) => {
+    if (!storeId) return;
+
+    try {
+      const { data: summary } = await supabase
+        .from('klaviyo_summaries')
+        .select(`
+          revenue_total,
+          revenue_campaigns,
+          revenue_flows,
+          orders_attributed,
+          conversions_campaigns,
+          conversions_flows,
+          leads_total,
+          campaign_count,
+          flow_count,
+          campaigns_with_revenue,
+          flows_with_revenue,
+          flows_with_activity,
+          flow_perf,
+          raw
+        `)
+        .eq('store_id', storeId)
+        .eq('period_start', periodStart)
+        .eq('period_end', periodEnd)
+        .single();
+
+      if (summary?.raw && typeof summary.raw === 'object' && summary.raw !== null) {
+        const rawData = summary.raw as any;
+        setKlaviyoData(rawData);
+        
+        // Update top campaigns
+        const campaigns = rawData.top_campaigns_by_revenue || [];
+        const campaignsByConversions = rawData.top_campaigns_by_conversions || [];
+        
+        setTopCampaigns({
+          byRevenue: campaigns,
+          byConversions: campaignsByConversions
+        });
+        
+        // Update KPIs with real data
+        applyKpis(rawData.revenue_total ?? null);
+      }
+    } catch (error) {
+      console.error('Error fetching klaviyo summary:', error);
+    }
+  }, [storeId]);
 
   // Carregar dados iniciais
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue(), fetchKlaviyoData()]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [storeId, period]);
 
   // Efeito para carregar dados quando o período muda
   useEffect(() => {
