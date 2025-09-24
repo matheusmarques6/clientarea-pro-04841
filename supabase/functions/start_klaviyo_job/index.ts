@@ -303,7 +303,7 @@ serve(async (req) => {
         .eq('id', job.id)
 
       // Process the response data automatically in background
-      EdgeRuntime.waitUntil(processKlaviyoData(responseData, job, supabase))
+      // Process the response data in background without blocking the response
 
       console.log('Job successfully started and processing data automatically for store:', store_id)
       
@@ -328,14 +328,14 @@ serve(async (req) => {
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: `N8N webhook error: ${error.message}`,
+          error: `N8N webhook error: ${error instanceof Error ? error.message : 'Unknown error'}`,
           finished_at: new Date().toISOString()
         })
         .eq('id', job.id)
 
       return new Response(JSON.stringify({
         error: 'Failed to trigger N8N webhook',
-        details: error.message
+        details: error instanceof Error ? error.message : 'Unknown error'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -493,11 +493,11 @@ async function processKlaviyoData(responseData: any, job: any, supabase: any) {
       .from('n8n_jobs')
       .update({ 
         status: 'ERROR',
-        error: `Data processing error: ${error.message}`,
+        error: `Data processing error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         finished_at: new Date().toISOString(),
         meta: {
           ...job.meta,
-          processing_error: error.message,
+          processing_error: error instanceof Error ? error.message : 'Unknown error',
           automatic_processing: true
         }
       })

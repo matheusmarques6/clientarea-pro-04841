@@ -110,7 +110,7 @@ serve(async (req) => {
         console.error('Shopify sync failed:', results.shopify.error);
       }
     } catch (error) {
-      results.shopify.error = error.message;
+      results.shopify.error = error instanceof Error ? error.message : 'Unknown error';
       console.error('Shopify sync error:', error);
     }
 
@@ -140,7 +140,7 @@ serve(async (req) => {
         console.error('Klaviyo sync failed:', results.klaviyo.error);
       }
     } catch (error) {
-      results.klaviyo.error = error.message;
+      results.klaviyo.error = error instanceof Error ? error.message : 'Unknown error';
       console.error('Klaviyo sync error:', error);
     }
 
@@ -158,7 +158,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in dashboard-sync:', error);
     return new Response(JSON.stringify({
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       hint: 'Check your integration configurations'
     }), {
       status: 500,
