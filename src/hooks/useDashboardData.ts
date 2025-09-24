@@ -361,6 +361,31 @@ export const useDashboardData = (storeId: string, period: string) => {
       const periodStart = startDate.toISOString().split('T')[0];
       const periodEnd = endDate.toISOString().split('T')[0];
       
+      console.log('Starting sync for store:', storeId, 'period:', periodStart, 'to', periodEnd);
+      
+      // First, check if there are any stuck jobs and clean them up
+      const currentTime = new Date();
+      const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+      
+      const { data: stuckJobs } = await supabase
+        .from('n8n_jobs')
+        .select('id, status, started_at')
+        .eq('store_id', storeId)
+        .in('status', ['QUEUED', 'PROCESSING'])
+        .lt('started_at', oneHourAgo.toISOString());
+      
+      if (stuckJobs && stuckJobs.length > 0) {
+        console.log('Found stuck jobs, cleaning up:', stuckJobs);
+        await supabase
+          .from('n8n_jobs')
+          .update({ 
+            status: 'ERROR', 
+            error: 'Job timeout - cleaned up',
+            finished_at: new Date().toISOString()
+          })
+          .in('id', stuckJobs.map(job => job.id));
+      }
+      
       // Start the job
       const { data, error } = await supabase.functions.invoke('start_klaviyo_job', {
         body: {
@@ -370,7 +395,10 @@ export const useDashboardData = (storeId: string, period: string) => {
         }
       });
 
+      console.log('Sync response:', { data, error });
+
       if (error) {
+        console.error('Sync error details:', error);
         if (error.message === 'Klaviyo credentials not configured') {
           throw new Error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
         }
@@ -380,11 +408,16 @@ export const useDashboardData = (storeId: string, period: string) => {
         throw error;
       }
 
-      setSyncJobId(data.job_id);
+      if (data?.job_id) {
+        setSyncJobId(data.job_id);
+      }
+      
       sonnerToast.success('Sincronização iniciada. Aguarde alguns minutos...');
       
       // Start polling for job status
-      pollJobStatus(data.request_id, periodStart, periodEnd);
+      if (data?.request_id) {
+        pollJobStatus(data.request_id, periodStart, periodEnd);
+      }
       
     } catch (error: any) {
       console.error('Sync failed:', error);
