@@ -439,7 +439,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         setSyncJobId(data.job_id);
       }
       
-      sonnerToast.success('Sincronização iniciada. Aguarde alguns minutos...');
+      sonnerToast.success('Sincronização iniciada. Aguardando processamento do N8N (até 5 minutos)...');
       
       // Start polling for job status
       if (data?.request_id) {
@@ -460,7 +460,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   }, [storeId, period, isSyncing]);
 
   const pollJobStatus = useCallback(async (requestId: string, periodStart: string, periodEnd: string) => {
-    const maxAttempts = 48; // 4 minutes max
+    const maxAttempts = 60; // 5 minutes max (60 attempts * 5 seconds = 5 minutes)
     let attempts = 0;
     
     const poll = async () => {
@@ -497,7 +497,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         }
 
         if (attempts >= maxAttempts) {
-          sonnerToast.warning('Sincronização ainda processando. Você pode continuar usando o sistema.');
+          sonnerToast.warning('Sincronização ainda processando no N8N. Os dados aparecerão automaticamente quando prontos (até 5 minutos).');
           setIsSyncing(false);
           return;
         }
@@ -517,7 +517,6 @@ export const useDashboardData = (storeId: string, period: string) => {
     poll();
   }, []);
 
-
   // Carregar dados iniciais
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -527,6 +526,73 @@ export const useDashboardData = (storeId: string, period: string) => {
       setIsLoading(false);
     }
   }, [storeId, period]);
+
+  // Setup realtime subscription for automatic updates
+  useEffect(() => {
+    if (!storeId) return;
+
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'klaviyo_summaries',
+          filter: `store_id=eq.${storeId}`
+        },
+        (payload) => {
+          console.log('Klaviyo data updated:', payload);
+          // Automatically fetch new data when klaviyo_summaries is updated
+          fetchKlaviyoData();
+          sonnerToast.success('Dados de sincronização atualizados automaticamente!');
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public', 
+          table: 'channel_revenue',
+          filter: `store_id=eq.${storeId}`
+        },
+        (payload) => {
+          console.log('Channel revenue updated:', payload);
+          // Automatically fetch new data when channel_revenue is updated
+          fetchChannelRevenue();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'n8n_jobs', 
+          filter: `store_id=eq.${storeId}`
+        },
+        (payload) => {
+          console.log('Job status updated:', payload);
+          
+          if (payload.new?.status === 'SUCCESS') {
+            // Job completed successfully, refresh all data
+            loadData();
+            setIsSyncing(false);
+            setSyncJobId(null);
+            sonnerToast.success('Sincronização concluída com sucesso!');
+          } else if (payload.new?.status === 'ERROR') {
+            // Job failed
+            setIsSyncing(false);
+            setSyncJobId(null);
+            sonnerToast.error(`Erro na sincronização: ${payload.new?.error || 'Erro desconhecido'}`);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [storeId, fetchKlaviyoData, fetchChannelRevenue, loadData]);
 
   // Efeito para carregar dados quando o período muda
   useEffect(() => {

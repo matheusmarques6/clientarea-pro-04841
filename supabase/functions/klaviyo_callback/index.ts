@@ -175,6 +175,28 @@ serve(async (req) => {
       }
     }
 
+    // Update job status to SUCCESS after processing data
+    console.log('Updating job status to SUCCESS for request_id:', metadata.request_id)
+    
+    const { error: jobUpdateError } = await supabase
+      .from('n8n_jobs')
+      .update({ 
+        status: 'SUCCESS',
+        finished_at: new Date().toISOString(),
+        meta: {
+          callback_received_at: new Date().toISOString(),
+          data_processed: true,
+          total_revenue_processed: data[0]?.klaviyo?.revenue_total || 0
+        }
+      })
+      .eq('request_id', metadata.request_id)
+    
+    if (jobUpdateError) {
+      console.error('Error updating job status:', jobUpdateError)
+    } else {
+      console.log('Job status updated to SUCCESS successfully')
+    }
+
     console.log(`Successfully processed callback for request_id: ${metadata.request_id}, status: ${status}`)
 
     return new Response('OK', {

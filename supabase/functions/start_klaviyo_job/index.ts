@@ -265,9 +265,9 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       }
 
-      // Set a shorter timeout to avoid edge function timeout
+      // Set timeout to 5 minutes to allow N8N processing time
       const timeoutController = new AbortController()
-      const timeoutId = setTimeout(() => timeoutController.abort(), 30000) // 30 second timeout
+      const timeoutId = setTimeout(() => timeoutController.abort(), 300000) // 5 minutes timeout
 
       const n8nResponse = await fetch(n8nWebhookUrl, {
         method: 'POST',
