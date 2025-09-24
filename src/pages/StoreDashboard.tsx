@@ -9,7 +9,6 @@ import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
 import { LeadsMetrics } from '@/components/dashboard/LeadsMetrics';
-import { ManualCallbackProcessor } from '@/components/dashboard/ManualCallbackProcessor';
 
 const StoreDashboard = () => {
   const { id } = useParams();
@@ -80,7 +79,6 @@ const StoreDashboard = () => {
         </div>
         
         <div className="flex gap-2">
-          <ManualCallbackProcessor onSuccess={refetch} />
           <Button 
             onClick={syncData}
             disabled={isSyncing}

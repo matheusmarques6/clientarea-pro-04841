@@ -7,7 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }
 
-const generateRequestId = () => `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+// Generate unique request ID
+function generateRequestId(): string {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 11)
+  return `req_${timestamp}_${random}`
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -20,27 +25,26 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { 
-        autoRefreshToken: false, 
-        persistSession: false 
-      },
-      global: {
-        headers: { 
-          Authorization: req.headers.get('Authorization')! 
-        }
-      }
-    })
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get the user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // Get the authenticated user
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      console.error('Authentication error:', authError)
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    }
+
+    // Get request body
     const { store_id, period_start, period_end } = await req.json()
 
     if (!store_id || !period_start || !period_end) {
@@ -50,138 +54,120 @@ serve(async (req) => {
       })
     }
 
-    // Validate user has access to store
+    console.log('Store access check:', {
+      user_id: user.id,
+      store_id: store_id,
+    })
+
+    // Check if user has access to this store
     const { data: storeAccess, error: accessError } = await supabase
       .from('v_user_stores')
       .select('store_id')
       .eq('user_id', user.id)
       .eq('store_id', store_id)
-      .maybeSingle()
+      .single()
 
-    console.log('Store access check:', { 
-      user_id: user.id, 
-      store_id, 
-      storeAccess, 
-      accessError 
+    console.log('Store access check:', {
+      user_id: user.id,
+      store_id: store_id,
+      storeAccess,
+      accessError
     })
 
     if (accessError || !storeAccess) {
-      console.error('Store access error:', accessError)
-      return new Response('Access denied to store', { status: 403, headers: corsHeaders })
+      return new Response('Access denied to this store', { status: 403, headers: corsHeaders })
     }
 
-    // Quick cleanup of stuck jobs older than 20 minutes before checking for existing jobs
-    const currentTime = new Date()
-    const twentyMinutesAgo = new Date(currentTime.getTime() - 20 * 60 * 1000)
-    
-    console.log('Checking for stuck jobs older than:', twentyMinutesAgo.toISOString())
-    
-    const { data: stuckJobs, error: stuckJobsError } = await supabase
+    // Check for stuck jobs (older than 20 minutes) and clean them up
+    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+    console.log('Checking for stuck jobs older than:', twentyMinutesAgo)
+
+    const { data: stuckJobs } = await supabase
       .from('n8n_jobs')
-      .select('id, status, started_at, request_id')
+      .select('id, request_id')
       .eq('store_id', store_id)
       .in('status', ['QUEUED', 'PROCESSING'])
-      .lt('started_at', twentyMinutesAgo.toISOString())
+      .lt('created_at', twentyMinutesAgo)
 
-    if (stuckJobsError) {
-      console.error('Error checking stuck jobs:', stuckJobsError)
-    } else if (stuckJobs && stuckJobs.length > 0) {
-      console.log('Found and cleaning up stuck jobs older than 20min:', stuckJobs.length)
+    if (stuckJobs && stuckJobs.length > 0) {
+      console.log('Found stuck jobs, cleaning up:', stuckJobs.length)
       
-      const { error: updateError } = await supabase
+      await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Job timeout - auto cleaned before new sync',
+          error: 'Job timeout - cleaned up (30min+ old)',
           finished_at: new Date().toISOString()
         })
         .in('id', stuckJobs.map(job => job.id))
-      
-      if (updateError) {
-        console.error('Error updating stuck jobs:', updateError)
-      } else {
-        console.log('Cleaned up stuck jobs:', stuckJobs.map(j => j.request_id))
-      }
     } else {
       console.log('No stuck jobs found')
     }
 
-    // Check for existing processing job for this specific store and period (lightweight query)
+    // Check for existing jobs in QUEUED or PROCESSING status
     console.log('Checking for existing jobs for store:', store_id, 'period:', period_start, 'to', period_end)
     
-    const { data: existingJob, error: jobCheckError } = await supabase
+    const { data: existingJobs } = await supabase
       .from('n8n_jobs')
-      .select('id, request_id, status, started_at')
+      .select('*')
       .eq('store_id', store_id)
       .eq('period_start', period_start)
       .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
-      .limit(1)
-      .maybeSingle()
+      .order('created_at', { ascending: false })
 
-    if (jobCheckError) {
-      console.error('Error checking existing jobs:', jobCheckError)
-      return new Response('Error checking existing jobs', { status: 500, headers: corsHeaders })
-    }
-
-    if (existingJob) {
-      console.log('Job already exists for this store and period:', existingJob)
+    if (existingJobs && existingJobs.length > 0) {
+      console.log('Found existing job:', existingJobs[0].id, 'status:', existingJobs[0].status)
       return new Response(JSON.stringify({
-        job_id: existingJob.id,
-        request_id: existingJob.request_id,
-        status: existingJob.status,
-        message: `Job already in progress for store ${store_id} (${period_start} to ${period_end})`,
-        store_id: store_id
+        job_id: existingJobs[0].id,
+        request_id: existingJobs[0].request_id,
+        status: existingJobs[0].status,
+        store_id: store_id,
+        period_start: period_start,
+        period_end: period_end,
+        message: 'Job already in progress'
       }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       })
     }
 
     console.log('No existing job found, proceeding with new job creation...')
 
-    // Get store credentials efficiently (only required fields)
+    // Fetch store credentials for N8N
     console.log('Fetching store credentials for:', store_id)
     
     const { data: store, error: storeError } = await supabase
       .from('stores')
-      .select('id, name, shopify_domain, shopify_access_token, klaviyo_private_key, klaviyo_site_id, country, currency, status')
+      .select('*')
       .eq('id', store_id)
       .single()
 
-    if (storeError) {
-      console.error('Error fetching store:', storeError)
+    if (storeError || !store) {
+      console.error('Store not found or error:', storeError)
       return new Response('Store not found', { status: 404, headers: corsHeaders })
     }
 
-    if (!store?.klaviyo_private_key || !store?.klaviyo_site_id) {
-      return new Response('Klaviyo credentials not configured', { status: 400, headers: corsHeaders })
-    }
-
-    // Note: Shopify credentials are optional for Klaviyo-only sync
-
     // Generate request ID
     const request_id = generateRequestId()
-
     console.log('Creating new job with request_id:', request_id)
 
-    // Create job record
+    // Create new job record
     const { data: job, error: jobError } = await supabase
       .from('n8n_jobs')
       .insert({
-        store_id,
-        period_start,
-        period_end,
-        request_id,
-        status: 'QUEUED',
+        store_id: store_id,
         source: 'klaviyo',
+        period_start: period_start,
+        period_end: period_end,
+        request_id: request_id,
+        status: 'QUEUED',
         created_by: user.id,
         meta: {
-          n8n_webhook_triggered_at: new Date().toISOString(),
-          store_name: store.name,
-          shopify_domain: store.shopify_domain,
           user_id: user.id,
-          user_email: user.email
+          user_email: user.email,
+          store_name: store.name,
+          shopify_domain: store.shopify_domain
         }
       })
       .select()
@@ -189,19 +175,17 @@ serve(async (req) => {
 
     if (jobError) {
       console.error('Error creating job:', jobError)
-      return new Response('Failed to create job', { status: 500, headers: corsHeaders })
+      return new Response('Error creating job', { status: 500, headers: corsHeaders })
     }
 
     console.log('Job created successfully:', job.id, 'for store:', store_id)
 
-    // Prepare n8n webhook payload with complete store data
+    // Prepare N8N payload
     const n8nPayload = {
-      // Job information
       storeId: store_id,
       from: period_start + 'T00:00:00.000Z',
       to: period_end + 'T23:59:59.000Z',
       request_id: request_id,
-      callback_url: `${supabaseUrl}/functions/v1/klaviyo_callback`,
       
       // Store information
       store: {
@@ -217,14 +201,14 @@ serve(async (req) => {
       shopify: {
         domain: store.shopify_domain,
         access_token: store.shopify_access_token,
-        api_version: '2024-01' // Versão da API do Shopify
+        api_version: '2024-01'
       },
       
       // Klaviyo credentials
       klaviyo: {
         private_key: store.klaviyo_private_key,
         site_id: store.klaviyo_site_id,
-        api_version: '2024-02-15' // Versão da API do Klaviyo
+        api_version: '2024-02-15'
       },
       
       // Legacy fields for backward compatibility
@@ -234,11 +218,10 @@ serve(async (req) => {
       klaviyo_site_id: store.klaviyo_site_id
     }
 
-    // Trigger n8n webhook
+    // Trigger n8n webhook and wait for response (up to 5 minutes)
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL')
 
     if (!n8nWebhookUrl) {
-      // Update job status to error
       await supabase
         .from('n8n_jobs')
         .update({ 
@@ -265,7 +248,7 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       }
 
-      // Set timeout to 5 minutes to allow N8N processing time
+      // Set timeout to 5 minutes as requested
       const timeoutController = new AbortController()
       const timeoutId = setTimeout(() => timeoutController.abort(), 300000) // 5 minutes timeout
 
@@ -279,15 +262,27 @@ serve(async (req) => {
       clearTimeout(timeoutId)
 
       console.log('N8N webhook response status:', n8nResponse.status)
-      console.log('N8N webhook response headers:', Object.fromEntries(n8nResponse.headers.entries()))
 
       if (!n8nResponse.ok) {
         const responseText = await n8nResponse.text()
         console.error('N8N webhook error response:', responseText)
-        throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText} - ${responseText}`)
+        
+        // Update job to ERROR status
+        await supabase
+          .from('n8n_jobs')
+          .update({ 
+            status: 'ERROR',
+            error: `N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText} - ${responseText}`,
+            finished_at: new Date().toISOString()
+          })
+          .eq('id', job.id)
+        
+        throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`)
       }
 
-      console.log('N8N webhook called successfully for job:', job.id)
+      // Get the response data from N8N (should contain Klaviyo data)
+      const responseData = await n8nResponse.json()
+      console.log('N8N webhook response data received, processing automatically...')
 
       // Update job status to processing
       await supabase
@@ -307,7 +302,10 @@ serve(async (req) => {
         })
         .eq('id', job.id)
 
-      console.log('Job successfully started and webhook triggered for store:', store_id)
+      // Process the response data automatically in background
+      EdgeRuntime.waitUntil(processKlaviyoData(responseData, job, supabase))
+
+      console.log('Job successfully started and processing data automatically for store:', store_id)
       
       return new Response(JSON.stringify({
         job_id: job.id,
@@ -316,26 +314,32 @@ serve(async (req) => {
         store_id: store_id,
         period_start: period_start,
         period_end: period_end,
-        message: 'Webhook triggered successfully'
+        message: 'Webhook triggered successfully, processing data automatically'
       }), {
-        status: 202,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       })
 
     } catch (error) {
-      console.error('Error calling n8n webhook:', error)
+      console.error('N8N webhook error:', error)
       
       // Update job status to error
       await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: error.message,
+          error: `N8N webhook error: ${error.message}`,
           finished_at: new Date().toISOString()
         })
         .eq('id', job.id)
 
-      return new Response('Failed to trigger n8n webhook', { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({
+        error: 'Failed to trigger N8N webhook',
+        details: error.message
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
     }
 
   } catch (error) {
@@ -343,3 +347,160 @@ serve(async (req) => {
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 })
+
+// Background function to process Klaviyo data automatically
+async function processKlaviyoData(responseData: any, job: any, supabase: any) {
+  try {
+    console.log('Processing Klaviyo data automatically for job:', job.id)
+    
+    // Extract data from N8N response
+    let klaviyoData = null
+    
+    // Handle different response formats from N8N
+    if (Array.isArray(responseData) && responseData.length > 0) {
+      klaviyoData = responseData[0]
+    } else if (responseData.klaviyo) {
+      klaviyoData = responseData
+    } else {
+      console.error('Invalid response format from N8N:', responseData)
+      throw new Error('Invalid response format from N8N')
+    }
+
+    const { klaviyo, period, store, metadata } = klaviyoData
+    
+    if (!klaviyo) {
+      console.error('No Klaviyo data found in response:', klaviyoData)
+      throw new Error('No Klaviyo data found in response')
+    }
+
+    console.log('Processing Klaviyo data for store:', store?.id || job.store_id)
+    console.log('Klaviyo revenue total:', klaviyo.revenue_total)
+    
+    // Parse leads_total (it comes as string "1+", need to convert to number)
+    let leadsTotal = 0
+    if (klaviyo.leads_total) {
+      const leadsStr = klaviyo.leads_total.toString()
+      if (leadsStr.includes('+')) {
+        leadsTotal = parseInt(leadsStr.replace('+', '')) || 0
+      } else {
+        leadsTotal = parseInt(leadsStr) || 0
+      }
+    }
+
+    const summaryData = {
+      store_id: store?.id || job.store_id,
+      period_start: period?.start || job.period_start,
+      period_end: period?.end || job.period_end,
+      revenue_total: klaviyo.revenue_total || 0,
+      revenue_campaigns: klaviyo.revenue_campaigns || 0,
+      revenue_flows: klaviyo.revenue_flows || 0,
+      orders_attributed: klaviyo.orders_attributed || 0,
+      conversions_campaigns: klaviyo.conversions_campaigns || 0,
+      conversions_flows: klaviyo.conversions_flows || 0,
+      leads_total: leadsTotal,
+      campaign_count: klaviyo.campaign_count || 0,
+      flow_count: klaviyo.flow_count || 0,
+      campaigns_with_revenue: klaviyo.campaigns_with_revenue || 0,
+      flows_with_revenue: klaviyo.flows_with_revenue || 0,
+      flows_with_activity: klaviyo.flows_with_activity || 0,
+      flow_perf: klaviyo.flow_performance_averages || null,
+      top_campaigns_by_revenue: klaviyo.top_campaigns_by_revenue || [],
+      top_campaigns_by_conversions: klaviyo.top_campaigns_by_conversions || [],
+      raw: klaviyoData,
+      updated_at: new Date().toISOString()
+    }
+
+    console.log('Saving klaviyo_summaries data with revenue:', summaryData.revenue_total)
+
+    // Upsert klaviyo_summaries
+    const { data: summaryResult, error: summaryError } = await supabase
+      .from('klaviyo_summaries')
+      .upsert(summaryData, {
+        onConflict: 'store_id,period_start,period_end',
+        ignoreDuplicates: false
+      })
+      .select()
+
+    if (summaryError) {
+      console.error('Error upserting klaviyo_summaries:', summaryError)
+      throw summaryError
+    } else {
+      console.log('Successfully saved klaviyo_summaries with revenue:', summaryData.revenue_total)
+    }
+
+    // Also save to channel_revenue for dashboard compatibility
+    if (klaviyo.revenue_total > 0) {
+      const channelRevenueData = {
+        store_id: store?.id || job.store_id,
+        period_start: period?.start || job.period_start,
+        period_end: period?.end || job.period_end,
+        channel: 'email',
+        source: 'klaviyo_webhook',
+        revenue: klaviyo.revenue_total,
+        orders_count: klaviyo.orders_attributed,
+        currency: 'BRL',
+        raw: klaviyoData,
+        updated_at: new Date().toISOString()
+      }
+
+      console.log('Saving channel_revenue data with revenue:', channelRevenueData.revenue)
+
+      const { data: channelResult, error: channelError } = await supabase
+        .from('channel_revenue')
+        .upsert(channelRevenueData, {
+          onConflict: 'store_id,period_start,period_end,channel,source',
+          ignoreDuplicates: false
+        })
+        .select()
+
+      if (channelError) {
+        console.error('Error saving channel_revenue:', channelError)
+      } else {
+        console.log('Successfully saved channel_revenue with revenue:', channelRevenueData.revenue)
+      }
+    }
+
+    // Update job status to SUCCESS
+    const { error: jobUpdateError } = await supabase
+      .from('n8n_jobs')
+      .update({ 
+        status: 'SUCCESS',
+        finished_at: new Date().toISOString(),
+        payload: klaviyoData,
+        meta: {
+          ...job.meta,
+          data_processed_at: new Date().toISOString(),
+          data_processed: true,
+          total_revenue_processed: klaviyo.revenue_total || 0,
+          automatic_processing: true
+        }
+      })
+      .eq('id', job.id)
+    
+    if (jobUpdateError) {
+      console.error('Error updating job status:', jobUpdateError)
+    } else {
+      console.log('Job status updated to SUCCESS successfully')
+    }
+
+    console.log(`Successfully processed data automatically for job: ${job.id}, revenue: ${klaviyo.revenue_total}`)
+
+  } catch (error) {
+    console.error('Error processing Klaviyo data automatically:', error)
+    
+    // Update job status to ERROR
+    await supabase
+      .from('n8n_jobs')
+      .update({ 
+        status: 'ERROR',
+        error: `Data processing error: ${error.message}`,
+        finished_at: new Date().toISOString(),
+        meta: {
+          ...job.meta,
+          processing_error: error.message,
+          automatic_processing: true
+        }
+      })
+      .eq('id', job.id)
+  }
+}
