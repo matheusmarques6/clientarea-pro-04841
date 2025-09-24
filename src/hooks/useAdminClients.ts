@@ -170,34 +170,47 @@ export const useAdminClients = () => {
 
   const getClientUsers = async (clientId: string): Promise<AdminUser[]> => {
     try {
-      // First try to get users through existing store memberships
-      const { data: existingUsers, error: existingError } = await supabase
-        .from('users')
-        .select(`
-          *,
-          store_members!inner(
-            store_id,
-            role,
-            stores!inner(
-              id,
-              name,
-              client_id
-            )
-          )
-        `)
-        .eq('store_members.stores.client_id', clientId);
+      // Get stores for this client
+      const { data: stores, error: storesError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('client_id', clientId);
 
-      if (existingError) throw existingError;
+      if (storesError) throw storesError;
 
-      // If we found users through store memberships, return them
-      if (existingUsers && existingUsers.length > 0) {
-        return existingUsers as AdminUser[];
+      if (!stores || stores.length === 0) {
+        console.log('No stores found for client', clientId);
+        return [];
       }
 
-      // If no users found through stores, we can't determine client users
-      // This should be handled by the calling function
-      console.log('No users found for client', clientId);
-      return [];
+      const storeIds = stores.map(s => s.id);
+
+      // Get unique users from v_user_stores
+      const { data: userStores, error: userStoresError } = await supabase
+        .from('v_user_stores')
+        .select('user_id')
+        .in('store_id', storeIds);
+
+      if (userStoresError) throw userStoresError;
+
+      if (!userStores || userStores.length === 0) {
+        console.log('No users found for client stores', clientId);
+        return [];
+      }
+
+      // Get unique user IDs
+      const uniqueUserIds = [...new Set(userStores.map(us => us.user_id))];
+
+      // Get full user details
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', uniqueUserIds)
+        .order('created_at', { ascending: false });
+
+      if (usersError) throw usersError;
+
+      return (users || []) as AdminUser[];
     } catch (error) {
       console.error('Error fetching client users:', error);
       return [];
