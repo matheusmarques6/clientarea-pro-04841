@@ -136,7 +136,6 @@ serve(async (req) => {
 
     // Trigger n8n webhook
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL')
-    const n8nApiKey = Deno.env.get('N8N_API_KEY')
 
     if (!n8nWebhookUrl) {
       // Update job status to error
@@ -154,8 +153,7 @@ serve(async (req) => {
 
     try {
       const n8nHeaders = {
-        'Content-Type': 'application/json',
-        ...(n8nApiKey && { 'x-api-key': n8nApiKey })
+        'Content-Type': 'application/json'
       }
 
       const n8nResponse = await fetch(n8nWebhookUrl, {

@@ -33,15 +33,11 @@ serve(async (req) => {
       return new Response('Invalid JSON', { status: 400, headers: corsHeaders })
     }
 
-    // Validate n8n signature or API key
-    const signature = req.headers.get('x-n8n-signature')
-    const apiKey = req.headers.get('x-api-key')
-    const expectedApiKey = Deno.env.get('N8N_API_KEY')
-    
-    if (expectedApiKey && apiKey !== expectedApiKey) {
-      console.error('Invalid API key')
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
+    // Log the webhook call for debugging
+    console.log('Klaviyo callback received:', { 
+      headers: Object.fromEntries(req.headers.entries()),
+      payloadLength: body.length 
+    })
 
     // Extract data from payload (expecting array with single item)
     if (!Array.isArray(payload) || payload.length === 0) {
