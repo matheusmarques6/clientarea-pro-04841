@@ -320,13 +320,15 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
 
-      // Buscar apenas dados do banco (vindos do n8n)
+      // Always fetch the most recent data from database
       const { data: cache, error: cacheError } = await supabase
         .from('klaviyo_summaries')
         .select('*')
         .eq('store_id', storeId)
         .eq('period_start', startDate.toISOString().split('T')[0])
         .eq('period_end', endDate.toISOString().split('T')[0])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (cache && !cacheError) {
@@ -341,7 +343,13 @@ export const useDashboardData = (storeId: string, period: string) => {
         };
 
         updateKlaviyoState(klaviyoFromCache);
-        console.log('Using Klaviyo data from database');
+        console.log('Using most recent Klaviyo data from database:', new Date(cache.created_at).toLocaleString());
+        
+        // Show notification if data is very recent (less than 10 minutes old)
+        const dataAge = Date.now() - new Date(cache.created_at).getTime();
+        if (dataAge < 10 * 60 * 1000) { // 10 minutes
+          console.log('Fresh data detected, age:', Math.round(dataAge / 60000), 'minutes');
+        }
       } else {
         console.log('No Klaviyo data available');
         updateKlaviyoState(null);
