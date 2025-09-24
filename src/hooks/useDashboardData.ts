@@ -315,44 +315,12 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
-  // Buscar dados do Klaviyo via webhook n8n
+  // Buscar dados do Klaviyo apenas do banco de dados (dados vindos do n8n)
   const fetchKlaviyoData = async () => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
-      
-      // Usar a nova Edge Function klaviyo_summary
-      try {
-        const fromDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
-        const toDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-        const data = await invokeEdgeFunction<KlaviyoWebhookResponse[] | KlaviyoSummary>(
-          'klaviyo_summary',
-          {
-            storeId,
-            from: fromDate,
-            to: toDate,
-            fast: true,
-          },
-          30000
-        );
-
-        // Handle both new webhook format and legacy format
-        if (Array.isArray(data) && data.length > 0) {
-          console.log('Using new webhook format from Edge Function');
-          updateKlaviyoState(data[0]);
-          return;
-        } else if (data && 'klaviyo' in data) {
-          console.log('Using legacy format from Edge Function');
-          updateKlaviyoState(data.klaviyo);
-          return;
-        }
-
-        console.log('Klaviyo Edge Function: no data returned');
-      } catch (functionError) {
-        console.log('Klaviyo Edge Function failed:', functionError);
-      }
-
-      // Fallback: buscar do cache no banco
+      // Buscar apenas dados do banco (vindos do n8n)
       const { data: cache, error: cacheError } = await supabase
         .from('klaviyo_summaries')
         .select('*')
@@ -373,9 +341,9 @@ export const useDashboardData = (storeId: string, period: string) => {
         };
 
         updateKlaviyoState(klaviyoFromCache);
-        console.log('Using cached Klaviyo data');
+        console.log('Using Klaviyo data from database');
       } else {
-        console.log('No Klaviyo data available (cache miss)');
+        console.log('No Klaviyo data available');
         updateKlaviyoState(null);
       }
     } catch (error) {
@@ -439,7 +407,7 @@ export const useDashboardData = (storeId: string, period: string) => {
 
         if (jobs.status === 'SUCCESS') {
           // Fetch updated data
-          await fetchKlaviyoSummary(periodStart, periodEnd);
+          await fetchKlaviyoData();
           await loadData();
           sonnerToast.success('Sincronização concluída com sucesso!');
           setIsSyncing(false);
@@ -476,53 +444,6 @@ export const useDashboardData = (storeId: string, period: string) => {
     poll();
   }, []);
 
-  const fetchKlaviyoSummary = useCallback(async (periodStart: string, periodEnd: string) => {
-    if (!storeId) return;
-
-    try {
-      const { data: summary } = await supabase
-        .from('klaviyo_summaries')
-        .select(`
-          revenue_total,
-          revenue_campaigns,
-          revenue_flows,
-          orders_attributed,
-          conversions_campaigns,
-          conversions_flows,
-          leads_total,
-          campaign_count,
-          flow_count,
-          campaigns_with_revenue,
-          flows_with_revenue,
-          flows_with_activity,
-          flow_perf,
-          raw
-        `)
-        .eq('store_id', storeId)
-        .eq('period_start', periodStart)
-        .eq('period_end', periodEnd)
-        .single();
-
-      if (summary?.raw && typeof summary.raw === 'object' && summary.raw !== null) {
-        const rawData = summary.raw as any;
-        setKlaviyoData(rawData);
-        
-        // Update top campaigns
-        const campaigns = rawData.top_campaigns_by_revenue || [];
-        const campaignsByConversions = rawData.top_campaigns_by_conversions || [];
-        
-        setTopCampaigns({
-          byRevenue: campaigns,
-          byConversions: campaignsByConversions
-        });
-        
-        // Update KPIs with real data
-        applyKpis(rawData.revenue_total ?? null);
-      }
-    } catch (error) {
-      console.error('Error fetching klaviyo summary:', error);
-    }
-  }, [storeId]);
 
   // Carregar dados iniciais
   const loadData = useCallback(async () => {
