@@ -480,11 +480,10 @@ export const useDashboardData = (storeId: string, period: string) => {
         
       } catch (error) {
         console.error('Error polling job status:', error);
-        if (attempts >= maxAttempts) {
-          setIsSyncing(false);
-        } else {
-          setTimeout(poll, 5000);
-        }
+        sonnerToast.error('Falha ao verificar o status da sincronização. Tente novamente.');
+        setIsSyncing(false);
+        setSyncJobId(null);
+        return;
       }
     };
 
