@@ -153,6 +153,8 @@ export const useDashboardData = (storeId: string, period: string) => {
         revenue_campaigns: webhookData.klaviyo.revenue_campaigns,
         revenue_flows: webhookData.klaviyo.revenue_flows,
         orders_attributed: webhookData.klaviyo.orders_attributed,
+        conversions_campaigns: webhookData.klaviyo.conversions_campaigns,
+        conversions_flows: webhookData.klaviyo.conversions_flows,
         leads_total: typeof webhookData.klaviyo.leads_total === 'string' 
           ? parseInt(webhookData.klaviyo.leads_total.replace('+', '')) || 0
           : webhookData.klaviyo.leads_total,
@@ -172,7 +174,11 @@ export const useDashboardData = (storeId: string, period: string) => {
     } else {
       // Handle legacy format
       const klaviyoData = data as KlaviyoSummary['klaviyo'];
-      setKlaviyoData(klaviyoData);
+      setKlaviyoData({
+        ...klaviyoData,
+        conversions_campaigns: klaviyoData.conversions_campaigns || 0,
+        conversions_flows: klaviyoData.conversions_flows || 0
+      });
       setTopCampaigns({
         byRevenue: klaviyoData.top_campaigns_by_revenue || [],
         byConversions: klaviyoData.top_campaigns_by_conversions || []
@@ -340,6 +346,8 @@ export const useDashboardData = (storeId: string, period: string) => {
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
           revenue_flows: Number(cache.revenue_flows) || 0,
           orders_attributed: Number(cache.orders_attributed) || 0,
+          conversions_campaigns: Number(cache.conversions_campaigns) || 0,
+          conversions_flows: Number(cache.conversions_flows) || 0,
           top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           leads_total: Number(cache.leads_total) || 0,

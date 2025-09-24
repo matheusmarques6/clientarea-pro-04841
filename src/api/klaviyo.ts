@@ -110,6 +110,8 @@ export type KlaviyoSummary = {
     revenue_campaigns: number;
     revenue_flows: number;
     orders_attributed: number;
+    conversions_campaigns: number;
+    conversions_flows: number;
     top_campaigns_by_revenue: Campaign[];
     top_campaigns_by_conversions: Campaign[];
     leads_total: number;

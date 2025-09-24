@@ -174,8 +174,10 @@ const StoreDashboard = () => {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm text-muted-foreground">Pedidos</p>
-              <p className="text-2xl font-bold text-ink mt-1">{kpis?.order_count || 0}</p>
+              <p className="text-sm text-muted-foreground">Pedidos Convertfy</p>
+              <p className="text-2xl font-bold text-ink mt-1">
+                {klaviyoData ? (klaviyoData.conversions_campaigns || 0) + (klaviyoData.conversions_flows || 0) : (kpis?.order_count || 0)}
+              </p>
             </div>
           </CardContent>
         </Card>
