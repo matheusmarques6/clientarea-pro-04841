@@ -36,7 +36,8 @@ serve(async (req) => {
     // Log the webhook call for debugging
     console.log('Klaviyo callback received:', { 
       headers: Object.fromEntries(req.headers.entries()),
-      payloadLength: body.length 
+      payloadLength: body.length,
+      bodyPreview: body.substring(0, 500) // Show first 500 chars for debugging
     })
 
     // Extract data from payload (expecting array with single item)
