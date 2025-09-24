@@ -135,7 +135,9 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Faturamento Convertfy</p>
-              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(kpis?.convertfy_revenue || 0)}</p>
+              <p className="text-2xl font-bold text-ink mt-1">
+                {formatCurrency(klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0))}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -154,9 +156,11 @@ const StoreDashboard = () => {
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Margem CFY</p>
               <p className="text-2xl font-bold text-ink mt-1">
-                {kpis?.total_revenue && kpis.total_revenue > 0 
-                  ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
-                  : '0.0%'}
+                {(() => {
+                  const totalRevenue = kpis?.total_revenue || 0;
+                  const convertfyRevenue = klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0);
+                  return totalRevenue > 0 ? `${((convertfyRevenue / totalRevenue) * 100).toFixed(1)}%` : '0.0%';
+                })()}
               </p>
             </div>
           </CardContent>
@@ -212,12 +216,14 @@ const StoreDashboard = () => {
               </div>
               <div className="text-center lg:text-right">
                 <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
-                  {kpis?.total_revenue && kpis.total_revenue > 0 
-                    ? `${((kpis.convertfy_revenue / kpis.total_revenue) * 100).toFixed(1)}%`
-                    : '0.0%'}
+                  {(() => {
+                    const totalRevenue = kpis?.total_revenue || 0;
+                    const convertfyRevenue = klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0);
+                    return totalRevenue > 0 ? `${((convertfyRevenue / totalRevenue) * 100).toFixed(1)}%` : '0.0%';
+                  })()}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {formatCurrency(kpis?.convertfy_revenue || 0)} de {formatCurrency(kpis?.total_revenue || 0)}
+                  {formatCurrency(klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0))} de {formatCurrency(kpis?.total_revenue || 0)}
                 </div>
               </div>
             </div>
