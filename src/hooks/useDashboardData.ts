@@ -128,7 +128,13 @@ export const useDashboardData = (storeId: string, period: string) => {
       return;
     }
 
-    const hasKlaviyoRevenue = typeof klaviyoRevenue === 'number' && !Number.isNaN(klaviyoRevenue);
+    const hasKlaviyoRevenue = typeof klaviyoRevenue === 'number' && !Number.isNaN(klaviyoRevenue) && klaviyoRevenue > 0;
+    
+    console.log(`[${period}] Applying KPIs for store ${storeId}:`, {
+      hasKlaviyoRevenue,
+      klaviyoRevenue,
+      baseKpis: kpiBaseRef.current
+    });
 
     setKpis({
       ...kpiBaseRef.current,
@@ -139,11 +145,14 @@ export const useDashboardData = (storeId: string, period: string) => {
 
   const updateKlaviyoState = (data: KlaviyoWebhookResponse | KlaviyoSummary['klaviyo'] | null) => {
     if (!data) {
+      console.log(`[${period}] No Klaviyo data for store ${storeId}, clearing state`);
       setKlaviyoData(null);
       setTopCampaigns({ byRevenue: [], byConversions: [] });
-      applyKpis(null);
+      applyKpis(0);
       return;
     }
+    
+    console.log(`[${period}] Updating Klaviyo state for store ${storeId}:`, data);
     
     // Handle new webhook response format
     if ('klaviyo' in data) {
@@ -183,7 +192,9 @@ export const useDashboardData = (storeId: string, period: string) => {
         byRevenue: klaviyoData.top_campaigns_by_revenue || [],
         byConversions: klaviyoData.top_campaigns_by_conversions || []
       });
-      applyKpis(klaviyoData.revenue_total ?? null);
+      // Somar revenue_campaigns + revenue_flows para o faturamento Convertfy
+      const convertfyRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+      applyKpis(convertfyRevenue);
     }
   };
 
@@ -247,7 +258,15 @@ export const useDashboardData = (storeId: string, period: string) => {
       };
 
       kpiBaseRef.current = baseKpis;
-      applyKpis(klaviyoData?.revenue_total ?? null);
+      
+      console.log(`[${period}] Base KPIs loaded for store ${storeId}:`, baseKpis);
+      
+      // Use Klaviyo campaigns + flows revenue if available
+      const klaviyoRevenue = klaviyoData ? 
+        (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : 
+        null;
+      
+      applyKpis(klaviyoRevenue);
     } catch (error) {
       console.error('Error in fetchKPIs:', error);
     }
