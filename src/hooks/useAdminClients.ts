@@ -276,7 +276,10 @@ export const useAdminClients = () => {
         
         const { error: membersError } = await supabase
           .from('store_members')
-          .insert(storeMembers);
+          .upsert(storeMembers, { 
+            onConflict: 'user_id,store_id',
+            ignoreDuplicates: true 
+          });
 
         if (membersError) {
           console.error('addStoreToClient: Error adding store members:', membersError);
