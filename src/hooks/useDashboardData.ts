@@ -370,7 +370,12 @@ export const useDashboardData = (storeId: string, period: string) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message === 'Store credentials not configured') {
+          throw new Error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
+        }
+        throw error;
+      }
 
       setSyncJobId(data.job_id);
       sonnerToast.success('Sincronização iniciada. Aguarde alguns minutos...');
@@ -378,9 +383,13 @@ export const useDashboardData = (storeId: string, period: string) => {
       // Start polling for job status
       pollJobStatus(data.request_id, periodStart, periodEnd);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync failed:', error);
-      sonnerToast.error('Erro ao iniciar sincronização');
+      if (error.message === 'Store credentials not configured') {
+        sonnerToast.error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
+      } else {
+        sonnerToast.error(error.message || 'Erro ao iniciar sincronização');
+      }
       setIsSyncing(false);
     }
   }, [storeId, period, isSyncing]);
