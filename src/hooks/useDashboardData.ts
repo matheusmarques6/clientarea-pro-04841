@@ -371,6 +371,9 @@ export const useDashboardData = (storeId: string, period: string) => {
       });
 
       if (error) {
+        if (error.message === 'Klaviyo credentials not configured') {
+          throw new Error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
+        }
         if (error.message === 'Store credentials not configured') {
           throw new Error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
         }
@@ -385,7 +388,9 @@ export const useDashboardData = (storeId: string, period: string) => {
       
     } catch (error: any) {
       console.error('Sync failed:', error);
-      if (error.message === 'Store credentials not configured') {
+      if (error.message === 'Klaviyo credentials not configured') {
+        sonnerToast.error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
+      } else if (error.message === 'Store credentials not configured') {
         sonnerToast.error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
       } else {
         sonnerToast.error(error.message || 'Erro ao iniciar sincronização');

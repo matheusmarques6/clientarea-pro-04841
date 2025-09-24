@@ -104,9 +104,11 @@ serve(async (req) => {
       return new Response('Store not found', { status: 404, headers: corsHeaders })
     }
 
-    if (!store?.shopify_domain || !store?.shopify_access_token || !store?.klaviyo_private_key || !store?.klaviyo_site_id) {
-      return new Response('Store credentials not configured', { status: 400, headers: corsHeaders })
+    if (!store?.klaviyo_private_key || !store?.klaviyo_site_id) {
+      return new Response('Klaviyo credentials not configured', { status: 400, headers: corsHeaders })
     }
+
+    // Note: Shopify credentials are optional for Klaviyo-only sync
 
     // Generate request ID
     const request_id = generateRequestId()
