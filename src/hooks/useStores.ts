@@ -87,13 +87,7 @@ export const useStores = () => {
         
         query = supabase
           .from('stores')
-          .select(`
-            *,
-            clients(
-              id,
-              name
-            )
-          `)
+          .select('*')
           .in('id', storeIds)
           .order('created_at', { ascending: false });
       }
