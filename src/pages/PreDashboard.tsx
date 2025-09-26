@@ -206,33 +206,28 @@ const PreDashboard = () => {
           {/* Convertfy Impact Card - Destaque especial */}
           {!dashboardData.loading && (
             <div className="w-full max-w-4xl px-4 sm:px-0 animate-fade-in">
-              <Card className="glass-card shadow-lg bg-gradient-to-br from-card via-card to-muted/20 border-border/50 hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-6 sm:p-8">
+              <Card className="relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 border-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-primary/60" />
+                <CardContent className="relative p-8 sm:p-10">
                   <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                     <div className="text-center lg:text-left flex-1">
-                      <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
-                        <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                          <TrendingUp className="h-7 w-7" />
-                        </div>
-                        <h3 className="text-xl font-bold text-foreground">
-                          Impacto Convertfy
-                        </h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="text-2xl font-bold text-white mb-2">
+                        Impacto Convertfy
+                      </h3>
+                      <p className="text-sm text-white/80">
                         Faturamento total gerado pela Convertfy em {dashboardData.stores.length} loja{dashboardData.stores.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="text-center lg:text-right">
-                      <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-2">
+                      <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-3">
                         {formatCurrency(dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue)}
                       </div>
                       {dashboardData.totalRevenue > 0 && (
-                        <Badge 
-                          variant="outline" 
-                          className="border-primary/20 text-primary px-4 py-2 text-sm rounded-full font-semibold"
-                        >
-                          {Math.round(((dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue) / dashboardData.totalRevenue) * 100)}% do faturamento total
-                        </Badge>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full">
+                          <span className="text-white font-semibold text-sm">
+                            {Math.round(((dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue) / dashboardData.totalRevenue) * 100)}% do faturamento total
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
