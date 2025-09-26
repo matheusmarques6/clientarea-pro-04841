@@ -41,16 +41,12 @@ export const useStores = () => {
         console.warn('reconcile_user_profile failed (non-fatal):', e);
       }
 
-      // Check if user is admin
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('is_admin')
-        .eq('id', user.id)
-        .maybeSingle();
+      // Check if user is admin using RPC (bypasses RLS recursion issues)
+      const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: user.id });
 
       let query;
       
-      if (userRecord?.is_admin) {
+      if (isAdmin) {
         // Admins can see all stores
         query = supabase
           .from('stores')
@@ -63,32 +59,10 @@ export const useStores = () => {
           `)
           .order('created_at', { ascending: false });
       } else {
-        // Regular users see only their stores through v_user_stores
-        const { data: userStores, error: userStoresError } = await supabase
-          .from('v_user_stores')
-          .select('store_id')
-          .eq('user_id', user.id);
-        
-        console.log('useStores: Fetching stores for user', { 
-          userId: user.id, 
-          email: user.email,
-          userStores: userStores?.length || 0 
-        });
-
-        if (userStoresError) throw userStoresError;
-
-        if (!userStores || userStores.length === 0) {
-          setStores([]);
-          setLoading(false);
-          return;
-        }
-
-        const storeIds = userStores.map(us => us.store_id);
-        
+        // Regular users: confiar no RLS de stores para retornar apenas lojas do usuário
         query = supabase
           .from('stores')
           .select('*')
-          .in('id', storeIds)
           .order('created_at', { ascending: false });
       }
 

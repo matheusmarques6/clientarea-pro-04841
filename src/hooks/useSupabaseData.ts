@@ -86,7 +86,7 @@ export const useStores = () => {
         .from('users')
         .select('is_admin')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       let query;
       
@@ -103,32 +103,10 @@ export const useStores = () => {
           `)
           .order('created_at', { ascending: false });
       } else {
-        // Regular users see only their stores through v_user_stores
-        const { data: userStores, error: userStoresError } = await supabase
-          .from('v_user_stores')
-          .select('store_id')
-          .eq('user_id', user.id);
-
-        if (userStoresError) throw userStoresError;
-
-        if (!userStores || userStores.length === 0) {
-          setData([]);
-          setLoading(false);
-          return;
-        }
-
-        const storeIds = userStores.map(us => us.store_id);
-        
+        // Regular users: confiar no RLS de stores para retornar apenas lojas do usuário
         query = supabase
           .from('stores')
-          .select(`
-            *,
-            clients(
-              id,
-              name
-            )
-          `)
-          .in('id', storeIds)
+          .select('*')
           .order('created_at', { ascending: false });
       }
 
