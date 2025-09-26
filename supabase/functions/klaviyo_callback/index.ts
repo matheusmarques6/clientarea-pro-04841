@@ -214,7 +214,7 @@ serve(async (req) => {
         const { data: channelResult, error: channelError } = await supabase
           .from('channel_revenue')
           .upsert(channelRevenueData, {
-            onConflict: 'store_id,period_start,period_end,channel,source',
+            onConflict: 'store_id,period_start,period_end,channel',
             ignoreDuplicates: false
           })
           .select()
