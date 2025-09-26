@@ -203,8 +203,67 @@ const PreDashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Convertfy Impact Card - Destaque especial */}
+          {!dashboardData.loading && (
+            <div className="w-full max-w-4xl px-4 sm:px-0 animate-fade-in">
+              <Card className="glass-card shadow-xl bg-gradient-to-br from-premium/10 to-premium/5 border-premium/20 hover:shadow-2xl transition-all duration-300">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                    <div className="text-center lg:text-left flex-1">
+                      <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
+                        <div className="p-3 rounded-xl bg-gradient-to-br from-premium/20 to-premium/10 text-premium animate-pulse">
+                          <TrendingUp className="h-7 w-7" />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground">
+                          Impacto Convertfy
+                        </h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Receita gerada através das automações de marketing
+                      </p>
+                    </div>
+                    <div className="text-center lg:text-right">
+                      <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-premium to-premium/70 bg-clip-text text-transparent mb-2">
+                        {formatCurrency(dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue)}
+                      </div>
+                      {dashboardData.totalRevenue > 0 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-premium/10 text-premium hover:bg-premium/20 px-4 py-2 text-sm rounded-full font-semibold"
+                        >
+                          {Math.round(((dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue) / dashboardData.totalRevenue) * 100)}% do faturamento total
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Mini breakdown dos canais */}
+                  <div className="mt-6 pt-6 border-t border-border/50">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <Mail className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.emailRevenue)}</p>
+                      </div>
+                      <div>
+                        <MessageCircle className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">SMS</p>
+                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.smsRevenue)}</p>
+                      </div>
+                      <div>
+                        <Smartphone className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">WhatsApp</p>
+                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.whatsappRevenue)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Channel Revenue Cards - Estética mobile aprimorada */}
-          <div className="w-full max-w-4xl px-4 sm:px-0">
+          <div className="w-full max-w-4xl px-4 sm:px-0">`
             {dashboardData.loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
                 {[1, 2, 3].map((i) => (
