@@ -57,34 +57,77 @@ serve(async (req) => {
       return new Response('Missing request_id', { status: 400, headers: corsHeaders })
     }
 
-    // Find the job by request_id
-    const { data: job, error: jobError } = await supabase
+    // Try to find job by request_id first, then by store_id and period if not found
+    let job
+    let jobError
+    
+    // First try exact request_id match
+    const jobResult = await supabase
       .from('n8n_jobs')
       .select('*')
       .eq('request_id', metadata.request_id)
       .single()
+    
+    job = jobResult.data
+    jobError = jobResult.error
+    
+    // If not found by request_id, try to find by store and period
+    if (jobError || !job) {
+      console.log('Job not found by request_id, trying by store and period...')
+      const fallbackResult = await supabase
+        .from('n8n_jobs')
+        .select('*')
+        .eq('store_id', store?.id)
+        .eq('period_start', period?.start)
+        .eq('period_end', period?.end)
+        .eq('status', 'PROCESSING')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      
+      job = fallbackResult.data
+      jobError = fallbackResult.error
+      
+      if (job) {
+        console.log('Found job by store and period:', job.id, 'request_id:', job.request_id)
+      }
+    }
 
     if (jobError || !job) {
-      console.error('Job not found for request_id:', metadata.request_id, jobError)
-      return new Response('Job not found', { status: 404, headers: corsHeaders })
+      console.error('Job not found for request_id:', metadata.request_id, 'or by store/period', jobError)
+      // Still process the data even without a job, as the data is valuable
+      console.log('Processing data without job record...')
+      
+      // Create a fake job object with minimum required fields
+      job = {
+        id: null,
+        store_id: store?.id,
+        period_start: period?.start,
+        period_end: period?.end,
+        request_id: metadata.request_id
+      }
     }
 
-    // Update job status
-    const jobUpdate = {
-      status: status === 'SUCCESS' ? 'SUCCESS' : 'ERROR',
-      finished_at: new Date().toISOString(),
-      payload: data,
-      ...(status !== 'SUCCESS' && { error: `Workflow failed with status: ${status}` })
-    }
+    // Update job status only if we have a valid job
+    if (job.id) {
+      const jobUpdate = {
+        status: status === 'SUCCESS' ? 'SUCCESS' : 'ERROR',
+        finished_at: new Date().toISOString(),
+        payload: data,
+        ...(status !== 'SUCCESS' && { error: `Workflow failed with status: ${status}` })
+      }
 
-    const { error: updateError } = await supabase
-      .from('n8n_jobs')
-      .update(jobUpdate)
-      .eq('id', job.id)
+      const { error: updateError } = await supabase
+        .from('n8n_jobs')
+        .update(jobUpdate)
+        .eq('id', job.id)
 
-    if (updateError) {
-      console.error('Error updating job:', updateError)
-      return new Response('Failed to update job', { status: 500, headers: corsHeaders })
+      if (updateError) {
+        console.error('Error updating job:', updateError)
+        // Don't return error, continue to save the data
+      }
+    } else {
+      console.log('No job to update, but continuing to save data...')
     }
 
     // If successful, update klaviyo_summaries
@@ -177,25 +220,27 @@ serve(async (req) => {
     }
 
     // Update job status to SUCCESS after processing data
-    console.log('Updating job status to SUCCESS for request_id:', metadata.request_id)
-    
-    const { error: jobUpdateError } = await supabase
-      .from('n8n_jobs')
-      .update({ 
-        status: 'SUCCESS',
-        finished_at: new Date().toISOString(),
-        meta: {
-          callback_received_at: new Date().toISOString(),
-          data_processed: true,
-          total_revenue_processed: data[0]?.klaviyo?.revenue_total || 0
-        }
-      })
-      .eq('request_id', metadata.request_id)
-    
-    if (jobUpdateError) {
-      console.error('Error updating job status:', jobUpdateError)
-    } else {
-      console.log('Job status updated to SUCCESS successfully')
+    if (job.id) {
+      console.log('Updating job status to SUCCESS for job:', job.id)
+      
+      const { error: jobUpdateError } = await supabase
+        .from('n8n_jobs')
+        .update({ 
+          status: 'SUCCESS',
+          finished_at: new Date().toISOString(),
+          meta: {
+            callback_received_at: new Date().toISOString(),
+            data_processed: true,
+            total_revenue_processed: klaviyo?.revenue_total || 0
+          }
+        })
+        .eq('id', job.id)
+      
+      if (jobUpdateError) {
+        console.error('Error updating job status:', jobUpdateError)
+      } else {
+        console.log('Job status updated to SUCCESS successfully')
+      }
     }
 
     console.log(`Successfully processed callback for request_id: ${metadata.request_id}, status: ${status}`)
