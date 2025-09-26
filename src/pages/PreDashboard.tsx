@@ -1,25 +1,94 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Mail, MessageCircle, Smartphone } from 'lucide-react';
+import { TrendingUp, Mail, MessageCircle, Smartphone, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { mockChannelRevenue } from '@/lib/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useClientDashboard } from '@/hooks/useClientDashboard';
 import convertfyLogo from '@/assets/convertfy-logo.png';
 
 const PreDashboard = () => {
   const [period, setPeriod] = useState('30d');
+  const [previousPeriod, setPreviousPeriod] = useState('30d');
   
-  const periodData = {
-    '7d': { revenue: 4200, growth: 8.5, label: 'últimos 7 dias' },
-    '30d': { revenue: 16400, growth: 12.8, label: 'últimos 30 dias' },
-    '90d': { revenue: 45200, growth: 18.2, label: 'últimos 90 dias' },
-    'MTD': { revenue: 12800, growth: 15.1, label: 'mês atual' },
-    'YTD': { revenue: 124500, growth: 22.3, label: 'ano atual' }
+  // Fetch real data from all client stores
+  const dashboardData = useClientDashboard(period);
+  
+  // Calculate growth (simplified - comparing with previous period)
+  const calculateGrowth = () => {
+    // This is a simplified calculation - in production, you'd compare with previous period
+    if (dashboardData.totalRevenue > 0) {
+      return 12.8; // Placeholder growth percentage
+    }
+    return 0;
   };
+  
+  const periodLabels = {
+    '7d': 'últimos 7 dias',
+    '30d': 'últimos 30 dias',
+    '90d': 'últimos 90 dias',
+    'MTD': 'mês atual',
+    'YTD': 'ano atual'
+  };
+  
+  // Update previous period when period changes
+  useEffect(() => {
+    if (period !== previousPeriod) {
+      setPreviousPeriod(period);
+    }
+  }, [period, previousPeriod]);
 
-  const currentData = periodData[period as keyof typeof periodData];
+  // Format currency based on predominant currency in stores
+  const formatCurrency = (value: number) => {
+    // Get most common currency from stores
+    const currencies = dashboardData.stores.map(s => s.currency);
+    const mostCommonCurrency = currencies.length > 0 
+      ? currencies.reduce((a, b) => 
+          currencies.filter(v => v === a).length >= currencies.filter(v => v === b).length ? a : b
+        )
+      : 'BRL';
+    
+    const currencySymbols: { [key: string]: string } = {
+      'BRL': 'R$',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£'
+    };
+    
+    const symbol = currencySymbols[mostCommonCurrency] || 'R$';
+    const locale = mostCommonCurrency === 'BRL' ? 'pt-BR' : 
+                   mostCommonCurrency === 'USD' ? 'en-US' :
+                   mostCommonCurrency === 'EUR' ? 'de-DE' : 'en-GB';
+    
+    return `${symbol} ${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  
+  // Channel data from the dashboard
+  const channelRevenue = [
+    {
+      channel: 'EMAIL',
+      revenue: dashboardData.emailRevenue,
+      percentage: dashboardData.totalRevenue > 0 
+        ? Math.round((dashboardData.emailRevenue / dashboardData.totalRevenue) * 100)
+        : 0
+    },
+    {
+      channel: 'SMS',
+      revenue: dashboardData.smsRevenue,
+      percentage: dashboardData.totalRevenue > 0 
+        ? Math.round((dashboardData.smsRevenue / dashboardData.totalRevenue) * 100)
+        : 0
+    },
+    {
+      channel: 'WHATSAPP',
+      revenue: dashboardData.whatsappRevenue,
+      percentage: dashboardData.totalRevenue > 0 
+        ? Math.round((dashboardData.whatsappRevenue / dashboardData.totalRevenue) * 100)
+        : 0
+    }
+  ];
 
   return (
     <section 
@@ -47,18 +116,27 @@ const PreDashboard = () => {
               
               {/* Central Content - Textos centralizados */}
               <div className="text-center order-2 lg:order-2 lg:flex-1">
-                <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-foreground leading-tight">
-                  Olá, <span className="text-premium">João</span>
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                  Bem-vindo de volta à sua central Convertfy
-                </p>
+                {dashboardData.loading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-48 mx-auto" />
+                    <Skeleton className="h-4 w-64 mx-auto" />
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-foreground leading-tight">
+                      Olá, <span className="text-premium">{dashboardData.clientName}</span>
+                    </h1>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-2">
+                      Bem-vindo de volta à sua central Convertfy
+                    </p>
+                  </>
+                )}
               </div>
               
               {/* Status Badge */}
               <div className="flex-shrink-0 order-3 lg:order-3">
                 <Badge variant="secondary" className="px-3 py-2 text-xs sm:text-sm rounded-full">
-                  Sincronizado há 5 min
+                  {dashboardData.stores.length} loja{dashboardData.stores.length !== 1 ? 's' : ''} conectada{dashboardData.stores.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
               
@@ -91,16 +169,27 @@ const PreDashboard = () => {
                 
                 {/* Revenue Display - Melhor spacing mobile */}
                 <div className="text-center lg:text-right">
-                  <div className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-premium leading-none mb-4">
-                    R$ {currentData.revenue.toLocaleString('pt-BR')}
-                  </div>
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
-                  >
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +{currentData.growth}%
-                  </Badge>
+                  {dashboardData.loading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-12 w-64 mx-auto lg:ml-auto lg:mr-0" />
+                      <Skeleton className="h-8 w-24 mx-auto lg:ml-auto lg:mr-0" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-premium leading-none mb-4">
+                        {formatCurrency(dashboardData.totalRevenue)}
+                      </div>
+                      {calculateGrowth() > 0 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
+                        >
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          +{calculateGrowth().toFixed(1)}%
+                        </Badge>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -108,8 +197,19 @@ const PreDashboard = () => {
 
           {/* Channel Revenue Cards - Estética mobile aprimorada */}
           <div className="w-full max-w-4xl px-4 sm:px-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
-              {mockChannelRevenue.map((channel, index) => {
+            {dashboardData.loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="glass-card">
+                    <CardContent className="p-6">
+                      <Skeleton className="h-32 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
+                {channelRevenue.map((channel, index) => {
                 const icons = [Mail, MessageCircle, Smartphone];
                 const Icon = icons[index];
                 const colors = [
@@ -138,7 +238,7 @@ const PreDashboard = () => {
                               {channel.channel}
                             </p>
                             <p className="text-2xl sm:text-2xl font-bold text-foreground mb-3">
-                              R$ {channel.revenue.toLocaleString('pt-BR')}
+                              {formatCurrency(channel.revenue)}
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground">
@@ -151,7 +251,32 @@ const PreDashboard = () => {
                 );
               })}
             </div>
+          )}
           </div>
+
+          {/* Store Breakdown - Show when multiple stores exist */}
+          {!dashboardData.loading && dashboardData.stores.length > 1 && (
+            <div className="w-full max-w-4xl px-4 sm:px-0 mt-8">
+              <Card className="glass-card shadow-lg">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-foreground">Faturamento por Loja</h3>
+                  <div className="space-y-3">
+                    {dashboardData.stores.map((store) => (
+                      <div key={store.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <span className="font-medium text-sm">{store.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{store.currency}</span>
+                          <span className="font-semibold">
+                            {formatCurrency(store.revenue)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* CTA Buttons - Navegação correta do fluxo */}
           <div className="w-full max-w-md mt-6 px-4 sm:px-0 space-y-4">
@@ -159,9 +284,17 @@ const PreDashboard = () => {
               asChild 
               size="lg" 
               className="w-full bg-gradient-hero hover:opacity-90 text-lg font-semibold h-14 sm:h-14 rounded-xl transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/20 shadow-lg hover:shadow-xl"
+              disabled={dashboardData.loading}
             >
               <Link to="/stores" className="font-semibold">
-                Selecionar Loja
+                {dashboardData.loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Carregando...
+                  </>
+                ) : (
+                  'Selecionar Loja'
+                )}
               </Link>
             </Button>
           </div>
