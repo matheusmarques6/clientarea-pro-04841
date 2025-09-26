@@ -1593,6 +1593,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      user_has_store_access: {
+        Args: { _store_id: string; _user_id: string }
+        Returns: boolean
+      }
       verify_user_password: {
         Args: { p_email: string; p_password_hash: string }
         Returns: boolean
