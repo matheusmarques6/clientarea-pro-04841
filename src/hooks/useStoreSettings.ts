@@ -94,6 +94,7 @@ export const useStoreSettings = (storeId: string) => {
   const saveSettings = async (newSettings: StoreSettings) => {
     try {
       console.log('Saving settings for store:', storeId);
+      console.log('Current user:', (await supabase.auth.getUser()).data?.user?.email);
       console.log('New settings:', newSettings);
       
       // Prepare update object for stores table
@@ -120,17 +121,45 @@ export const useStoreSettings = (storeId: string) => {
       
       // Update stores table
       if (Object.keys(storeUpdate).length > 0) {
-        const { data, error } = await supabase
+        // First verify we can access the store
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores')
+          .select('id, name')
+          .eq('id', storeId)
+          .single();
+          
+        console.log('Store access check:', { storeData, storeError });
+        
+        if (storeError) {
+          throw new Error(`Cannot access store: ${storeError.message}`);
+        }
+        
+        // Now perform the update
+        const { error } = await supabase
           .from('stores')
           .update(storeUpdate)
-          .eq('id', storeId)
-          .select();
+          .eq('id', storeId);
           
-        console.log('Update result:', { data, error });
+        console.log('Update error (if any):', error);
           
         if (error) {
           throw error;
         }
+        
+        // Verify the update by fetching the updated data
+        const { data: updatedStore, error: fetchError } = await supabase
+          .from('stores')
+          .select('shopify_domain, klaviyo_site_id')
+          .eq('id', storeId)
+          .single();
+          
+        console.log('Updated store data:', { updatedStore, fetchError });
+        
+        if (fetchError) {
+          console.warn('Could not verify update:', fetchError);
+        }
+      } else {
+        console.log('No fields to update');
       }
       
       toast({
