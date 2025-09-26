@@ -196,6 +196,13 @@ serve(async (req) => {
 
       // Also save to channel_revenue for dashboard compatibility
       if (klaviyo.revenue_total > 0) {
+        // Get store currency from database
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('currency')
+          .eq('id', storeId || job.store_id)
+          .single()
+        
         const channelRevenueData = {
           store_id: storeId || job.store_id,
           period_start: periodStart || job.period_start,
@@ -204,7 +211,7 @@ serve(async (req) => {
           source: 'klaviyo_webhook',
           revenue: klaviyo.revenue_total,
           orders_count: klaviyo.orders_attributed,
-          currency: 'BRL', // Default, could be extracted from store data
+          currency: storeData?.currency || 'USD', // Use store currency
           raw: data,
           updated_at: new Date().toISOString()
         }
