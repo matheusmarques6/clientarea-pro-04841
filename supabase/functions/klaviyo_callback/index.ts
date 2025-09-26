@@ -67,25 +67,27 @@ serve(async (req) => {
     let job
     let jobError
     
-    // First try exact request_id match
-    const jobResult = await supabase
-      .from('n8n_jobs')
-      .select('*')
-      .eq('request_id', metadata.request_id)
-      .single()
-    
-    job = jobResult.data
-    jobError = jobResult.error
+    // First try exact request_id match if we have one
+    if (requestId) {
+      const jobResult = await supabase
+        .from('n8n_jobs')
+        .select('*')
+        .eq('request_id', requestId)
+        .single()
+      
+      job = jobResult.data
+      jobError = jobResult.error
+    }
     
     // If not found by request_id, try to find by store and period
-    if (jobError || !job) {
+    if ((jobError || !job) && storeId && periodStart && periodEnd) {
       console.log('Job not found by request_id, trying by store and period...')
       const fallbackResult = await supabase
         .from('n8n_jobs')
         .select('*')
-        .eq('store_id', store?.id)
-        .eq('period_start', period?.start)
-        .eq('period_end', period?.end)
+        .eq('store_id', storeId)
+        .eq('period_start', periodStart)
+        .eq('period_end', periodEnd)
         .eq('status', 'PROCESSING')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -100,17 +102,17 @@ serve(async (req) => {
     }
 
     if (jobError || !job) {
-      console.error('Job not found for request_id:', metadata.request_id, 'or by store/period', jobError)
+      console.error('Job not found for request_id:', requestId, 'or by store/period', jobError)
       // Still process the data even without a job, as the data is valuable
       console.log('Processing data without job record...')
       
       // Create a fake job object with minimum required fields
       job = {
         id: null,
-        store_id: store?.id,
-        period_start: period?.start,
-        period_end: period?.end,
-        request_id: metadata.request_id
+        store_id: storeId,
+        period_start: periodStart,
+        period_end: periodEnd,
+        request_id: requestId
       }
     }
 
@@ -138,7 +140,7 @@ serve(async (req) => {
 
     // If successful, update klaviyo_summaries
     if (status === 'SUCCESS' && klaviyo) {
-      console.log('Processing Klaviyo data for store:', store?.id || job.store_id)
+      console.log('Processing Klaviyo data for store:', storeId || job.store_id)
       
       // Parse leads_total (it comes as string "1+", need to convert to number)
       let leadsTotal = 0
@@ -152,9 +154,9 @@ serve(async (req) => {
       }
 
       const summaryData = {
-        store_id: store?.id || job.store_id,
-        period_start: period?.start || job.period_start,
-        period_end: period?.end || job.period_end,
+        store_id: storeId || job.store_id,
+        period_start: periodStart || job.period_start,
+        period_end: periodEnd || job.period_end,
         revenue_total: klaviyo.revenue_total || 0,
         revenue_campaigns: klaviyo.revenue_campaigns || 0,
         revenue_flows: klaviyo.revenue_flows || 0,
@@ -195,9 +197,9 @@ serve(async (req) => {
       // Also save to channel_revenue for dashboard compatibility
       if (klaviyo.revenue_total > 0) {
         const channelRevenueData = {
-          store_id: store?.id || job.store_id,
-          period_start: period?.start || job.period_start,
-          period_end: period?.end || job.period_end,
+          store_id: storeId || job.store_id,
+          period_start: periodStart || job.period_start,
+          period_end: periodEnd || job.period_end,
           channel: 'email',
           source: 'klaviyo_webhook',
           revenue: klaviyo.revenue_total,
@@ -249,7 +251,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Successfully processed callback for request_id: ${metadata.request_id}, status: ${status}`)
+    console.log(`Successfully processed callback for request_id: ${requestId}, status: ${status}`)
 
     return new Response('OK', {
       status: 200,
