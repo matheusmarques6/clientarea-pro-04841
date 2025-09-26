@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Save, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/useStores';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { supabase } from '@/integrations/supabase/client';
 
 const StoreSettings = () => {
   const { id: storeId } = useParams();
@@ -18,6 +20,18 @@ const StoreSettings = () => {
   const { store, isLoading } = useStore(storeId!);
   const { settings, setSettings, loading: settingsLoading, saveSettings } = useStoreSettings(storeId!);
   const [showTokens, setShowTokens] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [storeCurrency, setStoreCurrency] = useState('BRL');
+  const [storeLanguage, setStoreLanguage] = useState('pt-BR');
+  
+  useEffect(() => {
+    if (store) {
+      setStoreName(store.name);
+      setStoreCurrency(store.currency || 'BRL');
+      // TODO: Adicionar campo de idioma na tabela stores
+      setStoreLanguage('pt-BR');
+    }
+  }, [store]);
   
   if (isLoading || settingsLoading) {
     return (
@@ -48,7 +62,34 @@ const StoreSettings = () => {
   }
 
   const handleSave = async () => {
-    await saveSettings(settings);
+    try {
+      // Salvar configurações da loja (nome, moeda, idioma)
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          name: storeName,
+          currency: storeCurrency,
+          // TODO: Adicionar campo language quando disponível
+        })
+        .eq('id', storeId);
+        
+      if (updateError) throw updateError;
+      
+      // Salvar outras configurações (integrações, etc)
+      await saveSettings(settings);
+      
+      toast({
+        title: "Configurações salvas",
+        description: "As configurações da loja foram atualizadas com sucesso!",
+      });
+    } catch (error) {
+      console.error('Error saving store settings:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar as configurações.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleTokenVisibility = () => {
@@ -69,12 +110,66 @@ const StoreSettings = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="integrations" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="integrations">Integrações</TabsTrigger>
           <TabsTrigger value="policies">Políticas</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="general" className="space-y-6">
+          {/* Configurações Gerais da Loja */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Informações da Loja</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="storeName">Nome da Loja</Label>
+                <Input
+                  id="storeName"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Nome da sua loja"
+                />
+              </div>
+              <div>
+                <Label htmlFor="storeCurrency">Moeda</Label>
+                <Select value={storeCurrency} onValueChange={setStoreCurrency}>
+                  <SelectTrigger id="storeCurrency">
+                    <SelectValue placeholder="Selecione a moeda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BRL">BRL - Real Brasileiro (R$)</SelectItem>
+                    <SelectItem value="USD">USD - Dólar Americano ($)</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro (€)</SelectItem>
+                    <SelectItem value="GBP">GBP - Libra Esterlina (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Esta moeda será usada em todos os relatórios e dashboards
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="storeLanguage">Idioma Padrão</Label>
+                <Select value={storeLanguage} onValueChange={setStoreLanguage}>
+                  <SelectTrigger id="storeLanguage">
+                    <SelectValue placeholder="Selecione o idioma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Idioma usado para comunicação com clientes
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6">
           {/* Shopify */}
