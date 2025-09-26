@@ -89,6 +89,14 @@ const PreDashboard = () => {
         : 0
     }
   ];
+  
+  // Debug log to ensure we're using the right data
+  console.log('Dashboard data loaded:', { 
+    loading: dashboardData.loading, 
+    clientName: dashboardData.clientName, 
+    totalRevenue: dashboardData.totalRevenue,
+    storesCount: dashboardData.stores.length
+  });
 
   return (
     <section 
