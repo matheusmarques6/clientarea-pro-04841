@@ -450,8 +450,10 @@ serve(async (req) => {
         
         console.log('Extracted Klaviyo data:', JSON.stringify(klaviyoData, null, 2))
         
-        if (klaviyoData && (klaviyoData.revenue_total > 0 || klaviyoData.leads_total > 0)) {
-          console.log('Valid Klaviyo data found, saving to database...')
+        if (klaviyoData) {
+          console.log('Klaviyo data found, checking values...')
+          console.log('revenue_total:', klaviyoData.revenue_total)
+          console.log('leads_total:', klaviyoData.leads_total)
           
           // Parse leads_total if it's a string
           let leadsTotal = 0
@@ -461,6 +463,9 @@ serve(async (req) => {
             leadsTotal = parseInt(cleanedLeads) || 0
           }
 
+          // Save data even if values are zero (to track that sync happened)
+          console.log('Saving Klaviyo data to database (even if zero values)...')
+          
           const summaryData = {
             store_id: store_id,
             period_start: period_start,
@@ -476,52 +481,79 @@ serve(async (req) => {
             updated_at: new Date().toISOString()
           }
 
-          const { error: upsertError } = await supabase
+          console.log('Summary data to save:', JSON.stringify(summaryData, null, 2))
+
+          const { data: savedSummary, error: upsertError } = await supabase
             .from('klaviyo_summaries')
             .upsert(summaryData, {
               onConflict: 'store_id,period_start,period_end'
             })
+            .select()
+            .single()
 
           if (upsertError) {
             console.error('Error upserting klaviyo_summaries:', upsertError)
+            console.error('Error details:', JSON.stringify(upsertError, null, 2))
           } else {
-            console.log('Successfully saved Klaviyo data')
+            console.log('Successfully saved Klaviyo summary:', savedSummary?.id)
           }
 
-          // Also save to channel_revenue for compatibility
-          if (klaviyoData.revenue_total > 0) {
-            const channelRevenueData = {
-              store_id: store_id,
-              period_start: period_start,
-              period_end: period_end,
-              channel: 'email',
-              source: 'klaviyo_webhook',
-              revenue: klaviyoData.revenue_total,
-              orders_count: klaviyoData.orders_count || 0,
-              meta: {
-                campaigns_revenue: klaviyoData.revenue_campaigns,
-                flows_revenue: klaviyoData.revenue_flows,
-                leads_total: leadsTotal,
-                request_id: request_id
-              },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
+          // Also save to channel_revenue for compatibility (even if zero)
+          const channelRevenueData = {
+            store_id: store_id,
+            period_start: period_start,
+            period_end: period_end,
+            channel: 'email',
+            source: 'klaviyo_webhook',
+            revenue: klaviyoData.revenue_total || 0,
+            orders_count: klaviyoData.orders_count || 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
 
-            const { error: channelError } = await supabase
-              .from('channel_revenue')
-              .upsert(channelRevenueData, {
-                onConflict: 'store_id,period_start,period_end,channel'
-              })
+          console.log('Channel revenue data to save:', JSON.stringify(channelRevenueData, null, 2))
 
-            if (channelError) {
-              console.error('Error upserting channel_revenue:', channelError)
-            }
+          const { data: savedChannel, error: channelError } = await supabase
+            .from('channel_revenue')
+            .upsert(channelRevenueData, {
+              onConflict: 'store_id,period_start,period_end,channel'
+            })
+            .select()
+            .single()
+
+          if (channelError) {
+            console.error('Error upserting channel_revenue:', channelError)
+            console.error('Error details:', JSON.stringify(channelError, null, 2))
+          } else {
+            console.log('Successfully saved channel revenue:', savedChannel?.id)
           }
         } else {
-          console.log('No Klaviyo data found or data has zero values')
-          console.log('Available keys in response:', Object.keys(responseData))
-          console.log('Marking job as SUCCESS anyway since N8N responded OK')
+          console.log('NO Klaviyo data found in response')
+          console.log('Available keys in response:', Object.keys(responseData || {}))
+          console.log('Full response for debugging:', JSON.stringify(responseData, null, 2))
+          
+          // Save a record indicating sync happened but no data was returned
+          const emptyData = {
+            store_id: store_id,
+            period_start: period_start,
+            period_end: period_end,
+            revenue_total: 0,
+            revenue_campaigns: 0,
+            revenue_flows: 0,
+            leads_total: 0,
+            leads_campaigns: 0,
+            leads_flows: 0,
+            klaviyo: { no_data: true, synced_at: new Date().toISOString() },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          console.log('Saving empty sync record...')
+          await supabase
+            .from('klaviyo_summaries')
+            .upsert(emptyData, {
+              onConflict: 'store_id,period_start,period_end'
+            })
         }
 
         // Update job status to SUCCESS immediately after processing
