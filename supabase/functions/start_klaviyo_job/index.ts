@@ -474,9 +474,18 @@ serve(async (req) => {
             revenue_campaigns: klaviyoData.revenue_campaigns || 0,
             revenue_flows: klaviyoData.revenue_flows || 0,
             leads_total: leadsTotal,
-            leads_campaigns: klaviyoData.leads_campaigns || 0,
-            leads_flows: klaviyoData.leads_flows || 0,
-            klaviyo: klaviyoData,
+            orders_attributed: klaviyoData.orders_attributed || 0,
+            conversions_campaigns: klaviyoData.conversions_campaigns || 0,
+            conversions_flows: klaviyoData.conversions_flows || 0,
+            campaigns_with_revenue: klaviyoData.campaigns_with_revenue || 0,
+            flows_with_revenue: klaviyoData.flows_with_revenue || 0,
+            flows_with_activity: klaviyoData.flows_with_activity || 0,
+            campaign_count: klaviyoData.campaign_count || 0,
+            flow_count: klaviyoData.flow_count || 0,
+            flow_perf: klaviyoData.flow_performance_averages || null,
+            top_campaigns_by_revenue: klaviyoData.top_campaigns_by_revenue || [],
+            top_campaigns_by_conversions: klaviyoData.top_campaigns_by_conversions || [],
+            raw: klaviyoData,  // Store the entire klaviyo object in the raw column
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
