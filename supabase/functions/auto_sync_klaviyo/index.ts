@@ -73,11 +73,20 @@ serve(async (req) => {
     ]
 
     const results = []
-    const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL')
+    const n8nWebhookUrl = Deno.env.get('N8N_KLAVIYO_WEBHOOK_URL')
 
     if (!n8nWebhookUrl) {
-      return new Response('N8N webhook not configured', { status: 500, headers: corsHeaders })
+      console.error('[auto_sync_klaviyo] ERROR: N8N_KLAVIYO_WEBHOOK_URL not configured')
+      return new Response(JSON.stringify({
+        error: 'N8N webhook not configured',
+        hint: 'Configure N8N_KLAVIYO_WEBHOOK_URL environment variable'
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
     }
+    
+    console.log('[auto_sync_klaviyo] N8N webhook URL configured successfully')
 
     // Process each store and each period
     for (const store of stores) {
