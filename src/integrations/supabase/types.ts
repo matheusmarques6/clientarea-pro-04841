@@ -214,6 +214,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_execution_log: {
+        Row: {
+          details: Json | null
+          executed_at: string
+          id: string
+          job_name: string
+          status: string | null
+        }
+        Insert: {
+          details?: Json | null
+          executed_at?: string
+          id?: string
+          job_name: string
+          status?: string | null
+        }
+        Update: {
+          details?: Json | null
+          executed_at?: string
+          id?: string
+          job_name?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null
