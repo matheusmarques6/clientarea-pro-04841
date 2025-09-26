@@ -56,6 +56,9 @@ verify_jwt = true
 [functions.admin-link-user-to-store]
 verify_jwt = true
 
+[functions.admin-delete-user]
+verify_jwt = true
+
 [functions.shopify_orders_sync]
 verify_jwt = true
 

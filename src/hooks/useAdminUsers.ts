@@ -191,10 +191,10 @@ export const useAdminUsers = () => {
 
   const deleteUser = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', id);
+      // Usar edge function para deletar usuário (deleta de auth.users e public.users)
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { user_id: id },
+      });
 
       if (error) throw error;
 

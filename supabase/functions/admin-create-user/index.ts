@@ -108,27 +108,12 @@ serve(async (req: Request) => {
       }
 
       if (foundAuthUser) {
-        authUserId = foundAuthUser.id
-        const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
-        
-        // Se o usuário já existe, atualizar senha se fornecida
-        const updateData: any = {
-          user_metadata: { ...(foundAuthUser.user_metadata || {}), name, email_verified: true }
-        }
-        
-        // Se foi fornecida uma senha, atualizar
-        if (password) {
-          updateData.password = password
-          console.log('admin-create-user: Updating existing user password')
-        }
-        
-        // Confirmar email se ainda não confirmado
-        if (!alreadyConfirmed) {
-          updateData.email_confirm = true
-          updateData.user_metadata.email_confirmed_at = new Date().toISOString()
-        }
-        
-        await supabaseAdmin.auth.admin.updateUserById(authUserId!, updateData)
+        // Usuário já existe - retornar erro
+        console.log('admin-create-user: User already exists:', email)
+        return new Response(
+          JSON.stringify({ error: 'Usuário já existe com este email' }), 
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       } else {
         // Create auth user
         const tempPassword = password || crypto.randomUUID().slice(0, 12)
