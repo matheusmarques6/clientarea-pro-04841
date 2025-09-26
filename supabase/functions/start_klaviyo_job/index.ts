@@ -78,11 +78,11 @@ serve(async (req) => {
       return new Response('Access denied to this store', { status: 403, headers: corsHeaders })
     }
 
-    // Check for stuck jobs (older than 10 minutes) and clean them up
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
-    console.log('Cleaning up stuck jobs older than:', tenMinutesAgo)
+    // Check for stuck jobs (older than 2 minutes) and clean them up AGGRESSIVELY
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+    console.log('Cleaning up ANY jobs older than 2 minutes:', twoMinutesAgo)
 
-    // Force cleanup of ANY stuck jobs for this store and period (more aggressive)
+    // Force cleanup of ANY stuck jobs for this store and period
     const { data: stuckJobs } = await supabase
       .from('n8n_jobs')
       .select('id, request_id, status, created_at')
@@ -90,76 +90,76 @@ serve(async (req) => {
       .eq('period_start', period_start)
       .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
-      .lt('created_at', tenMinutesAgo)
+      .lt('created_at', twoMinutesAgo)
 
     if (stuckJobs && stuckJobs.length > 0) {
-      console.log('Found stuck jobs for this period, force cleaning:', stuckJobs)
+      console.log('Found stuck jobs for this period, force cleaning ALL:', stuckJobs)
       
       await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Job timeout - force cleaned for new sync (10min+ old)',
+          error: 'Job timeout - cleaned for new sync (2min+ old)',
           finished_at: new Date().toISOString()
         })
         .in('id', stuckJobs.map(job => job.id))
       
-      console.log('Cleaned up stuck jobs, proceeding with new job')
+      console.log('Force cleaned all stuck jobs, proceeding with new job')
     }
 
-    // Also clean up very old jobs for any store (30+ minutes)
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
-    const { data: veryOldJobs } = await supabase
+    // Also clean up ANY job that's been in PROCESSING for more than 5 minutes (regardless of store)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: globalStuckJobs } = await supabase
       .from('n8n_jobs')
       .select('id')
-      .in('status', ['QUEUED', 'PROCESSING'])
-      .lt('created_at', thirtyMinutesAgo)
-      .limit(10)
+      .eq('status', 'PROCESSING')
+      .lt('created_at', fiveMinutesAgo)
+      .limit(20)
 
-    if (veryOldJobs && veryOldJobs.length > 0) {
-      console.log('Cleaning up very old jobs (30min+):', veryOldJobs.length)
+    if (globalStuckJobs && globalStuckJobs.length > 0) {
+      console.log('Cleaning up global stuck PROCESSING jobs:', globalStuckJobs.length)
       await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Job timeout - auto cleanup (30min+ old)',
+          error: 'Global timeout - auto cleanup (5min+ in PROCESSING)',
           finished_at: new Date().toISOString()
         })
-        .in('id', veryOldJobs.map(job => job.id))
+        .in('id', globalStuckJobs.map(job => job.id))
     }
 
-    // Check for existing ACTIVE jobs (but now with a much shorter timeout window)
-    console.log('Checking for active jobs for store:', store_id, 'period:', period_start, 'to', period_end)
-    
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: recentJobs } = await supabase
+    // Check for VERY recent jobs (last 30 seconds only) to prevent rapid-fire requests
+    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString()
+    const { data: veryRecentJobs } = await supabase
       .from('n8n_jobs')
       .select('*')
       .eq('store_id', store_id)
       .eq('period_start', period_start)
       .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
-      .gt('created_at', fiveMinutesAgo) // Only consider jobs created in last 5 minutes as "active"
+      .gt('created_at', thirtySecondsAgo)
       .order('created_at', { ascending: false })
 
-    if (recentJobs && recentJobs.length > 0) {
-      console.log('Found recent active job:', recentJobs[0].id, 'status:', recentJobs[0].status)
-      console.log('Job created at:', recentJobs[0].created_at)
+    if (veryRecentJobs && veryRecentJobs.length > 0) {
+      console.log('Found VERY recent job (< 30 seconds):', veryRecentJobs[0].id, 'status:', veryRecentJobs[0].status)
+      console.log('Job created at:', veryRecentJobs[0].created_at)
       
-      // Only block if job is VERY recent (less than 5 minutes old)
+      // Only block if job is REALLY recent (less than 30 seconds)
       return new Response(JSON.stringify({
-        job_id: recentJobs[0].id,
-        request_id: recentJobs[0].request_id,
-        status: recentJobs[0].status,
+        job_id: veryRecentJobs[0].id,
+        request_id: veryRecentJobs[0].request_id,
+        status: veryRecentJobs[0].status,
         store_id: store_id,
         period_start: period_start,
         period_end: period_end,
-        message: 'Job already in progress (created recently)'
+        message: 'Por favor aguarde 30 segundos antes de sincronizar novamente'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       })
     }
+
+    console.log('No blocking jobs found, proceeding with new sync...')
 
     console.log('No existing job found, proceeding with new job creation...')
 
@@ -468,8 +468,8 @@ serve(async (req) => {
           }
         }
 
-        // Update job status to SUCCESS
-        await supabase
+        // Update job status to SUCCESS immediately after processing
+        const { error: successUpdateError } = await supabase
           .from('n8n_jobs')
           .update({ 
             status: 'SUCCESS',
@@ -477,10 +477,17 @@ serve(async (req) => {
             meta: {
               ...job.meta,
               processing_completed: true,
-              data_saved: true
+              data_saved: true,
+              klaviyo_data_processed: true
             }
           })
           .eq('id', job.id)
+
+        if (successUpdateError) {
+          console.error('Error updating job to SUCCESS:', successUpdateError)
+        } else {
+          console.log('Job completed successfully and status updated:', job.id)
+        }
 
         console.log('Job completed successfully:', job.id)
 
