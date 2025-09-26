@@ -211,7 +211,7 @@ const PreDashboard = () => {
                   <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                     <div className="text-center lg:text-left flex-1">
                       <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-premium/20 to-premium/10 text-premium animate-pulse">
+                        <div className="p-3 rounded-xl bg-gradient-to-br from-premium/20 to-premium/10 text-premium">
                           <TrendingUp className="h-7 w-7" />
                         </div>
                         <h3 className="text-xl font-bold text-foreground">
@@ -219,7 +219,7 @@ const PreDashboard = () => {
                         </h3>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Receita gerada através das automações de marketing
+                        Faturamento gerado através da plataforma Convertfy
                       </p>
                     </div>
                     <div className="text-center lg:text-right">
@@ -236,90 +236,11 @@ const PreDashboard = () => {
                       )}
                     </div>
                   </div>
-                  
-                  {/* Mini breakdown dos canais */}
-                  <div className="mt-6 pt-6 border-t border-border/50">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <Mail className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Email</p>
-                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.emailRevenue)}</p>
-                      </div>
-                      <div>
-                        <MessageCircle className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">SMS</p>
-                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.smsRevenue)}</p>
-                      </div>
-                      <div>
-                        <Smartphone className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">WhatsApp</p>
-                        <p className="text-sm font-semibold">{formatCurrency(dashboardData.whatsappRevenue)}</p>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* Channel Revenue Cards - Estética mobile aprimorada */}
-          <div className="w-full max-w-4xl px-4 sm:px-0">`
-            {dashboardData.loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="glass-card">
-                    <CardContent className="p-6">
-                      <Skeleton className="h-32 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
-                {channelRevenue.map((channel, index) => {
-                const icons = [Mail, MessageCircle, Smartphone];
-                const Icon = icons[index];
-                const colors = [
-                  'bg-blue-50 text-blue-600',
-                  'bg-green-50 text-green-600', 
-                  'bg-purple-50 text-purple-600'
-                ];
-
-                return (
-                  <Card 
-                    key={channel.channel} 
-                    className="glass-card animate-hover transition-all duration-200 ease-smooth h-full shadow-md hover:shadow-lg"
-                  >
-                    <CardContent className="p-6 sm:p-6 h-full min-h-[160px] flex flex-col justify-between w-full">
-                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
-                        
-                        {/* Icon - Maior em mobile */}
-                        <div className={`p-3 sm:p-3 rounded-xl ${colors[index]} flex-shrink-0 w-14 h-14 sm:w-12 sm:h-12 flex items-center justify-center shadow-sm`}>
-                          <Icon className="h-7 w-7 sm:h-6 sm:w-6" />
-                        </div>
-                        
-                        {/* Content - Melhor espaçamento mobile */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-medium">
-                              {channel.channel}
-                            </p>
-                            <p className="text-2xl sm:text-2xl font-bold text-foreground mb-3">
-                              {formatCurrency(channel.revenue)}
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {channel.percentage}% do total
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-          </div>
 
           {/* Store Breakdown - Show when multiple stores exist */}
           {!dashboardData.loading && dashboardData.stores.length > 1 && (
