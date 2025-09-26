@@ -130,6 +130,15 @@ const AdminClientCreate = () => {
                 description: 'Usuário criado mas não foi possível associá-lo à loja automaticamente.',
                 variant: 'destructive',
               });
+            } else {
+              // Garantir o mapeamento usado pelas RLS
+              const { error: vusError } = await supabase
+                .from('v_user_stores')
+                .insert({ user_id: newUserId, store_id: newStoreId });
+
+              if (vusError) {
+                console.warn('Falha ao inserir em v_user_stores (não bloqueante):', vusError);
+              }
             }
           }
         }
