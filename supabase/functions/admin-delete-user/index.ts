@@ -18,7 +18,8 @@ serve(async (req: Request) => {
   try {
     console.log('admin-delete-user: Starting request processing')
 
-    if (req.method !== 'DELETE') {
+    // Aceitar tanto POST quanto DELETE para compatibilidade com supabase.functions.invoke
+    if (req.method !== 'POST' && req.method !== 'DELETE') {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }), 
         { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
