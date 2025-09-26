@@ -119,42 +119,36 @@ export const useStoreSettings = (storeId: string) => {
       
       console.log('Store update object:', storeUpdate);
       
-      // Update stores table
+      // Update via secure RPC function to ensure consistent saves across tenants
       if (Object.keys(storeUpdate).length > 0) {
-        // First verify we can access the store
-        const { data: storeData, error: storeError } = await supabase
-          .from('stores')
-          .select('id, name')
-          .eq('id', storeId)
-          .single();
-          
-        console.log('Store access check:', { storeData, storeError });
-        
-        if (storeError) {
-          throw new Error(`Cannot access store: ${storeError.message}`);
-        }
-        
-        // Now perform the update
-        const { error } = await supabase
-          .from('stores')
-          .update(storeUpdate)
-          .eq('id', storeId);
-          
-        console.log('Update error (if any):', error);
-          
+        const rpcPayload = {
+          p_store_id: storeId,
+          p_shopify_domain: newSettings.shopifyUrl ?? null,
+          p_shopify_access_token:
+            newSettings.shopifyToken && newSettings.shopifyToken !== '••••••••••••••••••••••••••••••••'
+              ? newSettings.shopifyToken
+              : null,
+          p_klaviyo_site_id: newSettings.klaviyoPublicKey ?? null,
+          p_klaviyo_private_key:
+            newSettings.klaviyoPrivateKey && newSettings.klaviyoPrivateKey !== '••••••••••••••••••••••••••••••••'
+              ? newSettings.klaviyoPrivateKey
+              : null,
+        } as const;
+
+        console.log('Calling RPC update_store_integrations with:', rpcPayload);
+        const { error } = await supabase.rpc('update_store_integrations', rpcPayload);
+        console.log('RPC error (if any):', error);
         if (error) {
           throw error;
         }
-        
+
         // Verify the update by fetching the updated data
         const { data: updatedStore, error: fetchError } = await supabase
           .from('stores')
           .select('shopify_domain, klaviyo_site_id')
           .eq('id', storeId)
           .single();
-          
         console.log('Updated store data:', { updatedStore, fetchError });
-        
         if (fetchError) {
           console.warn('Could not verify update:', fetchError);
         }

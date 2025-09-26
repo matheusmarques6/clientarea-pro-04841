@@ -1593,6 +1593,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      update_store_integrations: {
+        Args: {
+          p_klaviyo_private_key?: string
+          p_klaviyo_site_id?: string
+          p_shopify_access_token?: string
+          p_shopify_domain?: string
+          p_store_id: string
+        }
+        Returns: undefined
+      }
       user_has_store_access: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
