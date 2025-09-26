@@ -206,12 +206,12 @@ const PreDashboard = () => {
           {/* Convertfy Impact Card - Destaque especial */}
           {!dashboardData.loading && (
             <div className="w-full max-w-4xl px-4 sm:px-0 animate-fade-in">
-              <Card className="glass-card shadow-xl bg-gradient-to-br from-premium/10 to-premium/5 border-premium/20 hover:shadow-2xl transition-all duration-300">
+              <Card className="glass-card shadow-lg bg-gradient-to-br from-card via-card to-muted/20 border-border/50 hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-6 sm:p-8">
                   <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                     <div className="text-center lg:text-left flex-1">
                       <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-premium/20 to-premium/10 text-premium">
+                        <div className="p-3 rounded-xl bg-primary/10 text-primary">
                           <TrendingUp className="h-7 w-7" />
                         </div>
                         <h3 className="text-xl font-bold text-foreground">
@@ -219,17 +219,17 @@ const PreDashboard = () => {
                         </h3>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Faturamento gerado através da plataforma Convertfy
+                        Faturamento total gerado pela Convertfy em {dashboardData.stores.length} loja{dashboardData.stores.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="text-center lg:text-right">
-                      <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-premium to-premium/70 bg-clip-text text-transparent mb-2">
+                      <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-2">
                         {formatCurrency(dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue)}
                       </div>
                       {dashboardData.totalRevenue > 0 && (
                         <Badge 
-                          variant="secondary" 
-                          className="bg-premium/10 text-premium hover:bg-premium/20 px-4 py-2 text-sm rounded-full font-semibold"
+                          variant="outline" 
+                          className="border-primary/20 text-primary px-4 py-2 text-sm rounded-full font-semibold"
                         >
                           {Math.round(((dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue) / dashboardData.totalRevenue) * 100)}% do faturamento total
                         </Badge>
