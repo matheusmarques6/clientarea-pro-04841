@@ -110,12 +110,25 @@ serve(async (req: Request) => {
       if (foundAuthUser) {
         authUserId = foundAuthUser.id
         const alreadyConfirmed = (foundAuthUser as any).email_confirmed_at
-        if (!alreadyConfirmed && authUserId) {
-          await supabaseAdmin.auth.admin.updateUserById(authUserId, {
-            email_confirm: true,
-            user_metadata: { ...(foundAuthUser.user_metadata || {}), email_verified: true, email_confirmed_at: new Date().toISOString() }
-          })
+        
+        // Se o usuário já existe, atualizar senha se fornecida
+        const updateData: any = {
+          user_metadata: { ...(foundAuthUser.user_metadata || {}), name, email_verified: true }
         }
+        
+        // Se foi fornecida uma senha, atualizar
+        if (password) {
+          updateData.password = password
+          console.log('admin-create-user: Updating existing user password')
+        }
+        
+        // Confirmar email se ainda não confirmado
+        if (!alreadyConfirmed) {
+          updateData.email_confirm = true
+          updateData.user_metadata.email_confirmed_at = new Date().toISOString()
+        }
+        
+        await supabaseAdmin.auth.admin.updateUserById(authUserId!, updateData)
       } else {
         // Create auth user
         const tempPassword = password || crypto.randomUUID().slice(0, 12)
