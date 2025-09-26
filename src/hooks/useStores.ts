@@ -68,6 +68,12 @@ export const useStores = () => {
           .from('v_user_stores')
           .select('store_id')
           .eq('user_id', user.id);
+        
+        console.log('useStores: Fetching stores for user', { 
+          userId: user.id, 
+          email: user.email,
+          userStores: userStores?.length || 0 
+        });
 
         if (userStoresError) throw userStoresError;
 
