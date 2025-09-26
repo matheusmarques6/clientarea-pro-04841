@@ -78,54 +78,83 @@ serve(async (req) => {
       return new Response('Access denied to this store', { status: 403, headers: corsHeaders })
     }
 
-    // Check for stuck jobs (older than 20 minutes) and clean them up
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString()
-    console.log('Checking for stuck jobs older than:', twentyMinutesAgo)
+    // Check for stuck jobs (older than 10 minutes) and clean them up
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    console.log('Cleaning up stuck jobs older than:', tenMinutesAgo)
 
+    // Force cleanup of ANY stuck jobs for this store and period (more aggressive)
     const { data: stuckJobs } = await supabase
       .from('n8n_jobs')
-      .select('id, request_id')
+      .select('id, request_id, status, created_at')
       .eq('store_id', store_id)
+      .eq('period_start', period_start)
+      .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
-      .lt('created_at', twentyMinutesAgo)
+      .lt('created_at', tenMinutesAgo)
 
     if (stuckJobs && stuckJobs.length > 0) {
-      console.log('Found stuck jobs, cleaning up:', stuckJobs.length)
+      console.log('Found stuck jobs for this period, force cleaning:', stuckJobs)
       
       await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Job timeout - cleaned up (30min+ old)',
+          error: 'Job timeout - force cleaned for new sync (10min+ old)',
           finished_at: new Date().toISOString()
         })
         .in('id', stuckJobs.map(job => job.id))
-    } else {
-      console.log('No stuck jobs found')
+      
+      console.log('Cleaned up stuck jobs, proceeding with new job')
     }
 
-    // Check for existing jobs in QUEUED or PROCESSING status
-    console.log('Checking for existing jobs for store:', store_id, 'period:', period_start, 'to', period_end)
+    // Also clean up very old jobs for any store (30+ minutes)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { data: veryOldJobs } = await supabase
+      .from('n8n_jobs')
+      .select('id')
+      .in('status', ['QUEUED', 'PROCESSING'])
+      .lt('created_at', thirtyMinutesAgo)
+      .limit(10)
+
+    if (veryOldJobs && veryOldJobs.length > 0) {
+      console.log('Cleaning up very old jobs (30min+):', veryOldJobs.length)
+      await supabase
+        .from('n8n_jobs')
+        .update({ 
+          status: 'ERROR', 
+          error: 'Job timeout - auto cleanup (30min+ old)',
+          finished_at: new Date().toISOString()
+        })
+        .in('id', veryOldJobs.map(job => job.id))
+    }
+
+    // Check for existing ACTIVE jobs (but now with a much shorter timeout window)
+    console.log('Checking for active jobs for store:', store_id, 'period:', period_start, 'to', period_end)
     
-    const { data: existingJobs } = await supabase
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: recentJobs } = await supabase
       .from('n8n_jobs')
       .select('*')
       .eq('store_id', store_id)
       .eq('period_start', period_start)
       .eq('period_end', period_end)
       .in('status', ['QUEUED', 'PROCESSING'])
+      .gt('created_at', fiveMinutesAgo) // Only consider jobs created in last 5 minutes as "active"
       .order('created_at', { ascending: false })
 
-    if (existingJobs && existingJobs.length > 0) {
-      console.log('Found existing job:', existingJobs[0].id, 'status:', existingJobs[0].status)
+    if (recentJobs && recentJobs.length > 0) {
+      console.log('Found recent active job:', recentJobs[0].id, 'status:', recentJobs[0].status)
+      console.log('Job created at:', recentJobs[0].created_at)
+      
+      // Only block if job is VERY recent (less than 5 minutes old)
       return new Response(JSON.stringify({
-        job_id: existingJobs[0].id,
-        request_id: existingJobs[0].request_id,
-        status: existingJobs[0].status,
+        job_id: recentJobs[0].id,
+        request_id: recentJobs[0].request_id,
+        status: recentJobs[0].status,
         store_id: store_id,
         period_start: period_start,
         period_end: period_end,
-        message: 'Job already in progress'
+        message: 'Job already in progress (created recently)'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -147,6 +176,24 @@ serve(async (req) => {
       console.error('Store not found or error:', storeError)
       return new Response('Store not found', { status: 404, headers: corsHeaders })
     }
+
+    // Check if Klaviyo credentials are configured
+    if (!store.klaviyo_private_key || !store.klaviyo_site_id) {
+      console.error('Klaviyo credentials not configured for store:', store_id)
+      return new Response(JSON.stringify({
+        error: 'Klaviyo credentials not configured',
+        message: 'Configure as credenciais do Klaviyo (API key e Site ID) nas configurações da loja'
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('Store has Klaviyo credentials configured:', {
+      hasPrivateKey: !!store.klaviyo_private_key,
+      hasSiteId: !!store.klaviyo_site_id,
+      shopifyDomain: store.shopify_domain
+    })
 
     // Generate request ID
     const request_id = generateRequestId()
@@ -222,27 +269,48 @@ serve(async (req) => {
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL')
 
     if (!n8nWebhookUrl) {
+      console.error('CRITICAL ERROR: N8N_WEBHOOK_URL environment variable not configured!')
       await supabase
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'N8N_WEBHOOK_URL not configured',
+          error: 'N8N_WEBHOOK_URL not configured - contact admin',
           finished_at: new Date().toISOString()
         })
         .eq('id', job.id)
 
-      return new Response('N8N webhook not configured', { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({
+        error: 'N8N webhook not configured',
+        message: 'Entre em contato com o administrador - webhook não configurado'
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
+    console.log('N8N_WEBHOOK_URL is configured, proceeding with webhook call')
+
     try {
-      console.log('Calling N8N webhook for job:', job.id, 'store:', store_id)
+      console.log('====== N8N WEBHOOK CALL START ======')
+      console.log('Job ID:', job.id)
+      console.log('Store ID:', store_id)
+      console.log('Period:', `${period_start} to ${period_end}`)
       console.log('N8N Webhook URL:', n8nWebhookUrl)
-      console.log('Payload preview:', {
+      console.log('Request ID:', request_id)
+      console.log('Payload being sent:', JSON.stringify({
         storeId: store_id,
+        storeName: store.name,
         period: `${period_start} to ${period_end}`,
-        hasKlaviyoCredentials: !!(store.klaviyo_private_key && store.klaviyo_site_id),
-        hasShopifyCredentials: !!(store.shopify_domain && store.shopify_access_token)
-      })
+        hasKlaviyoPrivateKey: !!store.klaviyo_private_key,
+        hasSiteId: !!store.klaviyo_site_id,
+        hasShopifyDomain: !!store.shopify_domain,
+        hasShopifyToken: !!store.shopify_access_token,
+        klaviyoKeyLength: store.klaviyo_private_key ? store.klaviyo_private_key.length : 0,
+        siteIdLength: store.klaviyo_site_id ? store.klaviyo_site_id.length : 0
+      }))
+      console.log('====== FULL PAYLOAD ======')
+      console.log(JSON.stringify(n8nPayload, null, 2))
+      console.log('====== END PAYLOAD ======')
       
       const n8nHeaders = {
         'Content-Type': 'application/json'
@@ -252,6 +320,7 @@ serve(async (req) => {
       const timeoutController = new AbortController()
       const timeoutId = setTimeout(() => timeoutController.abort(), 300000) // 5 minutes timeout
 
+      console.log('Sending request to N8N webhook...')
       const n8nResponse = await fetch(n8nWebhookUrl, {
         method: 'POST',
         headers: n8nHeaders,
@@ -260,12 +329,15 @@ serve(async (req) => {
       })
 
       clearTimeout(timeoutId)
+      console.log('N8N webhook response received, status:', n8nResponse.status)
 
       console.log('N8N webhook response status:', n8nResponse.status)
 
       if (!n8nResponse.ok) {
         const responseText = await n8nResponse.text()
         console.error('N8N webhook error response:', responseText)
+        console.error('Response status:', n8nResponse.status)
+        console.error('Response headers:', Object.fromEntries(n8nResponse.headers.entries()))
         
         // Update job to ERROR status
         await supabase
@@ -273,7 +345,16 @@ serve(async (req) => {
           .update({ 
             status: 'ERROR',
             error: `N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText} - ${responseText}`,
-            finished_at: new Date().toISOString()
+            finished_at: new Date().toISOString(),
+            meta: {
+              ...job.meta,
+              webhook_error: {
+                status: n8nResponse.status,
+                statusText: n8nResponse.statusText,
+                response: responseText,
+                timestamp: new Date().toISOString()
+              }
+            }
           })
           .eq('id', job.id)
         
