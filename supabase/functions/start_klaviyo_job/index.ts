@@ -362,10 +362,33 @@ serve(async (req) => {
       }
 
       // Get the response data from N8N (should contain Klaviyo data)
-      const responseData = await n8nResponse.json()
-      console.log('====== N8N RESPONSE DATA RECEIVED ======')
-      console.log('Response data structure:', Object.keys(responseData))
-      console.log('Full response data:', JSON.stringify(responseData, null, 2))
+      let responseData
+      try {
+        const responseText = await n8nResponse.text()
+        console.log('====== RAW N8N RESPONSE ======')
+        console.log('Response length:', responseText.length)
+        console.log('First 1000 chars:', responseText.substring(0, 1000))
+        console.log('====== END RAW RESPONSE ======')
+        
+        // Try to parse as JSON
+        try {
+          responseData = JSON.parse(responseText)
+          console.log('Successfully parsed as JSON')
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError)
+          console.log('Response was:', responseText)
+          responseData = { raw: responseText }
+        }
+      } catch (textError) {
+        console.error('Failed to read response text:', textError)
+        responseData = {}
+      }
+      
+      console.log('====== PARSED RESPONSE DATA ======')
+      console.log('Response data type:', typeof responseData)
+      console.log('Response data keys:', responseData ? Object.keys(responseData) : 'null')
+      console.log('Full parsed data:', JSON.stringify(responseData, null, 2))
+      console.log('====== END PARSED DATA ======')
 
       // Update job status to processing with response metadata
       await supabase
@@ -391,15 +414,44 @@ serve(async (req) => {
       
       try {
         // Validate response structure
+        console.log('Starting to process N8N response data...')
+        console.log('responseData is:', responseData)
+        console.log('responseData type:', typeof responseData)
+        
         if (!responseData || typeof responseData !== 'object') {
+          console.error('Invalid response data structure:', responseData)
           throw new Error('Invalid response data structure')
         }
 
-        // Extract Klaviyo data (N8N should return it in the response)
-        const klaviyoData = responseData.klaviyo || responseData.data?.klaviyo || responseData
+        // Try different paths to find Klaviyo data
+        console.log('Looking for Klaviyo data in response...')
+        let klaviyoData = null
+        
+        // Try direct klaviyo property
+        if (responseData.klaviyo) {
+          console.log('Found data at responseData.klaviyo')
+          klaviyoData = responseData.klaviyo
+        }
+        // Try data.klaviyo
+        else if (responseData.data?.klaviyo) {
+          console.log('Found data at responseData.data.klaviyo')
+          klaviyoData = responseData.data.klaviyo
+        }
+        // Try if response itself has the klaviyo structure
+        else if (responseData.revenue_total !== undefined || responseData.leads_total !== undefined) {
+          console.log('Response itself appears to be Klaviyo data')
+          klaviyoData = responseData
+        }
+        // Try first element if it's an array
+        else if (Array.isArray(responseData) && responseData[0]) {
+          console.log('Response is array, checking first element')
+          klaviyoData = responseData[0].klaviyo || responseData[0]
+        }
+        
+        console.log('Extracted Klaviyo data:', JSON.stringify(klaviyoData, null, 2))
         
         if (klaviyoData && (klaviyoData.revenue_total > 0 || klaviyoData.leads_total > 0)) {
-          console.log('Saving Klaviyo data to klaviyo_summaries...')
+          console.log('Valid Klaviyo data found, saving to database...')
           
           // Parse leads_total if it's a string
           let leadsTotal = 0
@@ -466,6 +518,10 @@ serve(async (req) => {
               console.error('Error upserting channel_revenue:', channelError)
             }
           }
+        } else {
+          console.log('No Klaviyo data found or data has zero values')
+          console.log('Available keys in response:', Object.keys(responseData))
+          console.log('Marking job as SUCCESS anyway since N8N responded OK')
         }
 
         // Update job status to SUCCESS immediately after processing
