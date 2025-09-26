@@ -42,27 +42,29 @@ const PreDashboard = () => {
 
   // Format currency based on predominant currency in stores
   const formatCurrency = (value: number) => {
-    // Get most common currency from stores
-    const currencies = dashboardData.stores.map(s => s.currency);
-    const mostCommonCurrency = currencies.length > 0 
+    // Get most common currency from stores or use default from first store
+    const currencies = dashboardData.stores.map(s => s.currency).filter(Boolean);
+    const currency = currencies.length > 0 
       ? currencies.reduce((a, b) => 
           currencies.filter(v => v === a).length >= currencies.filter(v => v === b).length ? a : b
         )
       : 'BRL';
     
-    const currencySymbols: { [key: string]: string } = {
-      'BRL': 'R$',
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£'
+    const currencyConfig: { [key: string]: { symbol: string, locale: string } } = {
+      'BRL': { symbol: 'R$', locale: 'pt-BR' },
+      'USD': { symbol: '$', locale: 'en-US' },
+      'EUR': { symbol: '€', locale: 'de-DE' },
+      'GBP': { symbol: '£', locale: 'en-GB' }
     };
     
-    const symbol = currencySymbols[mostCommonCurrency] || 'R$';
-    const locale = mostCommonCurrency === 'BRL' ? 'pt-BR' : 
-                   mostCommonCurrency === 'USD' ? 'en-US' :
-                   mostCommonCurrency === 'EUR' ? 'de-DE' : 'en-GB';
+    const config = currencyConfig[currency] || currencyConfig['BRL'];
     
-    return `${symbol} ${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // For USD, EUR, GBP - symbol comes before the number
+    if (currency === 'USD' || currency === 'EUR' || currency === 'GBP') {
+      return `${config.symbol}${value.toLocaleString(config.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    // For BRL - symbol comes before with space
+    return `${config.symbol} ${value.toLocaleString(config.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
   
   // Channel data from the dashboard
