@@ -363,9 +363,11 @@ serve(async (req) => {
 
       // Get the response data from N8N (should contain Klaviyo data)
       const responseData = await n8nResponse.json()
-      console.log('N8N webhook response data received, processing automatically...')
+      console.log('====== N8N RESPONSE DATA RECEIVED ======')
+      console.log('Response data structure:', Object.keys(responseData))
+      console.log('Full response data:', JSON.stringify(responseData, null, 2))
 
-      // Update job status to processing
+      // Update job status to processing with response metadata
       await supabase
         .from('n8n_jobs')
         .update({ 
@@ -374,6 +376,7 @@ serve(async (req) => {
             ...job.meta,
             n8n_response_status: n8nResponse.status,
             n8n_triggered_at: new Date().toISOString(),
+            n8n_response_received: true,
             payload_sent: {
               store_name: store.name,
               shopify_domain: store.shopify_domain,
@@ -383,10 +386,119 @@ serve(async (req) => {
         })
         .eq('id', job.id)
 
-      // Process the response data automatically in background
-      // Process the response data in background without blocking the response
+      // Process the Klaviyo data immediately
+      console.log('Processing N8N response data for job:', job.id)
+      
+      try {
+        // Validate response structure
+        if (!responseData || typeof responseData !== 'object') {
+          throw new Error('Invalid response data structure')
+        }
 
-      console.log('Job successfully started and processing data automatically for store:', store_id)
+        // Extract Klaviyo data (N8N should return it in the response)
+        const klaviyoData = responseData.klaviyo || responseData.data?.klaviyo || responseData
+        
+        if (klaviyoData && (klaviyoData.revenue_total > 0 || klaviyoData.leads_total > 0)) {
+          console.log('Saving Klaviyo data to klaviyo_summaries...')
+          
+          // Parse leads_total if it's a string
+          let leadsTotal = 0
+          if (klaviyoData.leads_total) {
+            const leadsTotalStr = String(klaviyoData.leads_total)
+            const cleanedLeads = leadsTotalStr.replace(/[^\d]/g, '')
+            leadsTotal = parseInt(cleanedLeads) || 0
+          }
+
+          const summaryData = {
+            store_id: store_id,
+            period_start: period_start,
+            period_end: period_end,
+            revenue_total: klaviyoData.revenue_total || 0,
+            revenue_campaigns: klaviyoData.revenue_campaigns || 0,
+            revenue_flows: klaviyoData.revenue_flows || 0,
+            leads_total: leadsTotal,
+            leads_campaigns: klaviyoData.leads_campaigns || 0,
+            leads_flows: klaviyoData.leads_flows || 0,
+            klaviyo: klaviyoData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+
+          const { error: upsertError } = await supabase
+            .from('klaviyo_summaries')
+            .upsert(summaryData, {
+              onConflict: 'store_id,period_start,period_end'
+            })
+
+          if (upsertError) {
+            console.error('Error upserting klaviyo_summaries:', upsertError)
+          } else {
+            console.log('Successfully saved Klaviyo data')
+          }
+
+          // Also save to channel_revenue for compatibility
+          if (klaviyoData.revenue_total > 0) {
+            const channelRevenueData = {
+              store_id: store_id,
+              period_start: period_start,
+              period_end: period_end,
+              channel: 'email',
+              source: 'klaviyo_webhook',
+              revenue: klaviyoData.revenue_total,
+              orders_count: klaviyoData.orders_count || 0,
+              meta: {
+                campaigns_revenue: klaviyoData.revenue_campaigns,
+                flows_revenue: klaviyoData.revenue_flows,
+                leads_total: leadsTotal,
+                request_id: request_id
+              },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+
+            const { error: channelError } = await supabase
+              .from('channel_revenue')
+              .upsert(channelRevenueData, {
+                onConflict: 'store_id,period_start,period_end,channel'
+              })
+
+            if (channelError) {
+              console.error('Error upserting channel_revenue:', channelError)
+            }
+          }
+        }
+
+        // Update job status to SUCCESS
+        await supabase
+          .from('n8n_jobs')
+          .update({ 
+            status: 'SUCCESS',
+            finished_at: new Date().toISOString(),
+            meta: {
+              ...job.meta,
+              processing_completed: true,
+              data_saved: true
+            }
+          })
+          .eq('id', job.id)
+
+        console.log('Job completed successfully:', job.id)
+
+      } catch (processError) {
+        console.error('Error processing N8N response:', processError)
+        
+        // Update job with error but don't fail the request
+        await supabase
+          .from('n8n_jobs')
+          .update({ 
+            status: 'ERROR',
+            error: `Failed to process N8N response: ${processError instanceof Error ? processError.message : 'Unknown error'}`,
+            finished_at: new Date().toISOString()
+          })
+          .eq('id', job.id)
+      }
+
+      console.log('Returning success response to client')
       
       return new Response(JSON.stringify({
         job_id: job.id,
