@@ -62,25 +62,51 @@ export const useClientDashboard = (period: string = '30d') => {
           .eq('id', user.id)
           .single();
 
-        // Get all stores the user has access to through store_members
-        const { data: storeMembers } = await supabase
-          .from('store_members')
-          .select('store_id')
-          .eq('user_id', user.id);
+        // Get all stores the user has access to
+        // For admin users, get all stores, otherwise get from store_members
+        const { data: isAdminData } = await supabase
+          .rpc('is_admin', { _user_id: user.id });
+        
+        let userStores;
+        let storeIds = [];
+        
+        if (isAdminData) {
+          // Admin user - get all stores
+          const { data: allStores, error: storesError } = await supabase
+            .from('stores')
+            .select('id, name, currency, client_id')
+            .order('name');
+          
+          if (storesError) throw storesError;
+          userStores = allStores;
+          storeIds = allStores?.map(s => s.id) || [];
+        } else {
+          // Regular user - get stores through store_members
+          const { data: storeMembers } = await supabase
+            .from('store_members')
+            .select('store_id')
+            .eq('user_id', user.id);
 
-        if (!storeMembers || storeMembers.length === 0) {
+          if (!storeMembers || storeMembers.length === 0) {
+            setData(prev => ({ ...prev, loading: false }));
+            return;
+          }
+
+          storeIds = storeMembers.map(sm => sm.store_id);
+
+          const { data: stores, error: storesError } = await supabase
+            .from('stores')
+            .select('id, name, currency, client_id')
+            .in('id', storeIds);
+
+          if (storesError) throw storesError;
+          userStores = stores;
+        }
+        
+        if (!userStores || userStores.length === 0) {
           setData(prev => ({ ...prev, loading: false }));
           return;
         }
-
-        const storeIds = storeMembers.map(sm => sm.store_id);
-
-        const { data: userStores, error: storesError } = await supabase
-          .from('stores')
-          .select('id, name, currency, client_id')
-          .in('id', storeIds);
-
-        if (storesError) throw storesError;
 
         // Calculate period dates
         const endDate = new Date();
