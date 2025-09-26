@@ -76,8 +76,10 @@ const AdminClientCreate = () => {
           currency: storeData.currency,
         });
 
-        if (storeResult.data) {
-          newStoreId = storeResult.data.id;
+        // Edge function returns { data: <store> }
+        const createdStore = (storeResult as any)?.data?.data;
+        if (createdStore?.id) {
+          newStoreId = createdStore.id as string;
         }
       }
 
@@ -91,28 +93,42 @@ const AdminClientCreate = () => {
           role: 'owner',
         });
 
-        if (userResult.data) {
-          newUserId = userResult.data.id;
-          
+        // Edge function returns { data: <user> }
+        const createdUser = (userResult as any)?.data?.data;
+        if (createdUser?.id) {
+          newUserId = createdUser.id as string;
+
+          // If no password provided, send reset email so the client can set one
+          if (!userData.password) {
+            try {
+              await supabase.auth.resetPasswordForEmail(userData.email, {
+                redirectTo: `${window.location.origin}/auth`,
+              });
+              toast({
+                title: 'Convite enviado',
+                description: 'Enviamos um e-mail para o usuário definir a senha.',
+              });
+            } catch (e) {
+              console.warn('Falha ao enviar email de definição de senha', e);
+            }
+          }
+
           // Se criou loja e usuário, associar o usuário à loja
           if (newStoreId) {
             console.log('AdminClientCreate: Associating user to store');
-            // Usar store_members para associar usuário à loja
             const { error: memberError } = await supabase
               .from('store_members')
-              .insert([{
-                user_id: newUserId,
-                store_id: newStoreId,
-                role: 'owner'
-              }]);
-            
+              .upsert(
+                [{ user_id: newUserId, store_id: newStoreId, role: 'owner' }],
+                { onConflict: 'user_id,store_id', ignoreDuplicates: true }
+              );
+
             if (memberError) {
               console.error('Error associating user to store:', memberError);
-              // Não falhar o processo todo, apenas avisar
               toast({
-                title: "Aviso",
-                description: "Usuário criado mas não foi possível associá-lo à loja automaticamente.",
-                variant: "destructive",
+                title: 'Aviso',
+                description: 'Usuário criado mas não foi possível associá-lo à loja automaticamente.',
+                variant: 'destructive',
               });
             }
           }
