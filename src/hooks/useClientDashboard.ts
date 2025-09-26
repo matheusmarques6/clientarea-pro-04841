@@ -142,8 +142,34 @@ export const useClientDashboard = (period: string = '30d') => {
           }
         }
         
-        // Calculate total Convertfy revenue (sum of all marketing channels)
-        const totalConvertfyRevenue = totalEmailRevenue + totalSmsRevenue + totalWhatsappRevenue;
+        // Fetch Convertfy revenue (flows + campaigns) for all stores in the selected period
+        const startDateStr = startDate.toISOString().slice(0, 10);
+        const endDateStr = endDate.toISOString().slice(0, 10);
+
+        const { data: convertfySummaries, error: summariesError } = await supabase
+          .from('klaviyo_summaries')
+          .select('store_id, revenue_flows, revenue_campaigns, period_start, period_end')
+          .in('store_id', storeIds)
+          .gte('period_start', startDateStr)
+          .lte('period_end', endDateStr);
+
+        const convertfyByStore: Record<string, number> = {};
+        if (!summariesError && convertfySummaries) {
+          (convertfySummaries as any[]).forEach((row: any) => {
+            const sid = row.store_id as string;
+            const flows = Number(row.revenue_flows || 0);
+            const campaigns = Number(row.revenue_campaigns || 0);
+            convertfyByStore[sid] = (convertfyByStore[sid] || 0) + flows + campaigns;
+          });
+        }
+
+        // Attach per-store Convertfy revenue (flows + campaigns)
+        (storesWithRevenue as any[]).forEach((s: any) => {
+          s.convertfyRevenue = convertfyByStore[s.id] || 0;
+        });
+
+        // Calculate total Convertfy revenue across all client's stores
+        const totalConvertfyRevenue = Object.values(convertfyByStore).reduce((sum, v) => sum + v, 0);
         
         console.log('Dashboard totals:', {
           stores: userStores?.length || 0,
