@@ -40,22 +40,28 @@ serve(async (req) => {
       bodyPreview: body.substring(0, 500) // Show first 500 chars for debugging
     })
 
-    // Extract data from payload (expecting array with single item)
-    if (!Array.isArray(payload) || payload.length === 0) {
-      console.error('Invalid payload structure:', payload)
-      return new Response('Invalid payload structure', { status: 400, headers: corsHeaders })
+    // Normalize payload structure: accept object or array with single item
+    const data = Array.isArray(payload) ? payload[0] : payload;
+
+    console.log('Processing Klaviyo callback data (normalized):', JSON.stringify(data, null, 2))
+
+    // Extract fields with fallbacks
+    const requestId = data?.metadata?.request_id ?? data?.request_id ?? data?.job?.request_id ?? null;
+
+    // Period can be object {start,end}, top-level fields, or string "YYYY-MM-DD to YYYY-MM-DD"
+    let periodStart = data?.period?.start ?? data?.period_start ?? data?.periodStart ?? null;
+    let periodEnd = data?.period?.end ?? data?.period_end ?? data?.periodEnd ?? null;
+    if ((!periodStart || !periodEnd) && typeof data?.period === 'string') {
+      const parts = data.period.split(' to ');
+      if (parts.length === 2) {
+        periodStart = parts[0];
+        periodEnd = parts[1];
+      }
     }
 
-    const data = payload[0]
-    const { klaviyo, period, store, metadata, status, summary } = data
-
-    // Log the full data for debugging
-    console.log('Processing Klaviyo callback data:', JSON.stringify(data, null, 2))
-
-    if (!metadata?.request_id) {
-      console.error('Missing request_id in metadata')
-      return new Response('Missing request_id', { status: 400, headers: corsHeaders })
-    }
+    const storeId = data?.store?.id ?? data?.store_id ?? data?.storeId ?? null;
+    const status = data?.status ?? 'SUCCESS';
+    const klaviyo = data?.klaviyo ?? data?.summary?.klaviyo ?? null;
 
     // Try to find job by request_id first, then by store_id and period if not found
     let job
