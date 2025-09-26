@@ -220,12 +220,12 @@ const PreDashboard = () => {
                     </div>
                     <div className="text-center lg:text-right">
                       <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-3">
-                        {formatCurrency(dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue)}
+                        {formatCurrency(dashboardData.totalConvertfyRevenue)}
                       </div>
                       {dashboardData.totalRevenue > 0 && (
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full">
                           <span className="text-white font-semibold text-sm">
-                            {Math.round(((dashboardData.emailRevenue + dashboardData.smsRevenue + dashboardData.whatsappRevenue) / dashboardData.totalRevenue) * 100)}% do faturamento total
+                            {Math.round((dashboardData.totalConvertfyRevenue / dashboardData.totalRevenue) * 100)}% do faturamento total
                           </span>
                         </div>
                       )}

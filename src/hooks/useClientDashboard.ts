@@ -17,6 +17,7 @@ interface StoreKPIs {
 interface ClientDashboardData {
   clientName: string;
   totalRevenue: number;
+  totalConvertfyRevenue: number; // Total Convertfy de todas as lojas
   emailRevenue: number;
   smsRevenue: number;
   whatsappRevenue: number;
@@ -26,6 +27,7 @@ interface ClientDashboardData {
     name: string;
     currency: string;
     revenue: number;
+    convertfyRevenue?: number; // Convertfy revenue per store
   }>;
   loading: boolean;
   error: string | null;
@@ -36,6 +38,7 @@ export const useClientDashboard = (period: string = '30d') => {
   const [data, setData] = useState<ClientDashboardData>({
     clientName: '',
     totalRevenue: 0,
+    totalConvertfyRevenue: 0,
     emailRevenue: 0,
     smsRevenue: 0,
     whatsappRevenue: 0,
@@ -125,14 +128,31 @@ export const useClientDashboard = (period: string = '30d') => {
             totalWhatsappRevenue += Number(kpisData.whatsapp_revenue || 0);
             totalOrders += Number(kpisData.order_count || 0);
 
+            const storeConvertfyRevenue = Number(kpisData.email_revenue || 0) + 
+                                          Number(kpisData.sms_revenue || 0) + 
+                                          Number(kpisData.whatsapp_revenue || 0);
+            
             storesWithRevenue.push({
               id: store.id,
               name: store.name,
               currency: kpisData.currency || store.currency || 'BRL',
-              revenue: Number(kpisData.total_revenue || 0)
+              revenue: Number(kpisData.total_revenue || 0),
+              convertfyRevenue: storeConvertfyRevenue
             });
           }
         }
+        
+        // Calculate total Convertfy revenue (sum of all marketing channels)
+        const totalConvertfyRevenue = totalEmailRevenue + totalSmsRevenue + totalWhatsappRevenue;
+        
+        console.log('Dashboard totals:', {
+          stores: userStores?.length || 0,
+          totalRevenue,
+          totalConvertfyRevenue,
+          emailRevenue: totalEmailRevenue,
+          smsRevenue: totalSmsRevenue,
+          whatsappRevenue: totalWhatsappRevenue
+        });
 
         // Get client name from first store (all stores belong to same client)
         let clientName = userData?.name || 'Cliente';
@@ -152,6 +172,7 @@ export const useClientDashboard = (period: string = '30d') => {
         setData({
           clientName,
           totalRevenue,
+          totalConvertfyRevenue,
           emailRevenue: totalEmailRevenue,
           smsRevenue: totalSmsRevenue,
           whatsappRevenue: totalWhatsappRevenue,
