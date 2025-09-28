@@ -22,6 +22,14 @@ import AdminAudit from "./pages/admin/AdminAudit";
 import AdminClientDetails from "./pages/admin/AdminClientDetails";
 import AdminLayout from "./components/admin/AdminLayout";
 
+// Admin OKR
+import { AdminOKRDashboard } from "./pages/admin/okr/AdminOKRDashboard";
+import { AdminOKRTeam } from "./pages/admin/okr/AdminOKRTeam";
+import { AdminOKRObjectives } from "./pages/admin/okr/AdminOKRObjectives";
+import { AdminOKRMetrics } from "./pages/admin/okr/AdminOKRMetrics";
+import { AdminOKRPeriods } from "./pages/admin/okr/AdminOKRPeriods";
+import { AdminOKRProfile } from "./pages/admin/okr/AdminOKRProfile";
+
 // Pages
 import PreDashboard from "./pages/PreDashboard";
 import Auth from "./pages/Auth";
@@ -67,6 +75,12 @@ const App = () => (
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="okr" element={<AdminOKRDashboard />} />
+                <Route path="okr/team" element={<AdminOKRTeam />} />
+                <Route path="okr/objectives" element={<AdminOKRObjectives />} />
+                <Route path="okr/metrics" element={<AdminOKRMetrics />} />
+                <Route path="okr/periods" element={<AdminOKRPeriods />} />
+                <Route path="okr/profile/:id" element={<AdminOKRProfile />} />
                 <Route path="clients" element={<AdminClients />} />
                 <Route path="clients/new" element={<AdminClientCreate />} />
                 <Route path="clients/:id" element={<AdminClientDetails />} />

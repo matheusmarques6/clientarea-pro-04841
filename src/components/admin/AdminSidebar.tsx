@@ -9,7 +9,8 @@ import {
   BarChart3,
   Shield,
   LogOut,
-  Menu
+  Menu,
+  Target
 } from 'lucide-react';
 import {
   Sidebar,
@@ -33,6 +34,11 @@ const adminNavItems = [
     url: '/admin', 
     icon: BarChart3,
     exact: true 
+  },
+  { 
+    title: 'OKRs', 
+    url: '/admin/okr', 
+    icon: Target 
   },
   { 
     title: 'Clientes', 
