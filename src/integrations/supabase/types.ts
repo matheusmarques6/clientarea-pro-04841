@@ -541,6 +541,466 @@ export type Database = {
           },
         ]
       }
+      okr_activity_log: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string | null
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_activity_log_actor_fkey"
+            columns: ["actor"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_activity_log_actor_fkey"
+            columns: ["actor"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_key_results: {
+        Row: {
+          allow_over: boolean | null
+          created_at: string | null
+          current_value: number | null
+          description: string | null
+          direction: string | null
+          id: string
+          objective_id: string | null
+          status: string | null
+          target: number
+          title: string
+          unit: string | null
+          updated_at: string | null
+          weight_pct: number
+        }
+        Insert: {
+          allow_over?: boolean | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          direction?: string | null
+          id?: string
+          objective_id?: string | null
+          status?: string | null
+          target: number
+          title: string
+          unit?: string | null
+          updated_at?: string | null
+          weight_pct: number
+        }
+        Update: {
+          allow_over?: boolean | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          direction?: string | null
+          id?: string
+          objective_id?: string | null
+          status?: string | null
+          target?: number
+          title?: string
+          unit?: string | null
+          updated_at?: string | null
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "okr_objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_kr_datasources: {
+        Row: {
+          aggregation: string | null
+          created_at: string | null
+          filter_store_id: string | null
+          id: string
+          kr_id: string | null
+          source_field: string | null
+          source_type: string | null
+        }
+        Insert: {
+          aggregation?: string | null
+          created_at?: string | null
+          filter_store_id?: string | null
+          id?: string
+          kr_id?: string | null
+          source_field?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          aggregation?: string | null
+          created_at?: string | null
+          filter_store_id?: string | null
+          id?: string
+          kr_id?: string | null
+          source_field?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_kr_datasources_filter_store_id_fkey"
+            columns: ["filter_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_kr_datasources_kr_id_fkey"
+            columns: ["kr_id"]
+            isOneToOne: false
+            referencedRelation: "okr_key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_monthly_metrics: {
+        Row: {
+          automacoes_ativas: number | null
+          campanhas_enviadas: number | null
+          churn_pct: number | null
+          created_at: string | null
+          frameworks_validados: number | null
+          id: string
+          month: string
+          notes: string | null
+          nps: number | null
+          onboarding_atrasos_pct: number | null
+          period_id: string | null
+          profile_id: string | null
+          resultado_convertfy_pct: number | null
+          store_id: string | null
+          templates_padronizados: number | null
+          tempo_medio_entrega_dias: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          automacoes_ativas?: number | null
+          campanhas_enviadas?: number | null
+          churn_pct?: number | null
+          created_at?: string | null
+          frameworks_validados?: number | null
+          id?: string
+          month: string
+          notes?: string | null
+          nps?: number | null
+          onboarding_atrasos_pct?: number | null
+          period_id?: string | null
+          profile_id?: string | null
+          resultado_convertfy_pct?: number | null
+          store_id?: string | null
+          templates_padronizados?: number | null
+          tempo_medio_entrega_dias?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          automacoes_ativas?: number | null
+          campanhas_enviadas?: number | null
+          churn_pct?: number | null
+          created_at?: string | null
+          frameworks_validados?: number | null
+          id?: string
+          month?: string
+          notes?: string | null
+          nps?: number | null
+          onboarding_atrasos_pct?: number | null
+          period_id?: string | null
+          profile_id?: string | null
+          resultado_convertfy_pct?: number | null
+          store_id?: string | null
+          templates_padronizados?: number | null
+          tempo_medio_entrega_dias?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_monthly_metrics_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "okr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_monthly_metrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_monthly_metrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_monthly_metrics_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_objectives: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          period_id: string | null
+          profile_id: string | null
+          title: string
+          updated_at: string | null
+          weight_pct: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          period_id?: string | null
+          profile_id?: string | null
+          title: string
+          updated_at?: string | null
+          weight_pct: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          period_id?: string | null
+          profile_id?: string | null
+          title?: string
+          updated_at?: string | null
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_objectives_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "okr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_objectives_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_objectives_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_performance_flags: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_auto: boolean | null
+          level: string
+          occurred_on: string
+          period_id: string | null
+          profile_id: string | null
+          reason: string
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean | null
+          level: string
+          occurred_on?: string
+          period_id?: string | null
+          profile_id?: string | null
+          reason: string
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean | null
+          level?: string
+          occurred_on?: string
+          period_id?: string | null
+          profile_id?: string | null
+          reason?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_performance_flags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_performance_flags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_performance_flags_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "okr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_performance_flags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_performance_flags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_performance_flags_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_period_scores: {
+        Row: {
+          bonus_value: number
+          calculated_at: string | null
+          details: Json | null
+          id: string
+          period_id: string | null
+          profile_id: string | null
+          score_pct: number
+        }
+        Insert: {
+          bonus_value: number
+          calculated_at?: string | null
+          details?: Json | null
+          id?: string
+          period_id?: string | null
+          profile_id?: string | null
+          score_pct: number
+        }
+        Update: {
+          bonus_value?: number
+          calculated_at?: string | null
+          details?: Json | null
+          id?: string
+          period_id?: string | null
+          profile_id?: string | null
+          score_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_period_scores_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "okr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_period_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_period_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_periods: {
+        Row: {
+          code: string
+          created_at: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           channel_attrib:
@@ -1315,34 +1775,49 @@ export type Database = {
       }
       users: {
         Row: {
+          admission_date: string | null
+          base_salary: number | null
           created_at: string | null
+          department: string | null
           email: string
           id: string
           is_admin: boolean | null
           last_login_attempt: string | null
+          level: string | null
           name: string
           role: Database["public"]["Enums"]["role_type"] | null
           updated_at: string | null
+          variable_pct: number | null
         }
         Insert: {
+          admission_date?: string | null
+          base_salary?: number | null
           created_at?: string | null
+          department?: string | null
           email: string
           id?: string
           is_admin?: boolean | null
           last_login_attempt?: string | null
+          level?: string | null
           name: string
           role?: Database["public"]["Enums"]["role_type"] | null
           updated_at?: string | null
+          variable_pct?: number | null
         }
         Update: {
+          admission_date?: string | null
+          base_salary?: number | null
           created_at?: string | null
+          department?: string | null
           email?: string
           id?: string
           is_admin?: boolean | null
           last_login_attempt?: string | null
+          level?: string | null
           name?: string
           role?: Database["public"]["Enums"]["role_type"] | null
           updated_at?: string | null
+          variable_pct?: number | null
         }
         Relationships: []
       }
@@ -1554,6 +2029,14 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_okr_score: {
+        Args: { p_period_id: string; p_profile_id: string }
+        Returns: Json
+      }
+      check_okr_flags: {
+        Args: { p_period_id: string; p_profile_id: string }
+        Returns: undefined
+      }
       is_admin: {
         Args: { _user_id: string }
         Returns: boolean
