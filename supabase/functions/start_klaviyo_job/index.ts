@@ -78,9 +78,9 @@ serve(async (req) => {
       return new Response('Access denied to this store', { status: 403, headers: corsHeaders })
     }
 
-    // Check for stuck jobs (older than 2 minutes) and clean them up AGGRESSIVELY
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-    console.log('Cleaning up ANY jobs older than 2 minutes:', twoMinutesAgo)
+    // Check for stuck jobs (older than 10 minutes) and clean them up AGGRESSIVELY
+    const twoMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    console.log('Cleaning up ANY jobs older than 10 minutes:', twoMinutesAgo)
 
     // Force cleanup of ANY stuck jobs for this store and period
     const { data: stuckJobs } = await supabase
@@ -99,7 +99,7 @@ serve(async (req) => {
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Job timeout - cleaned for new sync (2min+ old)',
+          error: 'Job timeout - cleaned for new sync (10min+ old)',
           finished_at: new Date().toISOString()
         })
         .in('id', stuckJobs.map(job => job.id))
@@ -107,8 +107,8 @@ serve(async (req) => {
       console.log('Force cleaned all stuck jobs, proceeding with new job')
     }
 
-    // Also clean up ANY job that's been in PROCESSING for more than 5 minutes (regardless of store)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    // Also clean up ANY job that's been in PROCESSING for more than 15 minutes (regardless of store)
+    const fiveMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
     const { data: globalStuckJobs } = await supabase
       .from('n8n_jobs')
       .select('id')
@@ -122,7 +122,7 @@ serve(async (req) => {
         .from('n8n_jobs')
         .update({ 
           status: 'ERROR', 
-          error: 'Global timeout - auto cleanup (5min+ in PROCESSING)',
+          error: 'Global timeout - auto cleanup (15min+ in PROCESSING)',
           finished_at: new Date().toISOString()
         })
         .in('id', globalStuckJobs.map(job => job.id))
