@@ -473,57 +473,6 @@ serve(async (req) => {
     
     return response
 
-      } catch (processError) {
-        console.error('Error processing N8N response:', processError)
-        
-        // Update job with error but don't fail the request
-        await supabase
-          .from('n8n_jobs')
-          .update({ 
-            status: 'ERROR',
-            error: `Failed to process N8N response: ${processError instanceof Error ? processError.message : 'Unknown error'}`,
-            finished_at: new Date().toISOString()
-          })
-          .eq('id', job.id)
-      }
-
-      console.log('Returning success response to client')
-      
-      return new Response(JSON.stringify({
-        job_id: job.id,
-        request_id: request_id,
-        status: 'PROCESSING',
-        store_id: store_id,
-        period_start: period_start,
-        period_end: period_end,
-        message: 'Webhook triggered successfully, processing data automatically'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      })
-
-    } catch (error) {
-      console.error('N8N webhook error:', error)
-      
-      // Update job status to error
-      await supabase
-        .from('n8n_jobs')
-        .update({ 
-          status: 'ERROR', 
-          error: `N8N webhook error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          finished_at: new Date().toISOString()
-        })
-        .eq('id', job.id)
-
-      return new Response(JSON.stringify({
-        error: 'Failed to trigger N8N webhook',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      })
-    }
-
   } catch (error) {
     console.error('Error in start_klaviyo_job:', error)
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
