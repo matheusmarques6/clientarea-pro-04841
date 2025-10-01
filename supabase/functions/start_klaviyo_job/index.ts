@@ -256,11 +256,14 @@ serve(async (req) => {
         // @ts-ignore
         EdgeRuntime.waitUntil(
           (async () => {
-            console.log('Starting background N8N webhook call for job:', job.id)
+            console.log('[Background] Starting N8N webhook call for job:', job.id)
+            console.log('[Background] Period:', period_start, 'to', period_end)
+            console.log('[Background] Request ID:', request_id)
             
             try {
               // Update job to PROCESSING
-              await supabase
+              console.log('[Background] Updating job status to PROCESSING')
+              const { error: updateError } = await supabase
                 .from('n8n_jobs')
                 .update({ 
                   status: 'PROCESSING',
@@ -270,6 +273,12 @@ serve(async (req) => {
                   }
                 })
                 .eq('id', job.id)
+              
+              if (updateError) {
+                console.error('[Background] Failed to update job status:', updateError)
+              } else {
+                console.log('[Background] Job status updated to PROCESSING')
+              }
               
               // Prepare N8N payload
               const n8nPayload = {
@@ -309,12 +318,18 @@ serve(async (req) => {
                 klaviyo_site_id: store.klaviyo_site_id
               }
               
-              console.log('Sending N8N webhook with payload:', {
+              console.log('[Background] Sending N8N webhook with payload:', {
                 storeId: n8nPayload.storeId,
                 storeName: n8nPayload.store.name,
                 period: `${period_start} to ${period_end}`,
-                requestId: request_id
+                requestId: request_id,
+                hasShopifyDomain: !!n8nPayload.shopify.domain,
+                hasShopifyToken: !!n8nPayload.shopify.access_token,
+                hasKlaviyoKey: !!n8nPayload.klaviyo.private_key,
+                hasKlaviyoSiteId: !!n8nPayload.klaviyo.site_id
               })
+              
+              console.log('[Background] Webhook URL configured (length):', n8nWebhookUrl.length)
               
               // Send to N8N with 10-minute timeout
               const controller = new AbortController()
@@ -331,7 +346,9 @@ serve(async (req) => {
               
               clearTimeout(timeoutId)
               
-              console.log('N8N response status:', n8nResponse.status)
+              console.log('[Background] N8N response received')
+              console.log('[Background] N8N response status:', n8nResponse.status)
+              console.log('[Background] N8N response headers:', Object.fromEntries(n8nResponse.headers.entries()))
               
               if (!n8nResponse.ok) {
                 const errorText = await n8nResponse.text()

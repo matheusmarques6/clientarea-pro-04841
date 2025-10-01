@@ -407,10 +407,37 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
+  // Carregar dados iniciais
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue(), fetchKlaviyoData()]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [storeId, period]);
+
   const syncData = useCallback(async () => {
     if (!storeId || isSyncing) return;
     
     setIsSyncing(true);
+    
+    // Create a timeout to force stop syncing after 5 minutes
+    const syncTimeoutId = setTimeout(() => {
+      console.warn(`[${period}] Sync timeout reached after 5 minutes, forcing stop`);
+      setIsSyncing(false);
+      setSyncJobId(null);
+      
+      // Try to load data anyway in case it arrived
+      console.log(`[${period}] Attempting to load data after timeout`);
+      loadData();
+      
+      sonnerToast.warning('A sincronização está demorando mais que o esperado. Verificando dados disponíveis...');
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Store timeout ID globally to clear it if sync completes
+    (window as any).__syncTimeoutId = syncTimeoutId;
+    
     try {
       const { startDate, endDate } = getPeriodDates(period);
       const periodStart = startDate.toISOString().split('T')[0];
@@ -483,6 +510,9 @@ export const useDashboardData = (storeId: string, period: string) => {
 
       if (error) {
         console.error(`[${period}] Sync error details:`, error);
+        clearTimeout(syncTimeoutId);
+        (window as any).__syncTimeoutId = null;
+        
         if (error.message === 'Klaviyo credentials not configured') {
           throw new Error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
         }
@@ -506,6 +536,11 @@ export const useDashboardData = (storeId: string, period: string) => {
       
     } catch (error: any) {
       console.error(`[${period}] Sync failed for store ${storeId}:`, error);
+      
+      // Clear timeout on error
+      clearTimeout(syncTimeoutId);
+      (window as any).__syncTimeoutId = null;
+      
       if (error.message === 'Klaviyo credentials not configured') {
         sonnerToast.error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
       } else if (error.message === 'Store credentials not configured') {
@@ -515,7 +550,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       }
       setIsSyncing(false);
     }
-  }, [storeId, period, isSyncing]);
+  }, [storeId, period, isSyncing, loadData]);
 
   // Check job status once without continuous polling
   const checkJobStatusOnce = useCallback(async (requestId: string) => {
@@ -561,15 +596,6 @@ export const useDashboardData = (storeId: string, period: string) => {
     checkJobStatusOnce(requestId);
   }, [checkJobStatusOnce]);
 
-  // Carregar dados iniciais
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await Promise.all([fetchKPIs(), fetchRevenueSeries(), fetchChannelRevenue(), fetchKlaviyoData()]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [storeId, period]);
 
   // Setup realtime subscription for automatic updates
   useEffect(() => {
@@ -646,6 +672,14 @@ export const useDashboardData = (storeId: string, period: string) => {
             if ((jobData as any).status === 'SUCCESS') {
               // Job completed successfully, refresh all data for this specific period
               console.log(`[${period}] Job completed successfully for store ${storeId}`);
+              
+              // Clear the timeout since sync completed
+              const timeoutId = (window as any).__syncTimeoutId;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                (window as any).__syncTimeoutId = null;
+              }
+              
               loadData();
               setIsSyncing(false);
               setSyncJobId(null);
@@ -653,6 +687,14 @@ export const useDashboardData = (storeId: string, period: string) => {
             } else if ((jobData as any).status === 'ERROR') {
               // Job failed
               console.log(`[${period}] Job failed for store ${storeId}:`, (jobData as any).error);
+              
+              // Clear the timeout since sync failed
+              const timeoutId = (window as any).__syncTimeoutId;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                (window as any).__syncTimeoutId = null;
+              }
+              
               setIsSyncing(false);
               setSyncJobId(null);
               sonnerToast.error(`Erro na sincronização ${period}: ${(jobData as any).error || 'Erro desconhecido'}`);
