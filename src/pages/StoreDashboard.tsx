@@ -9,6 +9,7 @@ import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
 import { LeadsMetrics } from '@/components/dashboard/LeadsMetrics';
+import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
 
 const StoreDashboard = () => {
   const { id } = useParams();
@@ -19,7 +20,8 @@ const StoreDashboard = () => {
     kpis, 
     chartData, 
     channelRevenue, 
-    klaviyoData, 
+    klaviyoData,
+    rawKlaviyoData,
     topCampaigns, 
     isLoading: dataLoading, 
     isSyncing, 
@@ -322,6 +324,9 @@ const StoreDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Métricas Detalhadas do Klaviyo */}
+      <DetailedKlaviyoMetrics rawData={rawKlaviyoData} />
 
       {/* Quick Actions */}
       <Card className="glass-card">

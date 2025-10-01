@@ -45,6 +45,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [channelRevenue, setChannelRevenue] = useState<ChannelRevenue[]>([]);
   const [klaviyoData, setKlaviyoData] = useState<KlaviyoSummary['klaviyo'] | null>(null);
+  const [rawKlaviyoData, setRawKlaviyoData] = useState<any>(null);
   const [topCampaigns, setTopCampaigns] = useState<{
     byRevenue: Campaign[];
     byConversions: Campaign[];
@@ -364,6 +365,11 @@ export const useDashboardData = (storeId: string, period: string) => {
         .maybeSingle();
 
       if (cache && !cacheError) {
+        // Extrair dados do campo raw se existir
+        if (cache.raw) {
+          setRawKlaviyoData(cache.raw);
+        }
+        
         const klaviyoFromCache: KlaviyoSummary['klaviyo'] = {
           revenue_total: Number(cache.revenue_total) || 0,
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
@@ -678,6 +684,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     chartData,
     channelRevenue,
     klaviyoData,
+    rawKlaviyoData,
     topCampaigns,
     isLoading,
     isSyncing,
