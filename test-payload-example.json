@@ -1,0 +1,104 @@
+{
+  "request_id": "test_req_1729468800_abc123",
+  "storeId": "00000000-0000-0000-0000-000000000000",
+  "startDate": "2024-10-15",
+  "endDate": "2024-10-20",
+  "metricaId": "W8Gk3c",
+  "campanhas": [
+    {
+      "id": "camp_001",
+      "nome": "Black Friday Announcement",
+      "status": "sent",
+      "data_envio": "2024-10-15T10:00:00Z",
+      "receita": 5000,
+      "conversoes": 50
+    },
+    {
+      "id": "camp_002",
+      "nome": "Product Launch",
+      "status": "sent",
+      "data_envio": "2024-10-16T14:30:00Z",
+      "receita": 3000,
+      "conversoes": 30
+    },
+    {
+      "id": "camp_003",
+      "nome": "Newsletter Weekly",
+      "status": "sent",
+      "data_envio": "2024-10-17T09:00:00Z",
+      "receita": 1500,
+      "conversoes": 15
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow_001",
+      "nome": "Welcome Series",
+      "status": "live",
+      "created": "2024-01-01T00:00:00Z",
+      "updated": "2024-10-01T00:00:00Z",
+      "receita": 2000,
+      "conversoes": 25
+    },
+    {
+      "id": "flow_002",
+      "nome": "Abandoned Cart",
+      "status": "live",
+      "created": "2024-01-01T00:00:00Z",
+      "updated": "2024-10-01T00:00:00Z",
+      "receita": 4000,
+      "conversoes": 40
+    },
+    {
+      "id": "flow_003",
+      "nome": "Post-Purchase",
+      "status": "live",
+      "created": "2024-01-01T00:00:00Z",
+      "updated": "2024-10-01T00:00:00Z",
+      "receita": 1000,
+      "conversoes": 10
+    }
+  ],
+  "shopify": {
+    "pedidos": 115,
+    "pedidosProcessados": 110,
+    "totalOrders": 115,
+    "ordersProcessed": 110,
+    "vendasBrutas": 45000,
+    "descontos": 5000,
+    "devolucoes": 2000,
+    "vendasLiquidas": 38000,
+    "cobrancasFrete": 1500,
+    "tributos": 3500,
+    "totalVendas": 43000,
+    "ticketMedio": 372.17,
+    "taxaClientesRecorrentes": 35.5,
+    "clientesTotalPeriodo": 100,
+    "clientesRecorrentes": 35,
+    "clientesPrimeiraVez": 65,
+    "produtosMaisVendidos": [
+      {
+        "produto": "T-Shirt Premium",
+        "variante": "M / Black",
+        "sku": "TSH-001-M-BLK",
+        "quantidade": 50,
+        "receita": 2500,
+        "pedidos": 45,
+        "preco_medio": 50
+      }
+    ],
+    "produtosMaisReceita": [
+      {
+        "produto": "Sneakers Limited Edition",
+        "variante": "42 / White",
+        "sku": "SNK-001-42-WHT",
+        "quantidade": 20,
+        "receita": 4000,
+        "pedidos": 20,
+        "preco_medio": 200
+      }
+    ]
+  },
+  "processed_at": "2024-10-20T12:00:00Z",
+  "workflow_version": "2.0-consolidated"
+}
