@@ -494,13 +494,37 @@ export const useDashboardData = (storeId: string, period: string) => {
       // Iniciar o job específico para este período usando nova Edge Function
       console.log(`[${period}] Starting sync for store ${storeId}, period ${periodStart} to ${periodEnd}`);
 
-      const { data, error } = await supabase.functions.invoke('sync-store', {
-        body: {
-          store_id: storeId,
-          period_start: periodStart,
-          period_end: periodEnd
+      // Check if we're in development mode
+      const isDevelopment = import.meta.env.DEV;
+      let data: any = null;
+      let error: any = null;
+
+      if (isDevelopment) {
+        // Development mode: use local mock proxy
+        console.log('🔧 [DEV MODE] Using local sync proxy instead of Edge Function');
+
+        try {
+          const { syncStoreLocal } = await import('@/api/sync-store-proxy');
+          data = await syncStoreLocal({
+            store_id: storeId,
+            period_start: periodStart,
+            period_end: periodEnd
+          });
+        } catch (err: any) {
+          error = err;
         }
-      });
+      } else {
+        // Production mode: use real Edge Function
+        const response = await supabase.functions.invoke('sync-store', {
+          body: {
+            store_id: storeId,
+            period_start: periodStart,
+            period_end: periodEnd
+          }
+        });
+        data = response.data;
+        error = response.error;
+      }
 
       console.log(`[${period}] Sync response:`, { data, error });
 
