@@ -561,8 +561,14 @@ export const useDashboardData = (storeId: string, period: string) => {
           { duration: 5000 }
         );
 
-        // Recarregar dados imediatamente
+        // Aguardar 500ms para garantir que os dados foram commitados no banco
+        console.log(`[${period}] Waiting 500ms before reloading data...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Recarregar dados
+        console.log(`[${period}] Reloading dashboard data...`);
         await loadData();
+        console.log(`[${period}] Dashboard data reloaded successfully!`);
         setIsSyncing(false);
       } else {
         throw new Error('Resposta inesperada da sincronização');
