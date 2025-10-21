@@ -286,24 +286,7 @@ cmd = "bun run build"
 supabase/functions/
 ```
 
-**3. Criado `nixpacks.toml`** (configuração mais específica):
-
-```toml
-[providers]
-bun = "1.3.8"
-
-[phases.setup]
-nixPkgs = ["bun"]
-
-[phases.install]
-cmds = ["bun install"]
-
-[phases.build]
-cmds = ["bun run build"]
-
-[start]
-cmd = "bun run preview"
-```
+**Nota:** A configuração do `railway.toml` é suficiente. Não é necessário criar `nixpacks.toml` adicional.
 
 ### ✨ Resultado Esperado
 
