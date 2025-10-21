@@ -1,0 +1,38 @@
+# Ignore Supabase Edge Functions (Deno files)
+# These should only be deployed to Supabase, not Railway
+supabase/functions/
+
+# Ignore documentation files (not needed for build)
+*.md
+!README.md
+
+# Ignore verification scripts
+verify-deployment.sh
+
+# Ignore local development files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore git files
+.git/
+.github/
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Ignore development tools
+.prettierrc
+.prettierignore
+.eslintrc*

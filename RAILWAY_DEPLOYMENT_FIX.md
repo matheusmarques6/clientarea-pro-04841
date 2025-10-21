@@ -242,6 +242,83 @@ railway logs
 
 ---
 
+## ⚠️ Novo Erro: Railway Detectando Deno em Vez de Bun
+
+### ❌ Sintoma
+
+```
+[6/7] RUN deno cache src/services/sync/index.ts
+error[@m: Module not found "file:///app/src/services/sync/sync-service"
+"deno cache src/services/sync/index.ts" did not complete successfully: exit code: 1
+```
+
+### 🔍 Causa
+
+O Railway está detectando arquivos `.ts` e tentando usar **Deno** em vez de **Bun** porque:
+
+1. O projeto tem Edge Functions Supabase em `supabase/functions/` (que SIM usam Deno)
+2. O Nixpacks detecta automaticamente múltiplos providers (Bun + Deno)
+3. Tenta fazer cache de arquivos do frontend como se fossem Deno
+
+### ✅ Solução Aplicada
+
+**1. Atualizado `railway.toml`** para forçar apenas Bun:
+
+```toml
+[build]
+builder = "NIXPACKS"
+
+# Force Bun as the only provider (disable Deno auto-detection)
+[build.nixpacksPlan]
+providers = ["bun"]
+
+[build.nixpacksPlan.phases.install]
+cmd = "bun install"
+
+[build.nixpacksPlan.phases.build]
+cmd = "bun run build"
+```
+
+**2. Criado `.railwayignore`** para ignorar Edge Functions:
+
+```
+# Ignore Supabase Edge Functions (Deno files)
+supabase/functions/
+```
+
+**3. Criado `nixpacks.toml`** (configuração mais específica):
+
+```toml
+[providers]
+bun = "1.3.8"
+
+[phases.setup]
+nixPkgs = ["bun"]
+
+[phases.install]
+cmds = ["bun install"]
+
+[phases.build]
+cmds = ["bun run build"]
+
+[start]
+cmd = "bun run preview"
+```
+
+### ✨ Resultado Esperado
+
+Após commit e push:
+```bash
+✓ Using Bun 1.3.8
+✓ bun install
+✓ bun run build
+✓ Deployment successful
+```
+
+**Não deve mais aparecer:** `deno cache` ou referências ao Deno
+
+---
+
 ## 📚 Referências
 
 - [Railway Build Configuration](https://docs.railway.com/guides/build-configuration)

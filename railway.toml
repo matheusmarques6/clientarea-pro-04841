@@ -1,6 +1,10 @@
 [build]
 builder = "NIXPACKS"
 
+# Force Bun as the only provider (disable Deno auto-detection)
+[build.nixpacksPlan]
+providers = ["bun"]
+
 [build.nixpacksPlan.phases.install]
 cmd = "bun install"
 
