@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, LogOut, User, HelpCircle, Mail } from 'lucide-react';
+import { Store, LogOut, User, HelpCircle, Mail, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useStores } from '@/hooks/useStores';
@@ -8,11 +9,13 @@ import convertfyLogo from '@/assets/convertfy-logo.png';
 import StoreCard from '@/components/stores/StoreCard';
 import StoreStats from '@/components/stores/StoreStats';
 import StoreLoading from '@/components/stores/StoreLoading';
+import AddStoreModal from '@/components/stores/AddStoreModal';
 
 const StoreSelector = () => {
   const navigate = useNavigate();
-  const { stores, loading } = useStores();
+  const { stores, loading, refetch } = useStores();
   const { signOut, user } = useAuth();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -96,7 +99,14 @@ const StoreSelector = () => {
             <div className="space-y-6 px-4 md:px-[60px]">
               {stores.length > 0 ? (
                 <>
-                  <h2 className="text-2xl font-semibold">Suas Lojas ({stores.length})</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-semibold">Suas Lojas ({stores.length})</h2>
+                    <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Adicionar Loja</span>
+                      <span className="sm:hidden">Nova</span>
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {stores.map((store, index) => (
                       <StoreCard key={store.id} store={store} index={index} />
@@ -111,12 +121,18 @@ const StoreSelector = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Nenhuma loja encontrada</h3>
                   <p className="text-muted-foreground mb-6">
-                    Ainda não há lojas configuradas em sua conta. Entre em contato com nosso suporte.
+                    Comece adicionando sua primeira loja para acessar o dashboard.
                   </p>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Entrar em contato
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar Primeira Loja
+                    </Button>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Entrar em contato
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
               )}
@@ -147,6 +163,15 @@ const StoreSelector = () => {
           )}
         </div>
       </main>
+
+      {/* Add Store Modal */}
+      <AddStoreModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSuccess={() => {
+          refetch();
+        }}
+      />
     </div>
   );
 };
