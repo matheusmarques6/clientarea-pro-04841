@@ -129,7 +129,7 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
   // Save mock data to database (same as real function)
   const { error: summaryError } = await supabase
     .from('klaviyo_summaries')
-    .insert({
+    .upsert({
       store_id,
       period_start,
       period_end,
@@ -143,11 +143,9 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
       campaign_count: mockData.summary.klaviyo.campaigns_count,
       flow_count: mockData.summary.klaviyo.flows_count,
       campaigns_with_revenue: mockData.summary.klaviyo.campaigns_count,
-      flows_with_revenue: mockData.summary.klaviyo.flows_count,
-      metadata: {
-        source: 'DEV_MODE_MOCK',
-        job_id
-      }
+      flows_with_revenue: mockData.summary.klaviyo.flows_count
+    }, {
+      onConflict: 'store_id,period_start,period_end'
     })
 
   if (summaryError) {
@@ -155,34 +153,9 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
   }
 
   // Save channel revenue data
-  const { error: channelError } = await supabase
-    .from('channel_revenue')
-    .insert([
-      {
-        store_id,
-        period_start,
-        period_end,
-        channel: 'Klaviyo - Campaigns',
-        source: 'dev_mode_mock',
-        revenue: mockData.summary.klaviyo.campaigns_revenue,
-        orders_count: Math.floor(mockData.summary.klaviyo.total_orders * 0.6),
-        raw: { job_id, dev_mode: true }
-      },
-      {
-        store_id,
-        period_start,
-        period_end,
-        channel: 'Klaviyo - Flows',
-        source: 'dev_mode_mock',
-        revenue: mockData.summary.klaviyo.flows_revenue,
-        orders_count: Math.floor(mockData.summary.klaviyo.total_orders * 0.4),
-        raw: { job_id, dev_mode: true }
-      }
-    ])
-
-  if (channelError) {
-    console.error('❌ Failed to save channel revenue:', channelError)
-  }
+  // Note: Skip this in dev mode due to RLS policies - not critical for mock data
+  // The klaviyo_summaries table has all the data needed for dashboard
+  console.log('ℹ️ Skipping channel_revenue insert (RLS restricted, data in klaviyo_summaries)')
 
   // Update job status to SUCCESS
   await supabase
