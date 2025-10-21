@@ -38,6 +38,120 @@ interface SyncStoreResult {
 }
 
 /**
+ * Fetch REAL Shopify data using Admin API
+ */
+async function fetchShopifyData(
+  shopifyDomain: string,
+  accessToken: string,
+  periodStart: string,
+  periodEnd: string
+): Promise<{ total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null> {
+  try {
+    console.log('🛒 Fetching REAL Shopify data...')
+
+    // Shopify Admin GraphQL API
+    const shopifyUrl = `https://${shopifyDomain}/admin/api/2024-01/graphql.json`
+
+    // GraphQL query to fetch orders in the period
+    const query = `
+      query getOrders($startDate: DateTime!, $endDate: DateTime!) {
+        orders(first: 250, query: "created_at:>='$startDate' AND created_at:<='$endDate'") {
+          edges {
+            node {
+              id
+              name
+              createdAt
+              totalPriceSet {
+                shopMoney {
+                  amount
+                }
+              }
+              customer {
+                id
+                ordersCount
+              }
+            }
+          }
+        }
+      }
+    `
+
+    const variables = {
+      startDate: periodStart,
+      endDate: periodEnd
+    }
+
+    const response = await fetch(shopifyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({ query, variables })
+    })
+
+    if (!response.ok) {
+      console.error('❌ Shopify API error:', response.status, response.statusText)
+      return null
+    }
+
+    const result = await response.json()
+
+    if (result.errors) {
+      console.error('❌ Shopify GraphQL errors:', result.errors)
+      return null
+    }
+
+    const orders = result.data?.orders?.edges || []
+    console.log(`📦 Found ${orders.length} orders in Shopify`)
+
+    // Calculate totals
+    let totalSales = 0
+    const customerOrderCounts = new Map<string, number>()
+
+    orders.forEach(({ node }: any) => {
+      // Sum total sales
+      const amount = parseFloat(node.totalPriceSet?.shopMoney?.amount || '0')
+      totalSales += amount
+
+      // Track customer order counts
+      if (node.customer?.id) {
+        const customerId = node.customer.id
+        const ordersCount = node.customer.ordersCount || 1
+        customerOrderCounts.set(customerId, ordersCount)
+      }
+    })
+
+    // Calculate new vs returning customers
+    let newCustomers = 0
+    let returningCustomers = 0
+
+    customerOrderCounts.forEach((ordersCount) => {
+      if (ordersCount === 1) {
+        newCustomers++
+      } else {
+        returningCustomers++
+      }
+    })
+
+    console.log('💰 Shopify Total Sales:', totalSales.toFixed(2))
+    console.log('📊 Total Orders:', orders.length)
+    console.log('👥 New Customers:', newCustomers)
+    console.log('🔄 Returning Customers:', returningCustomers)
+
+    return {
+      total_sales: Math.round(totalSales * 100) / 100,
+      total_orders: orders.length,
+      new_customers: newCustomers,
+      returning_customers: returningCustomers
+    }
+  } catch (error) {
+    console.error('❌ Error fetching Shopify data:', error)
+    return null
+  }
+}
+
+/**
  * Mock sync function for local development
  * Simulates the behavior of the sync-store Edge Function
  */
@@ -63,6 +177,10 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
   }
 
   console.log('🏪 Store:', store.name)
+
+  // Check if Shopify credentials are available
+  const hasShopifyCredentials = !!(store.shopify_domain && store.shopify_access_token)
+  console.log('🔑 Shopify credentials:', hasShopifyCredentials ? 'Available ✅' : 'Not configured ⚠️')
 
   // Create a job record (same as real Edge Function)
   const job_id = crypto.randomUUID()
@@ -92,22 +210,51 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     console.error('❌ Failed to create job:', jobError)
   }
 
-  // Generate realistic mock data
+  // Fetch REAL Shopify data if credentials are available
+  let shopifyData: { total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null = null
+
+  if (hasShopifyCredentials) {
+    shopifyData = await fetchShopifyData(
+      store.shopify_domain!,
+      store.shopify_access_token!,
+      period_start,
+      period_end
+    )
+  }
+
+  // Generate realistic mock data (fallback if no Shopify data)
   const daysInPeriod = Math.ceil(
     (new Date(period_end).getTime() - new Date(period_start).getTime()) / (1000 * 60 * 60 * 24)
   )
 
-  // Simulate realistic numbers based on period length
-  const avgOrdersPerDay = Math.floor(Math.random() * 20) + 10
-  const avgOrderValue = Math.random() * 100 + 50
-  const totalOrders = avgOrdersPerDay * daysInPeriod
+  // Use REAL Shopify data if available, otherwise mock data
+  let totalOrders: number
+  let totalSales: number
+  let newCustomers: number
+  let returningCustomers: number
+
+  if (shopifyData) {
+    console.log('✅ Using REAL Shopify data')
+    totalOrders = shopifyData.total_orders
+    totalSales = shopifyData.total_sales
+    newCustomers = shopifyData.new_customers
+    returningCustomers = shopifyData.returning_customers
+  } else {
+    console.log('⚠️ Using MOCK data (Shopify credentials not configured or API failed)')
+    const avgOrdersPerDay = Math.floor(Math.random() * 20) + 10
+    const avgOrderValue = Math.random() * 100 + 50
+    totalOrders = avgOrdersPerDay * daysInPeriod
+    totalSales = Math.round(totalOrders * avgOrderValue * 100) / 100
+    newCustomers = Math.floor(totalOrders * 0.3)
+    returningCustomers = Math.floor(totalOrders * 0.7)
+  }
 
   // Generate realistic campaign names
   const campaignThemes = ['SOFT SELL', 'CREDITO NA LOJA', 'BLACK FRIDAY', 'LANCAMENTO', 'NEWSLETTER', 'PROMOCAO', 'DESCONTO EXCLUSIVO']
   const campaignSegments = ['TODOS OS LEADS', 'ENGAJADOS', 'VIP', 'ABANDONADORES', 'COMPRADORES']
   const campaignLanguages = ['PORTUGUÊS', 'INGLÊS', 'ESPANHOL']
 
-  const generateCampaignName = (index: number) => {
+  const generateCampaignName = () => {
     const date = new Date(period_start)
     date.setDate(date.getDate() + Math.floor(Math.random() * daysInPeriod))
     const day = String(date.getDate()).padStart(2, '0')
@@ -124,7 +271,7 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
 
   // Generate 5-10 realistic campaigns
   const numCampaigns = Math.floor(Math.random() * 6) + 5 // 5-10 campaigns
-  const mockCampaigns = Array.from({ length: numCampaigns }, (_, i) => {
+  const mockCampaigns = Array.from({ length: numCampaigns }, () => {
     const revenue = Math.random() * 5000 + 500 // R$ 500-5500
     const conversions = Math.floor(Math.random() * 50) + 5 // 5-55 conversions
 
@@ -133,7 +280,7 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
 
     return {
       id: crypto.randomUUID(),
-      name: generateCampaignName(i),
+      name: generateCampaignName(),
       revenue: Math.round(revenue * 100) / 100,
       conversions,
       send_time: sendDate.toISOString(),
@@ -185,18 +332,18 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     processing_time_ms: 2000,
     summary: {
       klaviyo: {
-        total_revenue: Math.round(totalOrders * avgOrderValue * 0.6 * 100) / 100,
-        campaigns_revenue: Math.round(totalOrders * avgOrderValue * 0.35 * 100) / 100,
-        flows_revenue: Math.round(totalOrders * avgOrderValue * 0.25 * 100) / 100,
+        total_revenue: Math.round(totalSales * 0.6 * 100) / 100, // Klaviyo = 60% of total sales
+        campaigns_revenue: Math.round(totalSales * 0.35 * 100) / 100, // Campaigns = 35% of total
+        flows_revenue: Math.round(totalSales * 0.25 * 100) / 100, // Flows = 25% of total
         total_orders: Math.floor(totalOrders * 0.6),
         campaigns_count: Math.floor(Math.random() * 15) + 5,
         flows_count: Math.floor(Math.random() * 8) + 3
       },
       shopify: {
         total_orders: totalOrders,
-        total_sales: Math.round(totalOrders * avgOrderValue * 100) / 100,
-        new_customers: Math.floor(totalOrders * 0.3),
-        returning_customers: Math.floor(totalOrders * 0.7)
+        total_sales: totalSales, // Use REAL or MOCK Shopify total sales
+        new_customers: newCustomers,
+        returning_customers: returningCustomers
       }
     }
   }
