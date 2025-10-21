@@ -49,6 +49,10 @@ export const useDashboardData = (storeId: string, period: string) => {
     byRevenue: Campaign[];
     byConversions: Campaign[];
   }>({ byRevenue: [], byConversions: [] });
+  const [topFlows, setTopFlows] = useState<{
+    byRevenue: any[];
+    byPerformance: any[];
+  }>({ byRevenue: [], byPerformance: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const kpiBaseRef = useRef<DashboardKPIs | null>(null);
@@ -146,6 +150,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       console.log(`[${period}] No Klaviyo data for store ${storeId}, clearing state`);
       setKlaviyoData(null);
       setTopCampaigns({ byRevenue: [], byConversions: [] });
+      setTopFlows({ byRevenue: [], byPerformance: [] });
       applyKpis(0);
       return;
     }
@@ -174,6 +179,10 @@ export const useDashboardData = (storeId: string, period: string) => {
         byRevenue: webhookData.klaviyo.top_campaigns_by_revenue || [],
         byConversions: webhookData.klaviyo.top_campaigns_by_conversions || []
       });
+      setTopFlows({
+        byRevenue: (webhookData.klaviyo as any).top_flows_by_revenue || [],
+        byPerformance: (webhookData.klaviyo as any).top_flows_by_performance || []
+      });
       
       // Somar revenue_campaigns + revenue_flows para o faturamento Convertfy
       const convertfyRevenue = (webhookData.klaviyo.revenue_campaigns || 0) + (webhookData.klaviyo.revenue_flows || 0);
@@ -189,6 +198,10 @@ export const useDashboardData = (storeId: string, period: string) => {
       setTopCampaigns({
         byRevenue: klaviyoData.top_campaigns_by_revenue || [],
         byConversions: klaviyoData.top_campaigns_by_conversions || []
+      });
+      setTopFlows({
+        byRevenue: (klaviyoData as any).top_flows_by_revenue || [],
+        byPerformance: (klaviyoData as any).top_flows_by_performance || []
       });
       // Somar revenue_campaigns + revenue_flows para o faturamento Convertfy
       const convertfyRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
@@ -440,6 +453,9 @@ export const useDashboardData = (storeId: string, period: string) => {
           top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           leads_total: Number(cache.leads_total) || 0,
+          // Top flows
+          top_flows_by_revenue: Array.isArray(cache.top_flows_by_revenue) ? cache.top_flows_by_revenue as any[] : [],
+          top_flows_by_performance: Array.isArray(cache.top_flows_by_performance) ? cache.top_flows_by_performance as any[] : [],
           // Shopify data for impact calculation
           shopify_total_sales: Number(cache.shopify_total_sales) || 0,
           shopify_total_orders: Number(cache.shopify_total_orders) || 0,
@@ -792,6 +808,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     klaviyoData,
     rawKlaviyoData,
     topCampaigns,
+    topFlows,
     isLoading,
     isSyncing,
     syncData,

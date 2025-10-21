@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
+import { TopFlows } from '@/components/dashboard/TopFlows';
 import { CustomerMetrics } from '@/components/dashboard/CustomerMetrics';
 import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
 
@@ -23,6 +24,7 @@ const StoreDashboard = () => {
     klaviyoData,
     rawKlaviyoData,
     topCampaigns, 
+    topFlows,
     isLoading: dataLoading, 
     isSyncing, 
     syncData, 
@@ -264,6 +266,15 @@ const StoreDashboard = () => {
             </p>
           </CardContent>
         </Card>
+
+      {/* Top Flows - only show if there are real flows */}
+      {(topFlows.byRevenue.length > 0 || topFlows.byPerformance.length > 0) && (
+        <TopFlows 
+          flowsByRevenue={topFlows.byRevenue} 
+          flowsByPerformance={topFlows.byPerformance} 
+          currency={kpis?.currency} 
+        />
+      )}
       )}
 
       {/* Charts */}
