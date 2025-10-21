@@ -266,6 +266,7 @@ const StoreDashboard = () => {
             </p>
           </CardContent>
         </Card>
+      )}
 
       {/* Top Flows - only show if there are real flows */}
       {(topFlows.byRevenue.length > 0 || topFlows.byPerformance.length > 0) && (
