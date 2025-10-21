@@ -68,18 +68,23 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
   const job_id = crypto.randomUUID()
   const request_id = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
+  // Get current user for created_by field
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { error: jobError } = await supabase
     .from('n8n_jobs')
     .insert({
       id: job_id,
       request_id,
       store_id,
-      status: 'RUNNING',
-      job_type: 'sync',
-      metadata: {
-        period_start,
-        period_end,
-        source: 'DEV_MODE_MOCK'
+      status: 'PROCESSING',
+      source: 'dev_mode_mock',
+      period_start,
+      period_end,
+      created_by: user?.id || 'dev-mode-unknown',
+      meta: {
+        dev_mode: true,
+        store_name: store.name
       }
     })
 
@@ -128,12 +133,17 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
       store_id,
       period_start,
       period_end,
-      total_revenue: mockData.summary.klaviyo.total_revenue,
-      campaigns_revenue: mockData.summary.klaviyo.campaigns_revenue,
-      flows_revenue: mockData.summary.klaviyo.flows_revenue,
-      total_orders: mockData.summary.klaviyo.total_orders,
-      campaigns_count: mockData.summary.klaviyo.campaigns_count,
-      flows_count: mockData.summary.klaviyo.flows_count,
+      revenue_total: mockData.summary.klaviyo.total_revenue,
+      revenue_campaigns: mockData.summary.klaviyo.campaigns_revenue,
+      revenue_flows: mockData.summary.klaviyo.flows_revenue,
+      orders_attributed: mockData.summary.klaviyo.total_orders,
+      conversions_campaigns: Math.floor(mockData.summary.klaviyo.total_orders * 0.6),
+      conversions_flows: Math.floor(mockData.summary.klaviyo.total_orders * 0.4),
+      leads_total: 0,
+      campaign_count: mockData.summary.klaviyo.campaigns_count,
+      flow_count: mockData.summary.klaviyo.flows_count,
+      campaigns_with_revenue: mockData.summary.klaviyo.campaigns_count,
+      flows_with_revenue: mockData.summary.klaviyo.flows_count,
       metadata: {
         source: 'DEV_MODE_MOCK',
         job_id
@@ -150,19 +160,23 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     .insert([
       {
         store_id,
-        date: period_start,
+        period_start,
+        period_end,
         channel: 'Klaviyo - Campaigns',
+        source: 'dev_mode_mock',
         revenue: mockData.summary.klaviyo.campaigns_revenue,
-        orders: Math.floor(mockData.summary.klaviyo.total_orders * 0.6),
-        metadata: { source: 'DEV_MODE_MOCK', job_id }
+        orders_count: Math.floor(mockData.summary.klaviyo.total_orders * 0.6),
+        raw: { job_id, dev_mode: true }
       },
       {
         store_id,
-        date: period_start,
+        period_start,
+        period_end,
         channel: 'Klaviyo - Flows',
+        source: 'dev_mode_mock',
         revenue: mockData.summary.klaviyo.flows_revenue,
-        orders: Math.floor(mockData.summary.klaviyo.total_orders * 0.4),
-        metadata: { source: 'DEV_MODE_MOCK', job_id }
+        orders_count: Math.floor(mockData.summary.klaviyo.total_orders * 0.4),
+        raw: { job_id, dev_mode: true }
       }
     ])
 
@@ -175,8 +189,8 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     .from('n8n_jobs')
     .update({
       status: 'SUCCESS',
-      completed_at: new Date().toISOString(),
-      result: mockData
+      finished_at: new Date().toISOString(),
+      payload: mockData as any
     })
     .eq('id', job_id)
 
