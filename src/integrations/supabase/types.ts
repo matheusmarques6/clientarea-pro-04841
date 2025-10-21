@@ -427,6 +427,10 @@ export type Database = {
           revenue_campaigns: number
           revenue_flows: number
           revenue_total: number
+          shopify_new_customers: number | null
+          shopify_returning_customers: number | null
+          shopify_total_orders: number | null
+          shopify_total_sales: number | null
           store_id: string
           top_campaigns_by_conversions: Json | null
           top_campaigns_by_revenue: Json | null
@@ -451,6 +455,10 @@ export type Database = {
           revenue_campaigns?: number
           revenue_flows?: number
           revenue_total?: number
+          shopify_new_customers?: number | null
+          shopify_returning_customers?: number | null
+          shopify_total_orders?: number | null
+          shopify_total_sales?: number | null
           store_id: string
           top_campaigns_by_conversions?: Json | null
           top_campaigns_by_revenue?: Json | null
@@ -475,6 +483,10 @@ export type Database = {
           revenue_campaigns?: number
           revenue_flows?: number
           revenue_total?: number
+          shopify_new_customers?: number | null
+          shopify_returning_customers?: number | null
+          shopify_total_orders?: number | null
+          shopify_total_sales?: number | null
           store_id?: string
           top_campaigns_by_conversions?: Json | null
           top_campaigns_by_revenue?: Json | null

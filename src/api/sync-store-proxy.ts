@@ -102,6 +102,81 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
   const avgOrderValue = Math.random() * 100 + 50
   const totalOrders = avgOrdersPerDay * daysInPeriod
 
+  // Generate realistic campaign names
+  const campaignThemes = ['SOFT SELL', 'CREDITO NA LOJA', 'BLACK FRIDAY', 'LANCAMENTO', 'NEWSLETTER', 'PROMOCAO', 'DESCONTO EXCLUSIVO']
+  const campaignSegments = ['TODOS OS LEADS', 'ENGAJADOS', 'VIP', 'ABANDONADORES', 'COMPRADORES']
+  const campaignLanguages = ['PORTUGUÊS', 'INGLÊS', 'ESPANHOL']
+
+  const generateCampaignName = (index: number) => {
+    const date = new Date(period_start)
+    date.setDate(date.getDate() + Math.floor(Math.random() * daysInPeriod))
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const hour = String(Math.floor(Math.random() * 24)).padStart(2, '0')
+    const minute = ['00', '15', '30', '45'][Math.floor(Math.random() * 4)]
+
+    const theme = campaignThemes[Math.floor(Math.random() * campaignThemes.length)]
+    const segment = campaignSegments[Math.floor(Math.random() * campaignSegments.length)]
+    const language = campaignLanguages[Math.floor(Math.random() * campaignLanguages.length)]
+
+    return `[${day}/${month}] - [${hour}:${minute}] - [${segment}] - [${theme}] - [${language}]`
+  }
+
+  // Generate 5-10 realistic campaigns
+  const numCampaigns = Math.floor(Math.random() * 6) + 5 // 5-10 campaigns
+  const mockCampaigns = Array.from({ length: numCampaigns }, (_, i) => {
+    const revenue = Math.random() * 5000 + 500 // R$ 500-5500
+    const conversions = Math.floor(Math.random() * 50) + 5 // 5-55 conversions
+
+    const sendDate = new Date(period_start)
+    sendDate.setDate(sendDate.getDate() + Math.floor(Math.random() * daysInPeriod))
+
+    return {
+      id: crypto.randomUUID(),
+      name: generateCampaignName(i),
+      revenue: Math.round(revenue * 100) / 100,
+      conversions,
+      send_time: sendDate.toISOString(),
+      status: 'Sent'
+    }
+  })
+
+  // Sort campaigns by revenue for top_campaigns_by_revenue
+  const topByRevenue = [...mockCampaigns].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+
+  // Sort campaigns by conversions for top_campaigns_by_conversions
+  const topByConversions = [...mockCampaigns].sort((a, b) => b.conversions - a.conversions).slice(0, 5)
+
+  // Generate 3-5 realistic flows
+  const flowTypes = [
+    'Welcome Series',
+    'Abandoned Cart',
+    'Post-Purchase Thank You',
+    'Browse Abandonment',
+    'Win-Back Campaign'
+  ]
+
+  const numFlows = Math.floor(Math.random() * 3) + 3 // 3-5 flows
+  const mockFlows = flowTypes.slice(0, numFlows).map((flowName) => {
+    const revenue = Math.random() * 15000 + 2000 // R$ 2000-17000 (flows geram mais)
+    const conversions = Math.floor(Math.random() * 100) + 20 // 20-120 conversions
+
+    return {
+      id: crypto.randomUUID(),
+      name: flowName,
+      revenue: Math.round(revenue * 100) / 100,
+      conversions,
+      trigger_type: flowName.includes('Cart') ? 'Checkout Started' : flowName.includes('Welcome') ? 'List Subscription' : 'Metric Trigger',
+      status: 'Live'
+    }
+  })
+
+  const topFlowsByRevenue = [...mockFlows].sort((a, b) => b.revenue - a.revenue)
+  const topFlowsByPerformance = [...mockFlows].sort((a, b) => b.conversions - a.conversions)
+
+  console.log(`📧 Generated ${mockCampaigns.length} mock campaigns`)
+  console.log(`🔄 Generated ${mockFlows.length} mock flows`)
+
   const mockData: SyncStoreResult = {
     success: true,
     job_id,
@@ -143,7 +218,17 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
       campaign_count: mockData.summary.klaviyo.campaigns_count,
       flow_count: mockData.summary.klaviyo.flows_count,
       campaigns_with_revenue: mockData.summary.klaviyo.campaigns_count,
-      flows_with_revenue: mockData.summary.klaviyo.flows_count
+      flows_with_revenue: mockData.summary.klaviyo.flows_count,
+      // Top campaigns and flows
+      top_campaigns_by_revenue: topByRevenue as any,
+      top_campaigns_by_conversions: topByConversions as any,
+      top_flows_by_revenue: topFlowsByRevenue as any,
+      top_flows_by_performance: topFlowsByPerformance as any,
+      // Shopify data - CRITICAL for correct impact % calculation
+      shopify_total_sales: mockData.summary.shopify.total_sales,
+      shopify_total_orders: mockData.summary.shopify.total_orders,
+      shopify_new_customers: mockData.summary.shopify.new_customers,
+      shopify_returning_customers: mockData.summary.shopify.returning_customers
     }, {
       onConflict: 'store_id,period_start,period_end'
     })

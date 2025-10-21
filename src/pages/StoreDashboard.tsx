@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
-import { LeadsMetrics } from '@/components/dashboard/LeadsMetrics';
+import { CustomerMetrics } from '@/components/dashboard/CustomerMetrics';
 import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
 
 const StoreDashboard = () => {
@@ -232,10 +232,13 @@ const StoreDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Leads Metrics - only show if Klaviyo data exists */}
-        {klaviyoData && (
+        {/* Customer Metrics - only show if KPI data exists */}
+        {kpis && (
           <div className="space-y-4">
-            <LeadsMetrics klaviyoData={klaviyoData} />
+            <CustomerMetrics
+              customersDistinct={kpis.customers_distinct}
+              customersReturning={kpis.customers_returning}
+            />
           </div>
         )}
       </div>

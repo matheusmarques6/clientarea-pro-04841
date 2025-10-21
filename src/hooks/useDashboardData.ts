@@ -216,21 +216,29 @@ export const useDashboardData = (storeId: string, period: string) => {
       if (isDevelopment && klaviyoData) {
         console.log('[DEV MODE] Using Klaviyo data for KPIs, skipping RPC calls');
 
-        const totalRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+        const convertfyRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+        // CRITICAL: Use Shopify total sales as base, NOT Klaviyo revenue
+        const shopifyTotalSales = (klaviyoData as any).shopify_total_sales || 0;
+        const shopifyTotalOrders = (klaviyoData as any).shopify_total_orders || 0;
+        const shopifyNewCustomers = (klaviyoData as any).shopify_new_customers || 0;
+        const shopifyReturningCustomers = (klaviyoData as any).shopify_returning_customers || 0;
 
         const baseKpis: DashboardKPIs = {
-          total_revenue: totalRevenue,
-          email_revenue: totalRevenue,
-          convertfy_revenue: totalRevenue,
-          order_count: klaviyoData.orders_attributed || 0,
-          customers_distinct: Math.floor((klaviyoData.orders_attributed || 0) * 0.7),
-          customers_returning: Math.floor((klaviyoData.orders_attributed || 0) * 0.3),
+          total_revenue: shopifyTotalSales, // ✅ SHOPIFY total, not Klaviyo
+          email_revenue: convertfyRevenue,
+          convertfy_revenue: convertfyRevenue,
+          order_count: shopifyTotalOrders,
+          customers_distinct: shopifyNewCustomers + shopifyReturningCustomers,
+          customers_returning: shopifyReturningCustomers,
           currency: 'BRL',
         };
 
         kpiBaseRef.current = baseKpis;
-        console.log(`[${period}] Dev Mode KPIs loaded:`, baseKpis);
-        applyKpis(totalRevenue);
+        console.log(`[${period}] Dev Mode KPIs loaded:`, {
+          ...baseKpis,
+          impact_percentage: shopifyTotalSales > 0 ? ((convertfyRevenue / shopifyTotalSales) * 100).toFixed(2) + '%' : '0%'
+        });
+        applyKpis(convertfyRevenue);
         return;
       }
 
@@ -422,7 +430,7 @@ export const useDashboardData = (storeId: string, period: string) => {
           setRawKlaviyoData(cache.raw);
         }
         
-        const klaviyoFromCache: KlaviyoSummary['klaviyo'] = {
+        const klaviyoFromCache: KlaviyoSummary['klaviyo'] & { shopify_total_sales?: number; shopify_total_orders?: number; shopify_new_customers?: number; shopify_returning_customers?: number } = {
           revenue_total: Number(cache.revenue_total) || 0,
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
           revenue_flows: Number(cache.revenue_flows) || 0,
@@ -432,6 +440,11 @@ export const useDashboardData = (storeId: string, period: string) => {
           top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
           leads_total: Number(cache.leads_total) || 0,
+          // Shopify data for impact calculation
+          shopify_total_sales: Number(cache.shopify_total_sales) || 0,
+          shopify_total_orders: Number(cache.shopify_total_orders) || 0,
+          shopify_new_customers: Number(cache.shopify_new_customers) || 0,
+          shopify_returning_customers: Number(cache.shopify_returning_customers) || 0,
         };
 
         updateKlaviyoState(klaviyoFromCache);

@@ -116,6 +116,12 @@ export type KlaviyoSummary = {
     top_campaigns_by_conversions: Campaign[];
     leads_total: number;
   };
+  shopify?: {
+    total_sales: number;
+    total_orders: number;
+    new_customers: number;
+    returning_customers: number;
+  };
   period: { start: string; end: string };
   store: { id: string };
 };
