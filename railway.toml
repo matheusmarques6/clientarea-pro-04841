@@ -1,0 +1,13 @@
+[build]
+builder = "NIXPACKS"
+
+[build.nixpacksPlan.phases.install]
+cmd = "bun install"
+
+[build.nixpacksPlan.phases.build]
+cmd = "bun run build"
+
+[deploy]
+startCommand = "bun run preview"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
