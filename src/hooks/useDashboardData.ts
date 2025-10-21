@@ -225,33 +225,37 @@ export const useDashboardData = (storeId: string, period: string) => {
 
       const isDevelopment = import.meta.env.DEV;
 
-      // DEV mode: Use klaviyoData directly if available (skip RPCs)
-      if (isDevelopment && klaviyoData) {
-        console.log('[DEV MODE] Using Klaviyo data for KPIs, skipping RPC calls');
+      // DEV mode: Always skip RPC calls to avoid permission errors
+      if (isDevelopment) {
+        console.log('[DEV MODE] Skipping RPC calls - waiting for Klaviyo data sync');
 
-        const convertfyRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
-        // CRITICAL: Use Shopify total sales as base, NOT Klaviyo revenue
-        const shopifyTotalSales = (klaviyoData as any).shopify_total_sales || 0;
-        const shopifyTotalOrders = (klaviyoData as any).shopify_total_orders || 0;
-        const shopifyNewCustomers = (klaviyoData as any).shopify_new_customers || 0;
-        const shopifyReturningCustomers = (klaviyoData as any).shopify_returning_customers || 0;
+        // If klaviyoData is available, use it
+        if (klaviyoData) {
+          const convertfyRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+          // CRITICAL: Use Shopify total sales as base, NOT Klaviyo revenue
+          const shopifyTotalSales = (klaviyoData as any).shopify_total_sales || 0;
+          const shopifyTotalOrders = (klaviyoData as any).shopify_total_orders || 0;
+          const shopifyNewCustomers = (klaviyoData as any).shopify_new_customers || 0;
+          const shopifyReturningCustomers = (klaviyoData as any).shopify_returning_customers || 0;
 
-        const baseKpis: DashboardKPIs = {
-          total_revenue: shopifyTotalSales, // ✅ SHOPIFY total, not Klaviyo
-          email_revenue: convertfyRevenue,
-          convertfy_revenue: convertfyRevenue,
-          order_count: shopifyTotalOrders,
-          customers_distinct: shopifyNewCustomers + shopifyReturningCustomers,
-          customers_returning: shopifyReturningCustomers,
-          currency: 'BRL',
-        };
+          const baseKpis: DashboardKPIs = {
+            total_revenue: shopifyTotalSales, // ✅ SHOPIFY total, not Klaviyo
+            email_revenue: convertfyRevenue,
+            convertfy_revenue: convertfyRevenue,
+            order_count: shopifyTotalOrders,
+            customers_distinct: shopifyNewCustomers + shopifyReturningCustomers,
+            customers_returning: shopifyReturningCustomers,
+            currency: 'BRL',
+          };
 
-        kpiBaseRef.current = baseKpis;
-        console.log(`[${period}] Dev Mode KPIs loaded:`, {
-          ...baseKpis,
-          impact_percentage: shopifyTotalSales > 0 ? ((convertfyRevenue / shopifyTotalSales) * 100).toFixed(2) + '%' : '0%'
-        });
-        applyKpis(convertfyRevenue);
+          kpiBaseRef.current = baseKpis;
+          console.log(`[${period}] Dev Mode KPIs loaded:`, {
+            ...baseKpis,
+            impact_percentage: shopifyTotalSales > 0 ? ((convertfyRevenue / shopifyTotalSales) * 100).toFixed(2) + '%' : '0%'
+          });
+          applyKpis(convertfyRevenue);
+        }
+        // Otherwise just skip - data will load when sync happens
         return;
       }
 
@@ -321,32 +325,34 @@ export const useDashboardData = (storeId: string, period: string) => {
       const { startDate, endDate } = getPeriodDates(period);
       const isDevelopment = import.meta.env.DEV;
 
-      // DEV mode: Generate mock time series data
-      if (isDevelopment && klaviyoData) {
-        console.log('[DEV MODE] Generating mock revenue series');
+      // DEV mode: Always skip RPC, generate mock data if klaviyoData available
+      if (isDevelopment) {
+        if (klaviyoData) {
+          console.log('[DEV MODE] Generating mock revenue series');
 
-        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        const totalRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
-        const avgDailyRevenue = totalRevenue / days;
+          const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const totalRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+          const avgDailyRevenue = totalRevenue / days;
 
-        const mockData: ChartDataPoint[] = [];
-        for (let i = 0; i < days; i++) {
-          const date = new Date(startDate);
-          date.setDate(date.getDate() + i);
+          const mockData: ChartDataPoint[] = [];
+          for (let i = 0; i < days; i++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + i);
 
-          // Add some randomness (±30%)
-          const variance = 0.7 + Math.random() * 0.6;
-          const dailyTotal = avgDailyRevenue * variance;
-          const dailyConvertfy = dailyTotal * 0.6; // 60% from Convertfy
+            // Add some randomness (±30%)
+            const variance = 0.7 + Math.random() * 0.6;
+            const dailyTotal = avgDailyRevenue * variance;
+            const dailyConvertfy = dailyTotal * 0.6; // 60% from Convertfy
 
-          mockData.push({
-            date: date.toISOString().split('T')[0],
-            total: Math.round(dailyTotal * 100) / 100,
-            convertfy: Math.round(dailyConvertfy * 100) / 100
-          });
+            mockData.push({
+              date: date.toISOString().split('T')[0],
+              total: Math.round(dailyTotal * 100) / 100,
+              convertfy: Math.round(dailyConvertfy * 100) / 100
+            });
+          }
+
+          setChartData(mockData);
         }
-
-        setChartData(mockData);
         return;
       }
 
@@ -443,7 +449,14 @@ export const useDashboardData = (storeId: string, period: string) => {
           setRawKlaviyoData(cache.raw);
         }
         
-        const klaviyoFromCache: KlaviyoSummary['klaviyo'] & { shopify_total_sales?: number; shopify_total_orders?: number; shopify_new_customers?: number; shopify_returning_customers?: number } = {
+        const klaviyoFromCache: KlaviyoSummary['klaviyo'] & {
+          shopify_total_sales?: number;
+          shopify_total_orders?: number;
+          shopify_new_customers?: number;
+          shopify_returning_customers?: number;
+          top_flows_by_revenue?: any[];
+          top_flows_by_performance?: any[];
+        } = {
           revenue_total: Number(cache.revenue_total) || 0,
           revenue_campaigns: Number(cache.revenue_campaigns) || 0,
           revenue_flows: Number(cache.revenue_flows) || 0,
