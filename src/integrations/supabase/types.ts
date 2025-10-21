@@ -434,6 +434,8 @@ export type Database = {
           store_id: string
           top_campaigns_by_conversions: Json | null
           top_campaigns_by_revenue: Json | null
+          top_flows_by_performance: Json | null
+          top_flows_by_revenue: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -462,6 +464,8 @@ export type Database = {
           store_id: string
           top_campaigns_by_conversions?: Json | null
           top_campaigns_by_revenue?: Json | null
+          top_flows_by_performance?: Json | null
+          top_flows_by_revenue?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -490,6 +494,8 @@ export type Database = {
           store_id?: string
           top_campaigns_by_conversions?: Json | null
           top_campaigns_by_revenue?: Json | null
+          top_flows_by_performance?: Json | null
+          top_flows_by_revenue?: Json | null
           updated_at?: string | null
         }
         Relationships: []
