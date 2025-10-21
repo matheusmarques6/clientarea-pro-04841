@@ -210,7 +210,31 @@ export const useDashboardData = (storeId: string, period: string) => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
 
-      // Buscar dados em paralelo usando as novas RPC functions
+      const isDevelopment = import.meta.env.DEV;
+
+      // DEV mode: Use klaviyoData directly if available (skip RPCs)
+      if (isDevelopment && klaviyoData) {
+        console.log('[DEV MODE] Using Klaviyo data for KPIs, skipping RPC calls');
+
+        const totalRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+
+        const baseKpis: DashboardKPIs = {
+          total_revenue: totalRevenue,
+          email_revenue: totalRevenue,
+          convertfy_revenue: totalRevenue,
+          order_count: klaviyoData.orders_attributed || 0,
+          customers_distinct: Math.floor((klaviyoData.orders_attributed || 0) * 0.7),
+          customers_returning: Math.floor((klaviyoData.orders_attributed || 0) * 0.3),
+          currency: 'BRL',
+        };
+
+        kpiBaseRef.current = baseKpis;
+        console.log(`[${period}] Dev Mode KPIs loaded:`, baseKpis);
+        applyKpis(totalRevenue);
+        return;
+      }
+
+      // Production mode: Use RPC functions
       const [kpiResult, customersDistinctResult, customersReturningResult] = await Promise.all([
         supabase.rpc('rpc_get_store_kpis', {
           _store_id: storeId,
@@ -274,7 +298,38 @@ export const useDashboardData = (storeId: string, period: string) => {
   const fetchRevenueSeries = async () => {
     try {
       const { startDate, endDate } = getPeriodDates(period);
-      
+      const isDevelopment = import.meta.env.DEV;
+
+      // DEV mode: Generate mock time series data
+      if (isDevelopment && klaviyoData) {
+        console.log('[DEV MODE] Generating mock revenue series');
+
+        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const totalRevenue = (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0);
+        const avgDailyRevenue = totalRevenue / days;
+
+        const mockData: ChartDataPoint[] = [];
+        for (let i = 0; i < days; i++) {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + i);
+
+          // Add some randomness (±30%)
+          const variance = 0.7 + Math.random() * 0.6;
+          const dailyTotal = avgDailyRevenue * variance;
+          const dailyConvertfy = dailyTotal * 0.6; // 60% from Convertfy
+
+          mockData.push({
+            date: date.toISOString().split('T')[0],
+            total: Math.round(dailyTotal * 100) / 100,
+            convertfy: Math.round(dailyConvertfy * 100) / 100
+          });
+        }
+
+        setChartData(mockData);
+        return;
+      }
+
+      // Production mode: Use RPC
       const { data, error } = await supabase.rpc('rpc_get_revenue_series', {
         _store_id: storeId,
         _start_date: startDate.toISOString(),
@@ -293,7 +348,7 @@ export const useDashboardData = (storeId: string, period: string) => {
           total: Number(item.total_revenue ?? 0),
           convertfy: Number(item.email_revenue ?? 0),
         }));
-        
+
         setChartData(formattedData);
       }
     } catch (error) {
