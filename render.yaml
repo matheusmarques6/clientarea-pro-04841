@@ -1,0 +1,17 @@
+services:
+  # Frontend Web Service
+  - type: web
+    name: clientarea-pro-04841
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SUPABASE_URL
+        value: https://bsotblbtrshqfiqyzisy.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false  # Você precisa adicionar manualmente no dashboard
