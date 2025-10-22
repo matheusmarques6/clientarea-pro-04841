@@ -224,6 +224,20 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     console.error('❌ Failed to create job:', jobError)
   }
 
+  // ✅ FIRST: Check if we already have data for this period in the database
+  console.log('🔍 Checking for existing data in database...')
+  const { data: existingData, error: existingError } = await supabase
+    .from('klaviyo_summaries')
+    .select('*')
+    .eq('store_id', store_id)
+    .eq('period_start', period_start)
+    .eq('period_end', period_end)
+    .maybeSingle()
+
+  if (existingError) {
+    console.error('❌ Error checking existing data:', existingError)
+  }
+
   // Fetch REAL Shopify data if credentials are available
   let shopifyData: { total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null = null
   let todayData: { total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null = null
@@ -267,12 +281,25 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     returningCustomers = shopifyData.returning_customers
   } else {
     console.log('⚠️ Using MOCK data (Shopify credentials not configured or API failed)')
-    const avgOrdersPerDay = Math.floor(Math.random() * 20) + 10
-    const avgOrderValue = Math.random() * 100 + 50
-    totalOrders = avgOrdersPerDay * daysInPeriod
-    totalSales = Math.round(totalOrders * avgOrderValue * 100) / 100
-    newCustomers = Math.floor(totalOrders * 0.3)
-    returningCustomers = Math.floor(totalOrders * 0.7)
+
+    // ✅ IMPORTANT: Use existing data from DB if available (consistent mock)
+    // This ensures the same period always shows the same data
+    if (existingData) {
+      console.log('📦 Using EXISTING data from database (consistent mock)')
+      totalOrders = existingData.shopify_total_orders || 0
+      totalSales = existingData.shopify_total_sales || 0
+      newCustomers = existingData.shopify_new_customers || 0
+      returningCustomers = existingData.shopify_returning_customers || 0
+    } else {
+      console.log('🎲 Generating NEW mock data (first sync for this period)')
+      // Only generate random data for FIRST sync of this period
+      const avgOrdersPerDay = Math.floor(Math.random() * 20) + 10
+      const avgOrderValue = Math.random() * 100 + 50
+      totalOrders = avgOrdersPerDay * daysInPeriod
+      totalSales = Math.round(totalOrders * avgOrderValue * 100) / 100
+      newCustomers = Math.floor(totalOrders * 0.3)
+      returningCustomers = Math.floor(totalOrders * 0.7)
+    }
   }
 
   // Generate realistic campaign names

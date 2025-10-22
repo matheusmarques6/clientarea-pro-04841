@@ -4,7 +4,7 @@ import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, Arrow
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
@@ -18,18 +18,17 @@ const StoreDashboard = () => {
   const [period, setPeriod] = useState('30d');
   
   const { store, isLoading: storeLoading } = useStore(id!);
-  const { 
-    kpis, 
-    chartData, 
-    channelRevenue, 
+  const {
+    kpis,
+    chartData,
     klaviyoData,
     rawKlaviyoData,
-    topCampaigns, 
+    topCampaigns,
     topFlows,
-    isLoading: dataLoading, 
-    isSyncing, 
-    syncData, 
-    refetch 
+    isLoading: dataLoading,
+    isSyncing,
+    needsSync,
+    syncData,
   } = useDashboardData(id!, period);
 
   if (storeLoading || dataLoading) {
@@ -64,8 +63,6 @@ const StoreDashboard = () => {
     );
   }
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b'];
-
   const formatCurrency = (value: number) => {
     const currency = kpis?.currency || store?.currency || 'BRL';
     const symbol = currency === 'BRL' ? 'R$' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£';
@@ -84,12 +81,19 @@ const StoreDashboard = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button 
+          <Button
             onClick={syncData}
             disabled={isSyncing}
             variant="outline"
             size="sm"
+            className="relative"
           >
+            {needsSync && !isSyncing && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+            )}
             <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
@@ -287,67 +291,36 @@ const StoreDashboard = () => {
         />
       )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Line Chart */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Faturamento por Dia</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="#8884d8" 
-                  strokeWidth={2}
-                  name="Total"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="convertfy" 
-                  stroke="#6366f1" 
-                  strokeWidth={2}
-                  name="Convertfy"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Pie Chart */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Receita por Canal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={channelRevenue}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ channel, percentage }) => `${channel} ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="revenue"
-                >
-                  {channelRevenue.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Chart - Faturamento por Dia */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle>Faturamento por Dia</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="total"
+                stroke="#8884d8"
+                strokeWidth={2}
+                name="Total"
+              />
+              <Line
+                type="monotone"
+                dataKey="convertfy"
+                stroke="#6366f1"
+                strokeWidth={2}
+                name="Convertfy"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Métricas Detalhadas do Klaviyo */}
       <DetailedKlaviyoMetrics rawData={rawKlaviyoData} />

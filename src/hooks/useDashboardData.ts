@@ -57,7 +57,9 @@ export const useDashboardData = (storeId: string, period: string) => {
   }>({ byRevenue: [], byPerformance: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [needsSync, setNeedsSync] = useState(false);
   const kpiBaseRef = useRef<DashboardKPIs | null>(null);
+  const lastPeriodRef = useRef<string>(period);
 
   // Converter período para datas
   const getPeriodDates = (period: string) => {
@@ -521,6 +523,15 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
+  // Detect period change and mark as needing sync
+  useEffect(() => {
+    if (lastPeriodRef.current !== period) {
+      console.log(`📍 Period changed from ${lastPeriodRef.current} to ${period} - marking as needs sync`);
+      setNeedsSync(true);
+      lastPeriodRef.current = period;
+    }
+  }, [period]);
+
   // Carregar dados iniciais
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -687,6 +698,7 @@ export const useDashboardData = (storeId: string, period: string) => {
         await loadData();
         console.log(`[${period}] Dashboard data reloaded successfully!`);
         setIsSyncing(false);
+        setNeedsSync(false); // ✅ Marca como sincronizado
       } else {
         throw new Error('Resposta inesperada da sincronização');
       }
@@ -797,6 +809,7 @@ export const useDashboardData = (storeId: string, period: string) => {
 
               loadData();
               setIsSyncing(false);
+              setNeedsSync(false); // ✅ Marca como sincronizado
               sonnerToast.success(`Sincronização ${period} concluída com sucesso!`);
             } else if ((jobData as any).status === 'ERROR') {
               // Job failed
@@ -844,6 +857,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     topFlows,
     isLoading,
     isSyncing,
+    needsSync, // ✅ Indica se precisa sincronizar (período mudou)
     syncData,
     refetch: loadData,
   };
