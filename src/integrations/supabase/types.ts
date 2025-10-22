@@ -429,6 +429,7 @@ export type Database = {
           revenue_total: number
           shopify_new_customers: number | null
           shopify_returning_customers: number | null
+          shopify_today_sales: number | null
           shopify_total_orders: number | null
           shopify_total_sales: number | null
           store_id: string
@@ -459,6 +460,7 @@ export type Database = {
           revenue_total?: number
           shopify_new_customers?: number | null
           shopify_returning_customers?: number | null
+          shopify_today_sales?: number | null
           shopify_total_orders?: number | null
           shopify_total_sales?: number | null
           store_id: string
@@ -489,6 +491,7 @@ export type Database = {
           revenue_total?: number
           shopify_new_customers?: number | null
           shopify_returning_customers?: number | null
+          shopify_today_sales?: number | null
           shopify_total_orders?: number | null
           shopify_total_sales?: number | null
           store_id?: string

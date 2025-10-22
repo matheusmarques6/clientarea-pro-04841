@@ -11,6 +11,8 @@ interface DashboardKPIs {
   customers_distinct: number;
   customers_returning: number;
   currency: string;
+  today_sales: number; // Faturamento do dia (sempre atual)
+  average_daily_sales: number; // Média diária do período
 }
 
 interface ChartDataPoint {
@@ -237,6 +239,11 @@ export const useDashboardData = (storeId: string, period: string) => {
           const shopifyTotalOrders = (klaviyoData as any).shopify_total_orders || 0;
           const shopifyNewCustomers = (klaviyoData as any).shopify_new_customers || 0;
           const shopifyReturningCustomers = (klaviyoData as any).shopify_returning_customers || 0;
+          const shopifyTodaySales = (klaviyoData as any).shopify_today_sales || 0;
+
+          // Calculate days in period for average
+          const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+          const averageDailySales = shopifyTotalSales / daysInPeriod;
 
           const baseKpis: DashboardKPIs = {
             total_revenue: shopifyTotalSales, // ✅ SHOPIFY total, not Klaviyo
@@ -246,6 +253,8 @@ export const useDashboardData = (storeId: string, period: string) => {
             customers_distinct: shopifyNewCustomers + shopifyReturningCustomers,
             customers_returning: shopifyReturningCustomers,
             currency: 'BRL',
+            today_sales: shopifyTodaySales, // ✅ NEW: Faturamento de hoje
+            average_daily_sales: averageDailySales, // ✅ NEW: Média diária
           };
 
           kpiBaseRef.current = baseKpis;
@@ -294,14 +303,25 @@ export const useDashboardData = (storeId: string, period: string) => {
       }
 
       const kpiData = (kpiResult.data as unknown as StoreKpiResponse | null) ?? null;
+
+      // Calculate days in period for average daily sales
+      const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+      const totalRevenue = Number(kpiData?.total_revenue ?? 0);
+      const averageDailySales = totalRevenue / daysInPeriod;
+
+      // Get today's sales from klaviyoData if available
+      const shopifyTodaySales = klaviyoData ? ((klaviyoData as any).shopify_today_sales || 0) : 0;
+
       const baseKpis: DashboardKPIs = {
-        total_revenue: Number(kpiData?.total_revenue ?? 0),
+        total_revenue: totalRevenue,
         email_revenue: Number(kpiData?.email_revenue ?? 0),
         convertfy_revenue: Number(kpiData?.convertfy_revenue ?? 0),
         order_count: Number(kpiData?.order_count ?? 0),
         customers_distinct: Number(customersDistinctResult.data ?? 0),
         customers_returning: Number(customersReturningResult.data ?? 0),
         currency: kpiData?.currency ?? 'BRL',
+        today_sales: shopifyTodaySales, // ✅ NEW: Faturamento de hoje
+        average_daily_sales: averageDailySales, // ✅ NEW: Média diária
       };
 
       kpiBaseRef.current = baseKpis;

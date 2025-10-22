@@ -152,6 +152,20 @@ async function fetchShopifyData(
 }
 
 /**
+ * Get start and end of today (current day)
+ */
+function getTodayPeriod(): { start: string; end: string } {
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+  return {
+    start: startOfDay.toISOString(),
+    end: endOfDay.toISOString()
+  }
+}
+
+/**
  * Mock sync function for local development
  * Simulates the behavior of the sync-store Edge Function
  */
@@ -212,13 +226,25 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
 
   // Fetch REAL Shopify data if credentials are available
   let shopifyData: { total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null = null
+  let todayData: { total_sales: number; total_orders: number; new_customers: number; returning_customers: number } | null = null
 
   if (hasShopifyCredentials) {
+    // Fetch data for the selected period
     shopifyData = await fetchShopifyData(
       store.shopify_domain!,
       store.shopify_access_token!,
       period_start,
       period_end
+    )
+
+    // ALWAYS fetch today's data (independent of period)
+    const todayPeriod = getTodayPeriod()
+    console.log('📅 Fetching TODAY\'s data:', todayPeriod.start, 'to', todayPeriod.end)
+    todayData = await fetchShopifyData(
+      store.shopify_domain!,
+      store.shopify_access_token!,
+      todayPeriod.start,
+      todayPeriod.end
     )
   }
 
@@ -348,7 +374,16 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
     }
   }
 
+  // Calculate today's sales (REAL or mock fallback)
+  const todaySales = todayData?.total_sales || Math.round(totalSales / daysInPeriod * 100) / 100
+
+  console.log('📊 Today\'s Sales:', todaySales.toFixed(2))
+
   // Save mock data to database (same as real function)
+  // IMPORTANT: Using upsert with onConflict means:
+  // - 1st sync with period (30d) → INSERT new row
+  // - 2nd sync with same period (30d) → UPDATE existing row (no duplicate!)
+  // - 1st sync with different period (7d) → INSERT new row
   const { error: summaryError } = await supabase
     .from('klaviyo_summaries')
     .upsert({
@@ -375,7 +410,10 @@ export async function syncStoreLocal(params: SyncStoreParams): Promise<SyncStore
       shopify_total_sales: mockData.summary.shopify.total_sales,
       shopify_total_orders: mockData.summary.shopify.total_orders,
       shopify_new_customers: mockData.summary.shopify.new_customers,
-      shopify_returning_customers: mockData.summary.shopify.returning_customers
+      shopify_returning_customers: mockData.summary.shopify.returning_customers,
+      // ✅ NEW: Today's sales (always current, independent of period filter)
+      shopify_today_sales: todaySales,
+      updated_at: new Date().toISOString()
     }, {
       onConflict: 'store_id,period_start,period_end'
     })

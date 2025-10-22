@@ -11,6 +11,7 @@ import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
 import { TopFlows } from '@/components/dashboard/TopFlows';
 import { CustomerMetrics } from '@/components/dashboard/CustomerMetrics';
 import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
+import { TodaySalesCard } from '@/components/dashboard/TodaySalesCard';
 
 const StoreDashboard = () => {
   const { id } = useParams();
@@ -105,6 +106,15 @@ const StoreDashboard = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Today's Sales - Always show current day revenue */}
+      {kpis && kpis.today_sales !== undefined && (
+        <TodaySalesCard
+          todaySales={kpis.today_sales}
+          averageDailySales={kpis.average_daily_sales}
+          currency={kpis.currency}
+        />
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
