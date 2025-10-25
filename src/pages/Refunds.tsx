@@ -1,16 +1,33 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Filter, Download, ExternalLink, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, CreditCard, Smartphone, Receipt, Gift, TrendingUp, Users, DollarSign } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Download,
+  ExternalLink,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  CreditCard,
+  Smartphone,
+  Receipt,
+  Gift,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Settings,
+} from "lucide-react";
 import { RefundDetailsModal } from "@/components/refunds/RefundDetailsModal";
+import { cn } from "@/lib/utils";
 
-// Types
 interface RefundItem {
   id: string;
   protocol: string;
@@ -30,9 +47,9 @@ interface RefundItem {
   }>;
   requestedAmount: number;
   finalAmount?: number;
-  method: 'CARD' | 'PIX' | 'BOLETO' | 'VOUCHER';
+  method: "CARD" | "PIX" | "BOLETO" | "VOUCHER";
   reason: string;
-  status: 'REQUESTED' | 'UNDER_REVIEW' | 'APPROVED' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  status: "REQUESTED" | "UNDER_REVIEW" | "APPROVED" | "PROCESSING" | "COMPLETED" | "REJECTED";
   riskScore: number;
   createdAt: string;
   updatedAt: string;
@@ -46,117 +63,247 @@ interface RefundItem {
   }>;
 }
 
-// Mock data
 const mockRefunds: RefundItem[] = [
   {
-    id: '1',
-    protocol: 'RB-2024-001',
-    orderId: '#12345',
+    id: "1",
+    protocol: "RB-2024-001",
+    orderId: "#12345",
     customer: {
-      name: 'Ana Silva',
-      email: 'ana.silva@email.com',
-      phone: '+55 11 99999-9999'
+      name: "Ana Silva",
+      email: "ana.silva@email.com",
+      phone: "+55 11 99999-9999",
     },
     items: [
       {
-        id: '1',
-        name: 'Camiseta Premium',
-        sku: 'CAM-001',
+        id: "1",
+        name: "Camiseta Premium",
+        sku: "CAM-001",
         quantity: 1,
-        price: 89.90,
-        image: '/placeholder.svg'
-      }
+        price: 89.9,
+        image: "/placeholder.svg",
+      },
     ],
-    requestedAmount: 89.90,
-    finalAmount: 89.90,
-    method: 'CARD',
-    reason: 'Produto defeituoso',
-    status: 'REQUESTED',
+    requestedAmount: 89.9,
+    finalAmount: 89.9,
+    method: "CARD",
+    reason: "Produto defeituoso",
+    status: "REQUESTED",
     riskScore: 25,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    attachments: ['photo1.jpg'],
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+    attachments: ["photo1.jpg"],
     timeline: [
       {
-        id: '1',
-        timestamp: '2024-01-15T10:00:00Z',
-        action: 'created',
-        description: 'Solicitação de reembolso criada',
-        user: 'Ana Silva'
-      }
-    ]
+        id: "1",
+        timestamp: "2024-01-15T10:00:00Z",
+        action: "created",
+        description: "Solicitação de reembolso criada",
+        user: "Ana Silva",
+      },
+    ],
   },
   {
-    id: '2',
-    protocol: 'RB-2024-002',
-    orderId: '#12346',
+    id: "2",
+    protocol: "RB-2024-002",
+    orderId: "#12346",
     customer: {
-      name: 'Carlos Mendes',
-      email: 'carlos.mendes@email.com'
+      name: "Carlos Mendes",
+      email: "carlos.mendes@email.com",
     },
     items: [
       {
-        id: '2',
-        name: 'Tênis Esportivo',
-        sku: 'TEN-002',
+        id: "2",
+        name: "Tênis Esportivo",
+        sku: "TEN-002",
         quantity: 1,
-        price: 299.90
-      }
+        price: 299.9,
+      },
     ],
-    requestedAmount: 299.90,
-    method: 'PIX',
-    reason: 'Mudança de ideia',
-    status: 'APPROVED',
+    requestedAmount: 299.9,
+    method: "PIX",
+    reason: "Mudança de ideia",
+    status: "APPROVED",
     riskScore: 45,
-    createdAt: '2024-01-14T15:30:00Z',
-    updatedAt: '2024-01-14T16:00:00Z',
+    createdAt: "2024-01-14T15:30:00Z",
+    updatedAt: "2024-01-14T16:00:00Z",
     attachments: [],
     timeline: [
       {
-        id: '1',
-        timestamp: '2024-01-14T15:30:00Z',
-        action: 'created',
-        description: 'Solicitação de reembolso criada',
-        user: 'Carlos Mendes'
+        id: "1",
+        timestamp: "2024-01-14T15:30:00Z",
+        action: "created",
+        description: "Solicitação de reembolso criada",
+        user: "Carlos Mendes",
       },
       {
-        id: '2',
-        timestamp: '2024-01-14T16:00:00Z',
-        action: 'approved',
-        description: 'Reembolso aprovado',
-        user: 'Admin'
-      }
-    ]
-  }
+        id: "2",
+        timestamp: "2024-01-14T16:00:00Z",
+        action: "approved",
+        description: "Reembolso aprovado",
+        user: "Admin",
+      },
+    ],
+  },
 ];
 
 const statusConfig = {
-  REQUESTED: { label: 'Solicitado', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Clock },
-  UNDER_REVIEW: { label: 'Em análise', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Eye },
-  APPROVED: { label: 'Aprovado', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
-  PROCESSING: { label: 'Processando', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Clock },
-  COMPLETED: { label: 'Concluído', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: CheckCircle },
-  REJECTED: { label: 'Recusado', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle }
-};
+  REQUESTED: {
+    label: "Solicitado",
+    indicator: "bg-brand-purple",
+    chip: "bg-brand-purple-light text-brand-purple",
+    icon: Clock,
+  },
+  UNDER_REVIEW: {
+    label: "Em análise",
+    indicator: "bg-brand-orange",
+    chip: "bg-brand-orange-light text-brand-orange",
+    icon: Eye,
+  },
+  APPROVED: {
+    label: "Aprovado",
+    indicator: "bg-brand-green",
+    chip: "bg-brand-green-light text-brand-green",
+    icon: CheckCircle,
+  },
+  PROCESSING: {
+    label: "Processando",
+    indicator: "bg-brand-blue",
+    chip: "bg-brand-blue-light text-brand-blue",
+    icon: Clock,
+  },
+  COMPLETED: {
+    label: "Concluído",
+    indicator: "bg-primary",
+    chip: "bg-brand-green-light text-brand-green",
+    icon: CheckCircle,
+  },
+  REJECTED: {
+    label: "Recusado",
+    indicator: "bg-destructive",
+    chip: "bg-destructive/20 text-destructive",
+    icon: XCircle,
+  },
+} as const;
 
 const methodConfig = {
-  CARD: { label: 'Cartão', icon: CreditCard },
-  PIX: { label: 'PIX', icon: Smartphone },
-  BOLETO: { label: 'Boleto', icon: Receipt },
-  VOUCHER: { label: 'Voucher', icon: Gift }
-};
+  CARD: { label: "Cartão", icon: CreditCard, chip: "bg-brand-purple-light text-brand-purple" },
+  PIX: { label: "PIX", icon: Smartphone, chip: "bg-brand-green-light text-brand-green" },
+  BOLETO: { label: "Boleto", icon: Receipt, chip: "bg-brand-blue-light text-brand-blue" },
+  VOUCHER: { label: "Voucher", icon: Gift, chip: "bg-brand-orange-light text-brand-orange" },
+} as const;
+
+const statusOrder: RefundItem["status"][] = [
+  "REQUESTED",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "PROCESSING",
+  "COMPLETED",
+  "REJECTED",
+];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 
 export default function Refunds() {
   const { toast } = useToast();
   const { id: storeId } = useParams();
+  const [refunds, setRefunds] = useState<RefundItem[]>(mockRefunds);
   const [selectedRefund, setSelectedRefund] = useState<RefundItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [refunds, setRefunds] = useState<RefundItem[]>(mockRefunds);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<RefundItem["status"] | "all">("all");
+
+  const filteredRefunds = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return refunds.filter((refund) => {
+      const matchesStatus = statusFilter === "all" || refund.status === statusFilter;
+      const matchesSearch =
+        query.length === 0 ||
+        [refund.protocol, refund.orderId, refund.customer.name, refund.customer.email ?? ""].some((field) =>
+          field.toLowerCase().includes(query),
+        );
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [refunds, searchTerm, statusFilter]);
+
+  const totalRefunds = refunds.length;
+  const pendingCount = useMemo(
+    () => refunds.filter((refund) => ["REQUESTED", "UNDER_REVIEW", "PROCESSING"].includes(refund.status)).length,
+    [refunds],
+  );
+  const completedCount = useMemo(
+    () => refunds.filter((refund) => refund.status === "COMPLETED").length,
+    [refunds],
+  );
+  const averageValue = useMemo(() => {
+    if (refunds.length === 0) return 0;
+    const total = refunds.reduce((sum, refund) => sum + refund.requestedAmount, 0);
+    return total / refunds.length;
+  }, [refunds]);
+
+  const kanbanColumns = useMemo(
+    () =>
+      statusOrder.map((status) => ({
+        status,
+        label: statusConfig[status].label,
+        indicator: statusConfig[status].indicator,
+        chip: statusConfig[status].chip,
+        icon: statusConfig[status].icon,
+        items: filteredRefunds.filter((refund) => refund.status === status),
+      })),
+    [filteredRefunds],
+  );
+
+  const statusDistribution = useMemo(
+    () =>
+      statusOrder.map((status) => {
+        const count = refunds.filter((refund) => refund.status === status).length;
+        return {
+          status,
+          label: statusConfig[status].label,
+          count,
+          percentage: refunds.length ? (count / refunds.length) * 100 : 0,
+        };
+      }),
+    [refunds],
+  );
+
+  const methodDistribution = useMemo(() => {
+    const counts = refunds.reduce<Record<string, number>>((acc, refund) => {
+      acc[refund.method] = (acc[refund.method] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(methodConfig).map(([key, value]) => {
+      const count = counts[key] || 0;
+      return {
+        method: key as RefundItem["method"],
+        label: value.label,
+        chip: value.chip,
+        count,
+        percentage: refunds.length ? (count / refunds.length) * 100 : 0,
+      };
+    });
+  }, [refunds]);
+
+  const reasonSummary = useMemo(() => {
+    const counts = refunds.reduce<Record<string, number>>((acc, refund) => {
+      acc[refund.reason] = (acc[refund.reason] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(counts)
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+  }, [refunds]);
 
   const handleCopyPublicLink = () => {
-    const publicLink = `${window.location.origin}/refunds/loja-exemplo`;
+    const publicLink = `${window.location.origin}/refunds/${storeId ?? "loja"}`;
     navigator.clipboard.writeText(publicLink);
     toast({
       title: "Link copiado!",
@@ -164,352 +311,452 @@ export default function Refunds() {
     });
   };
 
-  const handleStatusUpdate = (refundId: string, newStatus: RefundItem['status']) => {
-    setRefunds(prev => prev.map(refund => 
-      refund.id === refundId 
-        ? { 
-            ...refund, 
-            status: newStatus,
-            updatedAt: new Date().toISOString(),
-            timeline: [
-              ...refund.timeline,
-              {
-                id: Math.random().toString(),
-                timestamp: new Date().toISOString(),
-                action: newStatus.toLowerCase(),
-                description: `Status alterado para ${statusConfig[newStatus].label}`,
-                user: 'Admin'
-              }
-            ]
-          }
-        : refund
-    ));
+  const handleStatusUpdate = (refundId: string, newStatus: RefundItem["status"]) => {
+    setRefunds((prev) =>
+      prev.map((refund) =>
+        refund.id === refundId
+          ? {
+              ...refund,
+              status: newStatus,
+              updatedAt: new Date().toISOString(),
+              timeline: [
+                ...refund.timeline,
+                {
+                id: Math.random().toString(36).slice(2),
+                  timestamp: new Date().toISOString(),
+                  action: newStatus.toLowerCase(),
+                  description: `Status alterado para ${statusConfig[newStatus].label}`,
+                  user: "Admin",
+                },
+              ],
+            }
+          : refund,
+      ),
+    );
     setSelectedRefund(null);
     setIsModalOpen(false);
     toast({
       title: "Status atualizado",
-      description: `Reembolso ${newStatus === 'COMPLETED' ? 'concluído' : 'atualizado'} com sucesso.`
+      description: `Reembolso marcado como ${statusConfig[newStatus].label}.`,
     });
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (date: string) => {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(date));
-  };
-
-  const getRiskColor = (score: number) => {
-    if (score <= 30) return 'text-green-600 bg-green-50';
-    if (score <= 70) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const filteredRefunds = refunds.filter(refund => {
-    const matchesSearch = refund.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         refund.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         refund.orderId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || refund.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = {
-    total: refunds.length,
-    requested: refunds.filter(r => r.status === 'REQUESTED').length,
-    approved: refunds.filter(r => r.status === 'APPROVED').length,
-    completed: refunds.filter(r => r.status === 'COMPLETED').length,
-    totalAmount: refunds.reduce((sum, r) => sum + r.requestedAmount, 0),
-    avgAmount: refunds.length > 0 ? refunds.reduce((sum, r) => sum + r.requestedAmount, 0) / refunds.length : 0
-  };
-
-  const RefundCard = ({ refund }: { refund: RefundItem }) => {
-    const StatusIcon = statusConfig[refund.status].icon;
-    const MethodIcon = methodConfig[refund.method].icon;
-
-    return (
-      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer border-l-4 border-l-primary/20" 
-            onClick={() => { setSelectedRefund(refund); setIsModalOpen(true); }}>
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">{refund.protocol}</h3>
-                <Badge variant="outline" className={`${statusConfig[refund.status].color} border`}>
-                  <StatusIcon className="w-3 h-3 mr-1" />
-                  {statusConfig[refund.status].label}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">Pedido {refund.orderId}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-bold text-primary">{formatCurrency(refund.requestedAmount)}</div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <MethodIcon className="w-3 h-3" />
-                {methodConfig[refund.method].label}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{refund.customer.name}</p>
-                <p className="text-sm text-muted-foreground">{refund.customer.email}</p>
-              </div>
-              <div className="text-right">
-                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(refund.riskScore)}`}>
-                  Risco: {refund.riskScore}%
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-3">
-              <p className="text-sm text-muted-foreground mb-2">Motivo: {refund.reason}</p>
-              <p className="text-xs text-muted-foreground">
-                Criado em {formatDate(refund.createdAt)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const KanbanCard = ({ refund }: { refund: RefundItem }) => {
-    const StatusIcon = statusConfig[refund.status].icon;
-    const MethodIcon = methodConfig[refund.method].icon;
-
-    return (
-      <Card 
-        className="hover:shadow-md transition-all duration-200 cursor-pointer bg-white/90 backdrop-blur-sm border border-border/50" 
-        onClick={() => { setSelectedRefund(refund); setIsModalOpen(true); }}
-      >
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex-1">
-              <div className="font-semibold text-sm text-foreground">
-                {refund.protocol}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Pedido {refund.orderId}
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-              {formatDate(refund.createdAt).split(' ')[0]}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground truncate">
-              {refund.customer.name}
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-green-600">
-                {formatCurrency(refund.requestedAmount)}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MethodIcon className="w-3 h-3" />
-                {methodConfig[refund.method].label}
-              </div>
-            </div>
-            
-            <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded truncate">
-              {refund.reason}
-            </div>
-            
-            <div className="flex justify-between items-center pt-1">
-              <div className="flex items-center gap-1">
-                {refund.attachments.length > 0 && (
-                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                    📎 {refund.attachments.length}
-                  </span>
-                )}
-              </div>
-              <div className={`text-xs px-2 py-1 rounded-full font-medium ${getRiskColor(refund.riskScore)}`}>
-                {refund.riskScore}%
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reembolsos</h1>
-          <p className="text-muted-foreground">Gerencie solicitações de reembolso da sua loja</p>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Operações</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Reembolsos</h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Gerencie solicitações de reembolso com visibilidade completa das etapas, valores e riscos envolvidos.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleCopyPublicLink}>
-            <ExternalLink className="w-4 h-4 mr-2" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleCopyPublicLink}
+            className="rounded-lg border border-border bg-secondary text-sm font-semibold"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
             Copiar link público
           </Button>
-          <Link to={`/store/${storeId}/refunds/setup`}>
-            <Button variant="outline">
-              <Eye className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            className="rounded-lg border border-border text-sm font-semibold"
+            asChild
+          >
+            <Link to={`/store/${storeId}/refunds/setup`}>
+              <Settings className="mr-2 h-4 w-4" />
               Configurar
-            </Button>
-          </Link>
-          <Button>
-            <Download className="w-4 h-4 mr-2" />
+            </Link>
+          </Button>
+          <Button className="rounded-lg bg-brand-purple text-sm font-semibold shadow-md hover:bg-brand-purple/90">
+            <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Reembolsos</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">{stats.total}</div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-semibold text-muted-foreground">Total de reembolsos</p>
+            <p className="text-3xl font-bold text-foreground">{totalRefunds}</p>
+            <p className="text-xs text-muted-foreground">Inclui solicitações concluídas e em andamento</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Aguardando</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-yellow-600">{stats.requested}</div>
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-semibold text-muted-foreground">Em análise</p>
+            <p className="text-3xl font-bold text-brand-orange">{pendingCount}</p>
+            <p className="text-xs text-muted-foreground">Solicitações aguardando aprovação ou processamento</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Concluídos</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-semibold text-muted-foreground">Concluídos</p>
+            <p className="text-3xl font-bold text-brand-green">{completedCount}</p>
+            <p className="text-xs text-muted-foreground">Reembolsos finalizados com sucesso</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Valor Médio</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">{formatCurrency(stats.avgAmount)}</div>
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-semibold text-muted-foreground">Valor médio</p>
+            <p className="text-3xl font-bold text-foreground">{formatCurrency(averageValue)}</p>
+            <p className="text-xs text-muted-foreground">Ticket médio considerando solicitações abertas</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content with Tabs */}
-      <div className="space-y-6">
-        <Tabs defaultValue="kanban" className="w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TabsList className="grid w-full grid-cols-2 max-w-md h-12 bg-muted/50 border border-border">
-              <TabsTrigger value="kanban" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
-                Kanban
-              </TabsTrigger>
-              <TabsTrigger value="list" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
-                Lista
-              </TabsTrigger>
-            </TabsList>
+      <Tabs defaultValue="kanban" className="space-y-6">
+        <TabsList className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-secondary/60 p-1 text-muted-foreground shadow-sm">
+          <TabsTrigger
+            value="kanban"
+            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+          >
+            Kanban
+          </TabsTrigger>
+          <TabsTrigger
+            value="lista"
+            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+          >
+            Lista
+          </TabsTrigger>
+          <TabsTrigger
+            value="resumo"
+            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+          >
+            Resumo
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-80">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Buscar por cliente, protocolo ou pedido..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="REQUESTED">Solicitado</SelectItem>
-                  <SelectItem value="UNDER_REVIEW">Em análise</SelectItem>
-                  <SelectItem value="APPROVED">Aprovado</SelectItem>
-                  <SelectItem value="PROCESSING">Processando</SelectItem>
-                  <SelectItem value="COMPLETED">Concluído</SelectItem>
-                  <SelectItem value="REJECTED">Recusado</SelectItem>
-                </SelectContent>
-              </Select>
+        <TabsContent value="kanban" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, protocolo ou pedido"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="rounded-xl border border-border bg-card pl-9 text-sm"
+              />
             </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as RefundItem["status"] | "all")}>
+              <SelectTrigger className="w-full rounded-xl border border-border bg-card text-sm sm:w-56">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {statusOrder.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {statusConfig[status].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Kanban View */}
-          <TabsContent value="kanban" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              {Object.entries(statusConfig).map(([statusKey, statusInfo]) => {
-                const StatusIcon = statusInfo.icon;
-                const columnRefunds = filteredRefunds.filter(refund => refund.status === statusKey);
-                
-                return (
-                  <Card key={statusKey} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className={`text-sm font-semibold rounded-lg px-3 py-2 text-center ${statusInfo.color}`}>
-                        <div className="flex items-center justify-center gap-2">
-                          <StatusIcon className="w-4 h-4" />
-                          <span>{statusInfo.label}</span>
-                          <Badge variant="secondary" className="ml-1 text-xs">
-                            {columnRefunds.length}
-                          </Badge>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 min-h-96">
-                      {columnRefunds.map(refund => (
-                        <KanbanCard key={refund.id} refund={refund} />
-                      ))}
-                      {columnRefunds.length === 0 && (
-                        <div className="text-center py-8">
-                          <p className="text-xs text-muted-foreground">Nenhum item</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </TabsContent>
-
-          {/* List View */}
-          <TabsContent value="list" className="space-y-4">
-            <div className="grid gap-4">
-              {filteredRefunds.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <div className="text-muted-foreground">
-                      <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-medium mb-2">Nenhum reembolso encontrado</h3>
-                      <p>Não há reembolsos que correspondam aos filtros selecionados.</p>
+          <div className="overflow-x-auto pb-4">
+            <div className="grid min-w-[900px] gap-4 sm:grid-cols-3 xl:grid-cols-6">
+              {kanbanColumns.map((column) => (
+                <Card key={column.status} className="flex flex-col rounded-2xl border border-border bg-card shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-2 w-2 rounded-full", column.indicator)} />
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                        {column.label}
+                      </p>
                     </div>
-                  </CardContent>
+                    <span className="text-xs font-semibold text-muted-foreground">{column.items.length}</span>
+                  </div>
+                  <div className="space-y-3 overflow-y-auto p-3">
+                    {column.items.map((refund) => (
+                      <Card
+                        key={refund.id}
+                        className="cursor-pointer border border-border bg-background shadow-xs transition hover:shadow-md"
+                        onClick={() => {
+                          setSelectedRefund(refund);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-brand-purple">{refund.protocol}</p>
+                              <p className="text-xs text-muted-foreground">Pedido {refund.orderId}</p>
+                            </div>
+                            <Badge className={cn("border-none text-xs font-semibold", column.chip)}>
+                              {statusConfig[refund.status].label}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <p className="font-medium text-foreground">{refund.customer.name}</p>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{methodConfig[refund.method].label}</span>
+                              <span>Risco {refund.riskScore}%</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-brand-green">
+                              {formatCurrency(refund.requestedAmount)}
+                            </span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {column.items.length === 0 && (
+                      <div className="py-10 text-center text-xs text-muted-foreground">Nenhum item</div>
+                    )}
+                  </div>
                 </Card>
-              ) : (
-                filteredRefunds.map((refund) => (
-                  <RefundCard key={refund.id} refund={refund} />
-                ))
-              )}
+              ))}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </TabsContent>
 
-      {/* Refund Details Modal */}
+        <TabsContent value="lista" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, protocolo ou pedido"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="rounded-xl border border-border bg-card pl-9 text-sm"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as RefundItem["status"] | "all")}>
+              <SelectTrigger className="w-full rounded-xl border border-border bg-card text-sm sm:w-56">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {statusOrder.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {statusConfig[status].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card className="border border-border bg-card shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border bg-secondary/60">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      <th className="p-4">Protocolo</th>
+                      <th className="p-4">Pedido</th>
+                      <th className="p-4">Cliente</th>
+                      <th className="p-4">Método</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4">Valor</th>
+                      <th className="p-4">Risco</th>
+                      <th className="p-4">Atualizado</th>
+                      <th className="p-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRefunds.map((refund) => (
+                      <tr
+                        key={refund.id}
+                        className="cursor-pointer border-b border-border/60 transition hover:bg-muted/40"
+                        onClick={() => {
+                          setSelectedRefund(refund);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <td className="p-4 text-sm font-medium text-foreground">{refund.protocol}</td>
+                        <td className="p-4 text-sm text-foreground">{refund.orderId}</td>
+                        <td className="p-4">
+                          <p className="text-sm font-medium text-foreground">{refund.customer.name}</p>
+                          {refund.customer.email && (
+                            <p className="text-xs text-muted-foreground">{refund.customer.email}</p>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={cn("border-none text-xs font-semibold", methodConfig[refund.method].chip)}>
+                            {methodConfig[refund.method].label}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge className={cn("border-none text-xs font-semibold", statusConfig[refund.status].chip)}>
+                            {statusConfig[refund.status].label}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-sm font-semibold text-brand-green">
+                          {formatCurrency(refund.requestedAmount)}
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">{refund.riskScore}%</td>
+                        <td className="p-4 text-sm text-muted-foreground">
+                          {new Date(refund.updatedAt).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="p-4">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredRefunds.length === 0 && (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <Search className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Nenhuma solicitação encontrada</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ajuste os filtros ou verifique outro período.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="resumo" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <TrendingUp className="h-4 w-4" />
+                  Taxa de aprovação
+                </div>
+                <p className="text-3xl font-bold text-foreground">
+                  {totalRefunds ? Math.round((completedCount / totalRefunds) * 100) : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">Comparação baseada no total de solicitações</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  Clientes impactados
+                </div>
+                <p className="text-3xl font-bold text-foreground">{refunds.length}</p>
+                <p className="text-xs text-muted-foreground">Total de clientes com solicitações de reembolso</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <DollarSign className="h-4 w-4" />
+                  Valor solicitado
+                </div>
+                <p className="text-3xl font-bold text-foreground">
+                  {formatCurrency(refunds.reduce((sum, refund) => sum + refund.requestedAmount, 0))}
+                </p>
+                <p className="text-xs text-muted-foreground">Soma de todos os reembolsos registrados</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  Última atualização
+                </div>
+                <p className="text-3xl font-bold text-foreground">
+                  {refunds.length ? new Date(refunds[0].updatedAt).toLocaleDateString("pt-BR") : "--"}
+                </p>
+                <p className="text-xs text-muted-foreground">Data da última mudança de status</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="rounded-2xl border border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-muted-foreground">Distribuição por status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {statusDistribution.map((item) => (
+                <div key={item.status} className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className={cn("h-2 w-2 rounded-full", statusConfig[item.status].indicator)} />
+                    <span className="text-sm font-medium text-foreground">{item.label}</span>
+                  </div>
+                  <div className="flex flex-1 items-center gap-3">
+                    <div className="h-2 flex-1 rounded-full bg-muted">
+                      <div
+                        className={cn("h-full rounded-full", statusConfig[item.status].indicator)}
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                    <span className="w-12 text-right text-sm font-semibold text-foreground">{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold text-muted-foreground">Motivos principais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {reasonSummary.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Sem dados suficientes para exibir.</p>
+                )}
+                {reasonSummary.map(({ reason, count }) => (
+                  <div key={reason} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground">{reason}</span>
+                      <span className="text-muted-foreground">{count}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-brand-purple"
+                        style={{ width: `${refunds.length ? (count / refunds.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border border-border bg-card shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold text-muted-foreground">Métodos utilizados</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {methodDistribution.map((item) => (
+                  <div key={item.method} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground">{item.label}</span>
+                      <span className="text-muted-foreground">{item.count}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-brand-blue"
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
       <RefundDetailsModal
         refund={selectedRefund}
         isOpen={isModalOpen}

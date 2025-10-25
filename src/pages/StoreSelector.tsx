@@ -141,24 +141,24 @@ const StoreSelector = () => {
 
           {/* Help Section */}
           {stores.length > 0 && (
-            <div className="max-w-3xl mx-auto px-4 sm:px-6">
-              <Card className="max-w-2xl mx-auto bg-muted/30">
-              <CardContent className="text-center py-8 bg-white rounded-lg">
-                <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Precisa de ajuda?</h3>
-                <p className="text-muted-foreground mb-6">
-                  Nossa equipe está pronta para ajudar você a otimizar suas operações
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button variant="outline">
-                    Central de Ajuda
-                  </Button>
-                  <Button>
-                    Falar com Suporte
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mx-auto max-w-3xl px-4 sm:px-6">
+              <Card className="mx-auto max-w-2xl border-border/60 bg-card/80 shadow-lg">
+                <CardContent className="rounded-xl border border-border/40 bg-background/60 py-8 text-center">
+                  <HelpCircle className="mx-auto mb-4 h-8 w-8 text-primary" />
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">Precisa de ajuda?</h3>
+                  <p className="mb-6 text-sm text-muted-foreground">
+                    Nossa equipe está pronta para ajudar você a otimizar suas operações.
+                  </p>
+                  <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                    <Button variant="outline" className="border-border bg-background/80">
+                      Central de Ajuda
+                    </Button>
+                    <Button className="bg-gradient-primary text-primary-foreground shadow-md hover:opacity-90">
+                      Falar com Suporte
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>

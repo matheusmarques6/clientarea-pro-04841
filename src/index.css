@@ -158,6 +158,14 @@ html, body, #root, #__next {
     --input: 0 0% 15%;
     --accent: 0 0% 20%;
     --accent-foreground: 0 0% 85%;
+    --sidebar-background: 240 6% 12%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 231 94% 61%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 7% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 20%;
+    --sidebar-ring: 231 94% 61%;
   }
 
   /* Store-specific color overrides can be added here */
@@ -352,7 +360,7 @@ html, body, #root, #__next {
   /* LAYOUT SYSTEM - Centralized Container System */
   
   /* For sidebar layouts - centers content within the main area */
-  .layout-container {
+.layout-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem;
@@ -399,5 +407,28 @@ html, body, #root, #__next {
     .layout-narrow {
       max-width: 100%;
     }
+  }
+
+  .kanban-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) transparent;
+  }
+
+  .kanban-scroll::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 999px;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary-hover)) 100%);
+    border-radius: 999px;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-hover));
   }
 }

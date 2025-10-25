@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft } from 'lucide-react';
+import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,24 +11,25 @@ import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
 import { TopFlows } from '@/components/dashboard/TopFlows';
 import { CustomerMetrics } from '@/components/dashboard/CustomerMetrics';
 import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
-import { TodaySalesCard } from '@/components/dashboard/TodaySalesCard';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
   
   const { store, isLoading: storeLoading } = useStore(id!);
-  const {
-    kpis,
-    chartData,
+  const { 
+    kpis, 
+    chartData, 
     klaviyoData,
+    klaviyoSnapshotInfo,
     rawKlaviyoData,
-    topCampaigns,
+    topCampaigns, 
     topFlows,
-    isLoading: dataLoading,
-    isSyncing,
+    isLoading: dataLoading, 
+    isSyncing, 
     needsSync,
-    syncData,
+    syncData, 
+    refetch 
   } = useDashboardData(id!, period);
 
   if (storeLoading || dataLoading) {
@@ -69,6 +70,15 @@ const StoreDashboard = () => {
     return `${symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const periodLabelMap: Record<string, string> = {
+    today: 'Hoje',
+    '7d': 'Últimos 7 dias',
+    '14d': 'Últimos 14 dias',
+    '30d': 'Últimos 30 dias',
+  };
+
+  const periodLabel = periodLabelMap[period] || periodLabelMap['7d'];
+
   return (
     <div className="px-2 py-6 space-y-6">
       {/* Header */}
@@ -76,26 +86,26 @@ const StoreDashboard = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {period === '30d' ? 'Últimos 30 dias' : period === '14d' ? 'Últimos 14 dias' : 'Últimos 7 dias'} • {kpis?.currency || store?.currency || 'BRL'}
+            {periodLabel} • {kpis?.currency || store?.currency || 'BRL'}
           </p>
         </div>
         
         <div className="flex gap-2">
-          <Button
+          <Button 
             onClick={syncData}
             disabled={isSyncing}
             variant="outline"
             size="sm"
             className="relative"
           >
-            {needsSync && !isSyncing && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-              </span>
-            )}
             <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            {needsSync && !isSyncing && (
+              <span
+                className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-warning animate-pulse"
+                aria-label="Dados desatualizados, sincronize para atualizar."
+              />
+            )}
           </Button>
         </div>
         
@@ -104,6 +114,7 @@ const StoreDashboard = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="today">Hoje</SelectItem>
             <SelectItem value="7d">7 dias</SelectItem>
             <SelectItem value="14d">14 dias</SelectItem>
             <SelectItem value="30d">30 dias</SelectItem>
@@ -111,22 +122,13 @@ const StoreDashboard = () => {
         </Select>
       </div>
 
-      {/* Today's Sales - Always show current day revenue */}
-      {kpis && kpis.today_sales !== undefined && (
-        <TodaySalesCard
-          todaySales={kpis.today_sales}
-          averageDailySales={kpis.average_daily_sales}
-          currency={kpis.currency}
-        />
-      )}
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
-                <DollarSign className="w-5 h-5 text-brand-600" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                <DollarSign className="w-5 h-5 text-primary" />
               </div>
               <div className="flex items-center text-success text-sm font-medium">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -135,16 +137,16 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Faturamento Total</p>
-              <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(kpis?.total_revenue || 0)}</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(kpis?.total_revenue || 0)}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-brand-600" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                <TrendingUp className="w-5 h-5 text-primary" />
               </div>
               <div className="flex items-center text-success text-sm font-medium">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -153,18 +155,18 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Faturamento Convertfy</p>
-              <p className="text-2xl font-bold text-ink mt-1">
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {formatCurrency(klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0))}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg">
-                <Percent className="w-5 h-5 text-brand-600" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                <Percent className="w-5 h-5 text-primary" />
               </div>
               <div className="flex items-center text-success text-sm font-medium">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -173,7 +175,7 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Margem CFY</p>
-              <p className="text-2xl font-bold text-ink mt-1">
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {(() => {
                   const totalRevenue = kpis?.total_revenue || 0;
                   const convertfyRevenue = klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0);
@@ -184,11 +186,11 @@ const StoreDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
-              <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg">
-                <ShoppingBag className="w-5 h-5 text-orange-500" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/10">
+                <ShoppingBag className="w-5 h-5 text-warning" />
               </div>
               <div className="flex items-center text-success text-sm font-medium">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -197,7 +199,7 @@ const StoreDashboard = () => {
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Pedidos Convertfy</p>
-              <p className="text-2xl font-bold text-ink mt-1">
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {klaviyoData ? (klaviyoData.conversions_campaigns || 0) + (klaviyoData.conversions_flows || 0) : (kpis?.order_count || 0)}
               </p>
             </div>
@@ -206,11 +208,11 @@ const StoreDashboard = () => {
       </div>
 
       {/* Enhanced Convertfy Impact Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-stretch">
         {/* Main Impact Card */}
-        <Card className="glass-card bg-gradient-premium shadow-premium animate-hover relative overflow-hidden lg:col-span-2">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5"></div>
-          <CardContent className="p-6 sm:p-8 relative">
+        <Card className="relative overflow-hidden border border-border bg-card shadow-lg lg:col-span-2">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent dark:from-primary/30 dark:via-primary/15 opacity-80"></div>
+          <CardContent className="relative p-6 sm:p-8">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
               <div className="text-center lg:text-left">
                 <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
@@ -222,40 +224,60 @@ const StoreDashboard = () => {
                 {klaviyoData && (
                   <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <div className="font-medium text-blue-600">Campanhas</div>
-                      <div className="text-lg font-semibold">{formatCurrency(klaviyoData.revenue_campaigns || 0)}</div>
+                      <div className="font-medium text-primary">Campanhas</div>
+                      <div className="text-lg font-semibold text-foreground">{formatCurrency(klaviyoData.revenue_campaigns || 0)}</div>
                     </div>
                     <div>
-                      <div className="font-medium text-purple-600">Flows</div>
-                      <div className="text-lg font-semibold">{formatCurrency(klaviyoData.revenue_flows || 0)}</div>
+                      <div className="font-medium text-primary">Flows</div>
+                      <div className="text-lg font-semibold text-foreground">{formatCurrency(klaviyoData.revenue_flows || 0)}</div>
                     </div>
                   </div>
                 )}
               </div>
               <div className="text-center lg:text-right">
-                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-premium leading-none mb-2">
+                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-primary leading-none mb-2">
                   {(() => {
                     const totalRevenue = kpis?.total_revenue || 0;
-                    const convertfyRevenue = klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0);
+                    const convertfyRevenue = klaviyoData
+                      ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0)
+                      : (kpis?.convertfy_revenue || 0);
                     return totalRevenue > 0 ? `${((convertfyRevenue / totalRevenue) * 100).toFixed(1)}%` : '0.0%';
                   })()}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {formatCurrency(klaviyoData ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0) : (kpis?.convertfy_revenue || 0))} de {formatCurrency(kpis?.total_revenue || 0)}
+                  {formatCurrency(
+                    klaviyoData
+                      ? (klaviyoData.revenue_campaigns || 0) + (klaviyoData.revenue_flows || 0)
+                      : (kpis?.convertfy_revenue || 0)
+                  )}{' '}
+                  de {formatCurrency(kpis?.total_revenue || 0)}
                 </div>
               </div>
             </div>
+            {klaviyoSnapshotInfo && (
+              <div
+                className={`mt-4 text-xs flex items-center gap-2 ${
+                  klaviyoSnapshotInfo.isFallback ? 'text-warning' : 'text-muted-foreground'
+                }`}
+              >
+                {klaviyoSnapshotInfo.isFallback && <Info className="h-3.5 w-3.5" />}
+                <span>
+                  {klaviyoSnapshotInfo.isFallback
+                    ? `Sem dados sincronizados para ${periodLabel.toLowerCase()}. Exibindo snapshot ${klaviyoSnapshotInfo.label}.`
+                    : `Snapshot ${klaviyoSnapshotInfo.label}`}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Customer Metrics - only show if KPI data exists */}
         {kpis && (
-          <div className="space-y-4">
-            <CustomerMetrics
-              customersDistinct={kpis.customers_distinct}
-              customersReturning={kpis.customers_returning}
-            />
-          </div>
+          <CustomerMetrics
+            customersDistinct={kpis.customers_distinct}
+            customersReturning={kpis.customers_returning}
+            layout="stacked"
+          />
         )}
       </div>
 
@@ -283,44 +305,61 @@ const StoreDashboard = () => {
       )}
 
       {/* Top Flows - only show if there are real flows */}
-      {(topFlows.byRevenue.length > 0 || topFlows.byPerformance.length > 0) && (
+      {(topFlows.byRevenue.length > 0 || topFlows.byPerformance.length > 0) ? (
         <TopFlows 
           flowsByRevenue={topFlows.byRevenue} 
           flowsByPerformance={topFlows.byPerformance} 
           currency={kpis?.currency} 
         />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Top Flows
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-center py-8">
+              Sincronize ou ajuste o período para visualizar os flows do Klaviyo
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Chart - Faturamento por Dia */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Faturamento por Dia</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="#8884d8"
-                strokeWidth={2}
-                name="Total"
-              />
-              <Line
-                type="monotone"
-                dataKey="convertfy"
-                stroke="#6366f1"
-                strokeWidth={2}
-                name="Convertfy"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Line Chart */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>Faturamento por Dia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  name="Total"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="convertfy" 
+                  stroke="#6366f1" 
+                  strokeWidth={2}
+                  name="Convertfy"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Métricas Detalhadas do Klaviyo */}
       <DetailedKlaviyoMetrics rawData={rawKlaviyoData} />

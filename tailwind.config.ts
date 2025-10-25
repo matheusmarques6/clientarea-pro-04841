@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["'Plus Jakarta Sans'", "Inter", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -20,10 +23,14 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         brand: {
-          400: "#6A86FF",
-          500: "#3E5BEE", 
-          600: "#2B46DF",
-          700: "#1E2A6E",
+          purple: "#6366F1",
+          "purple-light": "#EDE9FE",
+          green: "#10B981",
+          "green-light": "#D1FAE5",
+          orange: "#F59E0B",
+          "orange-light": "#FEF3C7",
+          blue: "#0EA5E9",
+          "blue-light": "#E0F2FE",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

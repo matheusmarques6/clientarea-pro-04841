@@ -1,11 +1,12 @@
 import { Outlet, useParams } from 'react-router-dom';
-import { AppSidebar } from './AppSidebar';
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useStore } from '@/hooks/useStores';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AppSidebar } from "./AppSidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useStore } from "@/hooks/useStores";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "./ThemeToggle";
 
 const AppLayout = () => {
   const { id: storeId } = useParams();
@@ -13,47 +14,47 @@ const AppLayout = () => {
   const { store } = useStore(storeId!);
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-6">
-            {/* Left side - Sidebar trigger and page title */}
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="text-lg font-semibold text-foreground">
-                {store ? store.name : 'Dashboard'}
+    <div className="min-h-screen flex w-full bg-background text-foreground">
+      <AppSidebar />
+      <SidebarInset className="flex-1 flex flex-col">
+        <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-border bg-background/90 px-6 backdrop-blur">
+          <div className="flex items-center gap-4">
+            <SidebarTrigger className="md:hidden h-10 w-10 rounded-lg border border-border text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                {store ? "Loja conectada" : "Bem-vindo"}
+              </span>
+              <h1 className="text-xl font-semibold leading-tight">
+                {store ? store.name : "Selecione uma loja"}
               </h1>
             </div>
+          </div>
 
-            {/* Right side - Actions and profile */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 ml-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-muted text-muted-foreground text-sm">
-                    U
-                  </AvatarFallback>
-                </Avatar>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={signOut}
-                  className="p-2 text-muted-foreground hover:text-foreground"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </header>
-          
-          <main className="flex-1 overflow-auto">
-            <div className="p-5 md:p-6">
-              <Outlet />
-            </div>
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Avatar className="h-9 w-9 border border-border shadow-sm">
+              <AvatarFallback className="bg-secondary text-xs font-semibold uppercase text-muted-foreground">
+                {store ? store.name.charAt(0) : "U"}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="layout-container">
+            <Outlet />
+          </div>
+        </main>
+      </SidebarInset>
+    </div>
   );
 };
 

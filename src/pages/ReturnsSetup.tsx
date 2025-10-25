@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supportedLanguages } from '@/lib/translations';
 import { useStore } from '@/hooks/useStores';
@@ -524,46 +523,15 @@ const ReturnsSetup = () => {
                     </Select>
                   </div>
 
-                  <Tabs defaultValue="pt" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="pt">🇧🇷 Português</TabsTrigger>
-                      <TabsTrigger value="en">🇺🇸 English</TabsTrigger>
-                      <TabsTrigger value="es">🇪🇸 Español</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="pt" className="space-y-3">
-                      <div>
-                        <Label className="text-foreground text-sm font-medium">Mensagem de Confirmação (Português)</Label>
-                        <Textarea
-                          value={config.mensagemPt}
-                          onChange={(e) => setConfig({...config, mensagemPt: e.target.value})}
-                          className="mt-2 min-h-[80px]"
-                          placeholder="Sua solicitação foi recebida e está sendo analisada..."
-                        />
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="en" className="space-y-3">
-                      <div>
-                        <Label className="text-foreground text-sm font-medium">Confirmation Message (English)</Label>
-                        <Textarea
-                          value={config.mensagemEn}
-                          onChange={(e) => setConfig({...config, mensagemEn: e.target.value})}
-                          className="mt-2 min-h-[80px]"
-                          placeholder="Your request has been received and is being reviewed..."
-                        />
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="es" className="space-y-3">
-                      <div>
-                        <Label className="text-foreground text-sm font-medium">Mensaje de Confirmación (Español)</Label>
-                        <Textarea
-                          value={config.mensagemEs}
-                          onChange={(e) => setConfig({...config, mensagemEs: e.target.value})}
-                          className="mt-2 min-h-[80px]"
-                          placeholder="Su solicitud ha sido recibida y está siendo revisada..."
-                        />
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+                  <div className="space-y-3">
+                    <Label className="text-foreground text-sm font-medium">Mensagem de Confirmação</Label>
+                    <Textarea
+                      value={config.mensagemPt}
+                      onChange={(e) => setConfig({ ...config, mensagemPt: e.target.value })}
+                      className="mt-2 min-h-[80px]"
+                      placeholder="Sua solicitação foi recebida e está sendo analisada..."
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

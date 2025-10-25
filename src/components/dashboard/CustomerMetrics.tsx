@@ -1,12 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CustomerMetricsProps {
   customersDistinct: number;
   customersReturning: number;
+  layout?: "grid" | "stacked";
 }
 
-export const CustomerMetrics = ({ customersDistinct, customersReturning }: CustomerMetricsProps) => {
+export const CustomerMetrics = ({
+  customersDistinct,
+  customersReturning,
+  layout = "grid",
+}: CustomerMetricsProps) => {
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR').format(value);
   };
@@ -16,9 +22,12 @@ export const CustomerMetrics = ({ customersDistinct, customersReturning }: Custo
     ? ((customersReturning / customersDistinct) * 100).toFixed(1)
     : '0.0';
 
+  const wrapperClass =
+    layout === "stacked" ? "flex flex-col gap-4 h-full" : "grid gap-4 md:grid-cols-2";
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Card>
+    <div className={cn(wrapperClass)}>
+      <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Clientes Novos
@@ -38,7 +47,7 @@ export const CustomerMetrics = ({ customersDistinct, customersReturning }: Custo
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Clientes Recorrentes

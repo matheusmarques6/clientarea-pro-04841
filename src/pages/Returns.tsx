@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Plus, Filter, Search, ExternalLink, Settings, User, Calendar, Menu } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import { useReturns as useReturnsHook } from '@/hooks/useReturns';
 import { useStores } from '@/hooks/useStores';
 import type { ReturnRequest as UIReturn } from '@/types';
 import ReturnDetailsModal from '@/components/returns/ReturnDetailsModal';
+import NewReturnModal from '@/components/returns/NewReturnModal';
+import { supabase } from '@/integrations/supabase/client';
 
 // Helpers: map DB codes to UI labels (PT) and back
 const statusLabel = (status: string): UIReturn['status'] => {
@@ -48,6 +50,26 @@ const originLabel = (origin?: string): 'Interna' | 'Link público' => {
   return 'Interna'; // fallback to ensure type safety
 };
 
+const mapDbReturnToUI = (r: any): UIReturn => ({
+  id: r.id,
+  pedido: r.order_code,
+  cliente: r.customer_name,
+  tipo: r.type === 'exchange' ? 'Troca' : r.type === 'refund' ? 'Reembolso' : 'Devolução',
+  motivo: r.reason || 'Não informado',
+  valor: Number(r.amount || 0),
+  status: statusLabel(r.status),
+  origem: originLabel(r.origin),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+  timeline: (r.return_events || []).map((e: any) => ({
+    id: e.id,
+    timestamp: e.created_at,
+    action: statusLabel(e.to_status),
+    description: e.reason || 'Status alterado',
+    user: e.user_id || 'Sistema',
+  })),
+});
+
 const Returns = () => {
   const { id: storeId } = useParams();
   const { toast } = useToast();
@@ -62,29 +84,17 @@ const Returns = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedReturn, setSelectedReturn] = useState<UIReturn | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [kanbanData, setKanbanData] = useState<UIReturn[]>([]);
 
   // Adapt DB rows to UI shape expected by the page and modal
   const uiReturns: UIReturn[] = useMemo(() => {
-    return (rawReturns || []).map((r: any) => ({
-      id: r.id,
-      pedido: r.order_code,
-      cliente: r.customer_name,
-      tipo: r.type === 'exchange' ? 'Troca' : 'Devolução', // Map DB values to UI labels
-      motivo: r.reason || 'Não informado',
-      valor: Number(r.amount || 0),
-      status: statusLabel(r.status),
-      origem: originLabel(r.origin),
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-      timeline: (r.return_events || []).map((e: any) => ({
-        id: e.id,
-        timestamp: e.created_at,
-        action: statusLabel(e.to_status),
-        description: e.reason || 'Status alterado',
-        user: e.user_id || 'Sistema',
-      })),
-    }));
+    return (rawReturns || []).map(mapDbReturnToUI);
   }, [rawReturns]);
+
+  useEffect(() => {
+    setKanbanData(uiReturns);
+  }, [uiReturns]);
 
   if (!store) {
     return <div>Loja não encontrada</div>;
@@ -125,10 +135,57 @@ const Returns = () => {
     setIsModalOpen(true);
   };
 
-  const handleStatusUpdate = (id: string, newStatusLabel: UIReturn['status']) => {
-    // TODO: Implementar updateStatus quando o hook estiver completo
-    setSelectedReturn((prev) => (prev ? { ...prev, status: newStatusLabel } : null));
-    toast({ title: 'Status atualizado!', description: `Status alterado para: ${newStatusLabel}` });
+  const handleStatusUpdate = async (
+    id: string,
+    newStatusLabel: UIReturn['status'],
+    previousStatusLabel?: UIReturn['status']
+  ) => {
+    setKanbanData((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: newStatusLabel } : item))
+    );
+    if (selectedReturn?.id === id) {
+      setSelectedReturn((prev) => (prev ? { ...prev, status: newStatusLabel } : null));
+    }
+
+    try {
+      const { error } = await supabase
+        .from('returns')
+        .update({
+          status: statusCode(newStatusLabel),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({ title: 'Status atualizado!', description: `Status alterado para: ${newStatusLabel}` });
+      refetch();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setKanbanData((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status: previousStatusLabel || item.status } : item))
+      );
+      toast({
+        title: 'Erro ao atualizar',
+        description: 'Não foi possível atualizar o status. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDragStart = (event: React.DragEvent, itemId: string) => {
+    event.dataTransfer.setData('text/plain', itemId);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (event: React.DragEvent, newStatusLabel: UIReturn['status']) => {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData('text/plain');
+    const draggedCard = kanbanData.find((item) => item.id === itemId);
+    if (!draggedCard || draggedCard.status === newStatusLabel) return;
+    handleStatusUpdate(itemId, newStatusLabel, draggedCard.status);
   };
 
   // Columns using UI labels
@@ -140,7 +197,7 @@ const Returns = () => {
     { id: 'recebida', title: 'Recebida em CD', status: 'Recebida em CD', color: 'bg-purple-200 text-purple-900 border-purple-300' },
     { id: 'concluida', title: 'Concluída', status: 'Concluída', color: 'bg-emerald-200 text-emerald-900 border-emerald-300' },
     { id: 'recusada', title: 'Recusada', status: 'Recusada', color: 'bg-red-200 text-red-900 border-red-300' },
-  ].map((col) => ({ ...col, items: uiReturns.filter((r) => r.status === (col as any).status) }));
+  ].map((col) => ({ ...col, items: kanbanData.filter((r) => r.status === (col as any).status) }));
 
   const filteredColumns = columns.map((column) => ({
     ...column,
@@ -161,37 +218,45 @@ const Returns = () => {
   };
 
   const KanbanCard = ({ item }: { item: UIReturn }) => (
-    <Card className="bg-white border border-border shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer group" onClick={() => handleReturnClick(item)}>
-      <CardContent className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+    <Card
+      draggable
+      onDragStart={(event) => handleDragStart(event, item.id)}
+      className="bg-background border border-border/70 shadow-sm hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing group rounded-2xl"
+      onClick={() => handleReturnClick(item)}
+    >
+      <CardContent className="p-4 sm:p-5 space-y-3 sm:space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="font-semibold text-brand-600 text-sm truncate max-w-[120px] sm:max-w-none">{item.id}</p>
-            <p className="text-xs text-ink-3 truncate">{item.pedido}</p>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Protocolo</p>
+            <p className="font-semibold text-primary text-sm sm:text-base truncate max-w-[150px] sm:max-w-none font-mono">
+              {item.id.length > 12 ? `${item.id.slice(0, 8)}…${item.id.slice(-4)}` : item.id}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">Pedido #{item.pedido}</p>
           </div>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <ExternalLink className="h-3 w-3 text-ink-3" />
+            <ExternalLink className="h-3 w-3 text-muted-foreground" />
           </Button>
         </div>
 
         <div className="flex items-center gap-2 min-w-0">
-          <User className="h-3 w-3 text-ink-3 shrink-0" />
-          <span className="text-sm font-medium text-ink truncate">{item.cliente}</span>
+          <User className="h-3 w-3 text-muted-foreground shrink-0" />
+          <span className="text-sm sm:text-base font-medium text-foreground truncate">{item.cliente}</span>
         </div>
 
         <div className="space-y-2">
           <Badge className="bg-warning/10 text-warning border-warning/20 text-xs font-medium px-2 py-0.5">{item.tipo}</Badge>
-          <p className="text-xs text-ink-2 leading-relaxed line-clamp-2">Motivo: {item.motivo || '-'}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2">Motivo: {item.motivo || '-'}</p>
         </div>
 
         <div className="flex items-center justify-between pt-2 gap-2">
           <div className="flex items-center gap-1 min-w-0">
-            <span className="text-xs text-ink-3">$</span>
+            <span className="text-xs text-muted-foreground">$</span>
             <span className="text-sm font-semibold text-success truncate">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Calendar className="h-3 w-3 text-ink-3" />
-            <span className="text-xs text-ink-3 hidden sm:inline">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-            <span className="text-xs text-ink-3 sm:hidden">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground hidden sm:inline">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            <span className="text-xs text-muted-foreground sm:hidden">{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
           </div>
         </div>
       </CardContent>
@@ -199,20 +264,21 @@ const Returns = () => {
   );
 
   return (
-    <div className="min-h-screen bg-bg-page">
+    <div className="min-h-screen bg-background">
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-ink truncate">Trocas & Devoluções</h1>
-            <p className="text-ink-2 text-sm">{uiReturns.length} solicitações • {statusCounts.pendentes} pendentes</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground truncate">Trocas & Devoluções</h1>
+            <p className="text-muted-foreground text-sm">{uiReturns.length} solicitações • {statusCounts.pendentes} pendentes</p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" size={isMobile ? "sm" : "default"} className="flex-1 sm:flex-initial">
-              <Settings className="h-4 w-4" />
-              {!isMobile && <span className="ml-2">Configurar</span>}
-            </Button>
-            <Button size={isMobile ? "sm" : "default"} className="flex-1 sm:flex-initial">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              size={isMobile ? "sm" : "default"}
+              className="flex-1 sm:flex-initial"
+              disabled={!storeId}
+            >
               <Plus className="h-4 w-4" />
               {!isMobile && <span className="ml-2">Nova Solicitação</span>}
             </Button>
@@ -221,49 +287,43 @@ const Returns = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="bg-card border border-border shadow-sm">
             <CardContent className="p-3 sm:p-4 text-center">
               <div className="text-lg sm:text-2xl font-bold text-orange-500">{statusCounts.abertas}</div>
-              <div className="text-xs sm:text-sm text-ink-2">Abertas</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Abertas</div>
             </CardContent>
           </Card>
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="bg-card border border-border shadow-sm">
             <CardContent className="p-3 sm:p-4 text-center">
               <div className="text-lg sm:text-2xl font-bold text-green-500">{statusCounts.aprovadas}</div>
-              <div className="text-xs sm:text-sm text-ink-2">Aprovadas</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Aprovadas</div>
             </CardContent>
           </Card>
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="bg-card border border-border shadow-sm">
             <CardContent className="p-3 sm:p-4 text-center">
               <div className="text-lg sm:text-2xl font-bold text-blue-500">{statusCounts.concluidas}</div>
-              <div className="text-xs sm:text-sm text-ink-2">Concluídas</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Concluídas</div>
             </CardContent>
           </Card>
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="bg-card border border-border shadow-sm">
             <CardContent className="p-3 sm:p-4 text-center">
-              <div className="text-lg sm:text-2xl font-bold text-gray-500">{statusCounts.recusadas}</div>
-              <div className="text-xs sm:text-sm text-ink-2">Recusadas</div>
+              <div className="text-lg sm:text-2xl font-bold text-muted-foreground">{statusCounts.recusadas}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Recusadas</div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue={isMobile ? "lista" : "kanban"} className="space-y-4 sm:space-y-6">
-          <TabsList className="inline-flex h-10 sm:h-12 items-center justify-center rounded-xl bg-background border border-border/80 p-1 sm:p-1.5 text-muted-foreground w-full shadow-lg shadow-black/5">
-            <TabsTrigger value="kanban" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
-              <span className="relative z-10">Kanban</span>
+          <TabsList className="flex w-full rounded-2xl border border-border bg-card/80 text-muted-foreground shadow-lg shadow-black/5 p-1 sm:p-1.5 gap-1">
+            <TabsTrigger value="kanban" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+              Kanban
             </TabsTrigger>
-            <TabsTrigger value="lista" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
-              <span className="relative z-10">Lista</span>
+            <TabsTrigger value="lista" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+              Lista
             </TabsTrigger>
-            <TabsTrigger value="resumo" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg hover:bg-muted/60 hover:text-foreground group">
-              <span className="relative z-10">Resumo</span>
+            <TabsTrigger value="resumo" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+              Resumo
             </TabsTrigger>
-            <Link to={`/store/${storeId}/returns/setup`}>
-              <Button variant="ghost" size="sm" className="relative px-2 sm:px-5 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out hover:bg-muted/60 hover:text-foreground rounded-lg">
-                <Settings className="h-4 w-4 mr-1" />
-                <span className="relative z-10">Configurar</span>
-              </Button>
-            </Link>
           </TabsList>
 
           <TabsContent value="kanban" className="space-y-4 sm:space-y-6">
@@ -275,13 +335,13 @@ const Returns = () => {
                   placeholder={isMobile ? "Buscar..." : "Buscar por código, pedido ou cliente..."} 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="pl-8 bg-white border-gray-200 text-sm" 
+                  className="pl-10 pr-4 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground placeholder:text-muted-foreground shadow-inner shadow-black/10" 
                 />
               </div>
               {!isMobile && (
                 <>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                    <SelectTrigger className="w-40 sm:w-48 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -294,7 +354,7 @@ const Returns = () => {
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                    <SelectTrigger className="w-40 sm:w-48 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground">
                       <SelectValue placeholder="Tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -306,7 +366,7 @@ const Returns = () => {
                 </>
               )}
               {isMobile && (
-                <Button variant="outline" size="sm" className="w-full bg-white border-gray-200">
+                <Button variant="outline" size="sm" className="w-full h-12 bg-card border border-border/70 text-foreground rounded-2xl">
                   <Filter className="h-4 w-4 mr-2" />
                   Filtros
                 </Button>
@@ -314,21 +374,26 @@ const Returns = () => {
             </div>
 
             {/* Kanban Board */}
-            <div className="overflow-x-auto pb-4">
+            <div className="overflow-x-auto pb-4 kanban-scroll">
               <div className={`grid gap-3 sm:gap-4 min-h-[60vh] sm:min-h-[70vh] ${
                 isMobile 
                   ? 'grid-cols-2 min-w-[600px]' 
                   : 'grid-cols-7 min-w-[1400px]'
               }`}>
                 {(isMobile ? filteredColumns.slice(0, 4) : filteredColumns).map((column) => (
-                  <div key={column.id} className={`bg-white rounded-xl border border-border shadow-xs ${
+                  <div
+                    key={column.id}
+                    className={`bg-card/80 rounded-2xl border border-border/70 shadow-sm ${
                     isMobile ? 'min-w-[280px]' : 'min-w-[200px]'
-                  }`}>
-                    <div className="p-3 sm:p-4 border-b border-border">
+                  }`}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleDrop(e, (column as any).status)}
+                  >
+                    <div className="p-3 sm:p-4 border-b border-border/70">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xs sm:text-sm font-semibold text-ink truncate">{column.title}</h3>
-                        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-ink-3/10 rounded-full shrink-0">
-                          <span className="text-xs font-medium text-ink-2">{(column as any).items.length}</span>
+                        <h3 className="text-xs sm:text-sm font-semibold text-foreground truncate">{column.title}</h3>
+                        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-muted/60 rounded-full shrink-0">
+                          <span className="text-xs font-medium text-muted-foreground">{(column as any).items.length}</span>
                         </div>
                       </div>
                     </div>
@@ -338,7 +403,7 @@ const Returns = () => {
                       ))}
                       {(column as any).items.length === 0 && (
                         <div className="text-center py-8 sm:py-12">
-                          <p className="text-xs sm:text-sm text-ink-3">Nenhum item</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Nenhum item</p>
                         </div>
                       )}
                     </div>
@@ -357,13 +422,13 @@ const Returns = () => {
                   placeholder={isMobile ? "Buscar..." : "Buscar por código, pedido ou cliente..."} 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="pl-8 bg-white border-gray-200 text-sm" 
+                  className="pl-10 pr-4 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground placeholder:text-muted-foreground shadow-inner shadow-black/10" 
                 />
               </div>
               {!isMobile && (
                 <>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                    <SelectTrigger className="w-40 sm:w-48 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -376,7 +441,7 @@ const Returns = () => {
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-40 sm:w-48 bg-white border-gray-200">
+                    <SelectTrigger className="w-40 sm:w-48 h-12 bg-card border border-border/70 rounded-2xl text-sm sm:text-base text-foreground">
                       <SelectValue placeholder="Tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -385,7 +450,7 @@ const Returns = () => {
                       <SelectItem value="Troca">Troca</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" className="bg-white border-gray-200">
+                  <Button variant="outline" className="h-12 bg-card border border-border/70 text-foreground rounded-2xl">
                     <Filter className="h-4 w-4 mr-2" />
                     Exportar
                   </Button>
@@ -393,11 +458,11 @@ const Returns = () => {
               )}
               {isMobile && (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 bg-white border-gray-200">
+                  <Button variant="outline" size="sm" className="flex-1 h-12 bg-card border.border-border/70 text-foreground rounded-2xl">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtros
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 bg-white border-gray-200">
+                  <Button variant="outline" size="sm" className="flex-1 h-12 bg-card border border-border/70 text-foreground rounded-2xl">
                     <Menu className="h-4 w-4 mr-2" />
                     Menu
                   </Button>
@@ -407,9 +472,9 @@ const Returns = () => {
 
             {/* Header with title and count */}
             <div className="flex items-center justify-between">
-              <h2 className="text-base sm:text-lg font-semibold text-ink">Solicitações ({uiReturns.length})</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">Solicitações ({uiReturns.length})</h2>
               {!isMobile && (
-                <Button variant="outline" className="bg-white border-gray-200">
+                <Button variant="outline" className="bg-card border border-border text-foreground">
                   <Filter className="h-4 w-4 mr-2" />
                   Exportar
                 </Button>
@@ -417,7 +482,7 @@ const Returns = () => {
             </div>
 
             {/* Lista */}
-            <Card className="bg-white border border-gray-200 shadow-sm">
+            <Card className="bg-card border border-border shadow-sm">
               <CardContent className="p-0">
                 {isMobile ? (
                   // Mobile Card Layout
@@ -433,12 +498,12 @@ const Returns = () => {
                         return matchesSearch && matchesStatus && matchesType;
                       })
                       .map((item) => (
-                        <Card key={item.id} className="border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleReturnClick(item)}>
+                        <Card key={item.id} className="border border-border shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleReturnClick(item)}>
                           <CardContent className="p-4 space-y-3">
                             <div className="flex items-start justify-between">
                               <div className="space-y-1 min-w-0 flex-1">
                                 <p className="font-semibold text-brand-600 text-sm truncate">{item.id}</p>
-                                <p className="text-xs text-ink-3 truncate">Pedido: {item.pedido}</p>
+                                <p className="text-xs text-muted-foreground truncate">Pedido: {item.pedido}</p>
                               </div>
                               <Badge variant="secondary" className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0 shrink-0`}>
                                 {item.tipo}
@@ -446,16 +511,16 @@ const Returns = () => {
                             </div>
                             
                             <div className="space-y-2">
-                              <p className="text-sm font-medium text-ink truncate">{item.cliente}</p>
+                              <p className="text-sm font-medium text-foreground truncate">{item.cliente}</p>
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-ink-2">{item.status}</span>
+                                <span className="text-sm text-muted-foreground">{item.status}</span>
                                 <span className="font-medium text-green-600">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
                               </div>
                             </div>
                             
-                            <div className="flex items-center justify-between text-xs text-ink-3">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                              <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600'} text-xs`}>
+                              <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-border text-muted-foreground'} text-xs`}>
                                 {item.origem === 'Link público' ? 'Portal' : item.origem}
                               </Badge>
                             </div>
@@ -467,17 +532,17 @@ const Returns = () => {
                   // Desktop Table Layout
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="border-b border-gray-200 bg-gray-50">
+                      <thead className="border-b border-border bg-muted">
                         <tr className="text-left">
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Código</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Pedido</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Cliente</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Tipo</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Status</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Valor</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Data</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm">Origem</th>
-                          <th className="p-3 sm:p-4 font-medium text-ink-2 text-xs sm:text-sm"></th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Código</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Pedido</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Cliente</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Tipo</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Status</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Valor</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Data</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm">Origem</th>
+                          <th className="p-3 sm:p-4 font-medium text-muted-foreground text-xs sm:text-sm"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -492,15 +557,15 @@ const Returns = () => {
                             return matchesSearch && matchesStatus && matchesType;
                           })
                           .map((item) => (
-                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => handleReturnClick(item)}>
+                            <tr key={item.id} className="border-b border-gray-100 hover:bg-muted cursor-pointer transition-colors" onClick={() => handleReturnClick(item)}>
                               <td className="p-3 sm:p-4">
                                 <span className="font-medium text-brand-600 text-sm truncate block max-w-[100px]">{item.id}</span>
                               </td>
                               <td className="p-3 sm:p-4">
-                                <span className="text-ink text-sm truncate block max-w-[120px]">{item.pedido}</span>
+                                <span className="text-foreground text-sm truncate block max-w-[120px]">{item.pedido}</span>
                               </td>
                               <td className="p-3 sm:p-4">
-                                <span className="text-ink text-sm truncate block max-w-[150px]">{item.cliente}</span>
+                                <span className="text-foreground text-sm truncate block max-w-[150px]">{item.cliente}</span>
                               </td>
                               <td className="p-3 sm:p-4">
                                 <Badge variant="secondary" className={`${item.tipo === 'Devolução' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} border-0 text-xs`}>
@@ -508,24 +573,24 @@ const Returns = () => {
                                 </Badge>
                               </td>
                               <td className="p-3 sm:p-4">
-                                <span className="text-ink text-xs sm:text-sm">{item.status}</span>
+                                <span className="text-foreground text-xs sm:text-sm">{item.status}</span>
                               </td>
                               <td className="p-3 sm:p-4">
                                 <span className="font-medium text-green-600 text-sm">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
                               </td>
                               <td className="p-3 sm:p-4">
-                                <span className="text-ink-3 text-xs sm:text-sm">
+                                <span className="text-muted-foreground text-xs sm:text-sm">
                                   {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
                               </td>
                               <td className="p-3 sm:p-4">
-                                <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600'} text-xs`}>
+                                <Badge variant="outline" className={`${item.origem === 'Link público' ? 'border-green-200 text-green-700 bg-green-50' : 'border-border text-muted-foreground'} text-xs`}>
                                   {item.origem === 'Link público' ? 'Portal' : item.origem}
                                 </Badge>
                               </td>
                               <td className="p-3 sm:p-4">
                                 <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
-                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-ink-3" />
+                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                                 </Button>
                               </td>
                             </tr>
@@ -545,7 +610,7 @@ const Returns = () => {
                   return matchesSearch && matchesStatus && matchesType;
                 }).length === 0 && (
                   <div className="text-center py-8 sm:py-12">
-                    <p className="text-ink-3 text-sm">Nenhuma solicitação encontrada</p>
+                    <p className="text-muted-foreground text-sm">Nenhuma solicitação encontrada</p>
                   </div>
                 )}
               </CardContent>
@@ -567,7 +632,7 @@ const Returns = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-card border-border shadow-sm">
+              <Card className="bg-card border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 rounded-full bg-status-approved"></div>
@@ -662,6 +727,17 @@ const Returns = () => {
 
         {/* Modal de Detalhes */}
         <ReturnDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} returnRequest={selectedReturn} onStatusUpdate={handleStatusUpdate} />
+        {storeId && (
+          <NewReturnModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            storeId={storeId}
+            onCreated={(created) => {
+              setKanbanData((prev) => [mapDbReturnToUI(created), ...prev]);
+              refetch();
+            }}
+          />
+        )}
       </div>
     </div>
   );

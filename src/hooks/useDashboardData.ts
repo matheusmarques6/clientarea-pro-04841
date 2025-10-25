@@ -47,6 +47,7 @@ export const useDashboardData = (storeId: string, period: string) => {
   const [channelRevenue, setChannelRevenue] = useState<ChannelRevenue[]>([]);
   const [klaviyoData, setKlaviyoData] = useState<KlaviyoSummary['klaviyo'] | null>(null);
   const [rawKlaviyoData, setRawKlaviyoData] = useState<any>(null);
+  const [klaviyoSnapshotInfo, setKlaviyoSnapshotInfo] = useState<{ label: string; isFallback: boolean } | null>(null);
   const [topCampaigns, setTopCampaigns] = useState<{
     byRevenue: Campaign[];
     byConversions: Campaign[];
@@ -57,9 +58,10 @@ export const useDashboardData = (storeId: string, period: string) => {
   }>({ byRevenue: [], byPerformance: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [needsSync, setNeedsSync] = useState(false);
+  const [needsSync, setNeedsSync] = useState(true);
   const kpiBaseRef = useRef<DashboardKPIs | null>(null);
   const lastPeriodRef = useRef<string>(period);
+  const klaviyoFallbackNotifiedRef = useRef(false);
 
   // Converter período para datas
   const getPeriodDates = (period: string) => {
@@ -67,6 +69,11 @@ export const useDashboardData = (storeId: string, period: string) => {
     const startDate = new Date();
     
     switch (period) {
+      case 'today': {
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
       case '7d':
         startDate.setDate(startDate.getDate() - 7);
         break;
@@ -155,6 +162,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       setKlaviyoData(null);
       setTopCampaigns({ byRevenue: [], byConversions: [] });
       setTopFlows({ byRevenue: [], byPerformance: [] });
+      setKlaviyoSnapshotInfo(null);
       applyKpis(0);
       return;
     }
@@ -445,6 +453,103 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   };
 
+  const formatSnapshotLabel = (cache: { period_start?: string | null; period_end?: string | null; period_label?: string | null }) => {
+    if (cache?.period_label) {
+      return cache.period_label;
+    }
+    if (cache?.period_start && cache?.period_end) {
+      try {
+        const start = new Date(cache.period_start).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+        const end = new Date(cache.period_end).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+        return `${start} – ${end}`;
+      } catch {
+        return `${cache.period_start} – ${cache.period_end}`;
+      }
+    }
+    return 'última sincronização';
+  };
+
+  const getReadablePeriod = () => {
+    switch (period) {
+      case 'today':
+        return 'hoje';
+      case '7d':
+        return 'os últimos 7 dias';
+      case '14d':
+        return 'os últimos 14 dias';
+      case '30d':
+        return 'os últimos 30 dias';
+      default:
+        return `o período ${period}`;
+    }
+  };
+
+  const applyKlaviyoCache = (
+    cache: any,
+    options: { isFallback?: boolean } = {}
+  ) => {
+    if (!cache) return false;
+
+    if (cache.raw) {
+      setRawKlaviyoData(cache.raw);
+    }
+
+    const klaviyoFromCache: KlaviyoSummary['klaviyo'] & {
+      shopify_total_sales?: number;
+      shopify_total_orders?: number;
+      shopify_new_customers?: number;
+      shopify_returning_customers?: number;
+      top_flows_by_revenue?: any[];
+      top_flows_by_performance?: any[];
+    } = {
+      revenue_total: Number(cache.revenue_total) || 0,
+      revenue_campaigns: Number(cache.revenue_campaigns) || 0,
+      revenue_flows: Number(cache.revenue_flows) || 0,
+      orders_attributed: Number(cache.orders_attributed) || 0,
+      conversions_campaigns: Number(cache.conversions_campaigns) || 0,
+      conversions_flows: Number(cache.conversions_flows) || 0,
+      top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue)
+        ? (cache.top_campaigns_by_revenue as any[])
+        : [],
+      top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions)
+        ? (cache.top_campaigns_by_conversions as any[])
+        : [],
+      leads_total: Number(cache.leads_total) || 0,
+      top_flows_by_revenue: Array.isArray(cache.top_flows_by_revenue) ? (cache.top_flows_by_revenue as any[]) : [],
+      top_flows_by_performance: Array.isArray(cache.top_flows_by_performance)
+        ? (cache.top_flows_by_performance as any[])
+        : [],
+      shopify_total_sales: Number(cache.shopify_total_sales) || 0,
+      shopify_total_orders: Number(cache.shopify_total_orders) || 0,
+      shopify_new_customers: Number(cache.shopify_new_customers) || 0,
+      shopify_returning_customers: Number(cache.shopify_returning_customers) || 0,
+    };
+
+    updateKlaviyoState(klaviyoFromCache);
+
+    setKlaviyoSnapshotInfo({
+      label: formatSnapshotLabel(cache),
+      isFallback: Boolean(options.isFallback),
+    });
+
+    if (options.isFallback) {
+      if (!klaviyoFallbackNotifiedRef.current) {
+        sonnerToast.info(
+          `Ainda não existem dados sincronizados para ${getReadablePeriod()}. Mostrando o último snapshot disponível (${formatSnapshotLabel(
+            cache
+          )}).`
+        );
+        klaviyoFallbackNotifiedRef.current = true;
+      }
+      setNeedsSync(true);
+    } else {
+      klaviyoFallbackNotifiedRef.current = false;
+      setNeedsSync(false);
+    }
+
+    return true;
+  };
+
   // Buscar dados do Klaviyo para o período específico da loja
   const fetchKlaviyoData = async () => {
     try {
@@ -465,61 +570,40 @@ export const useDashboardData = (storeId: string, period: string) => {
         .limit(1)
         .maybeSingle();
 
-      if (cache && !cacheError) {
-        // Extrair dados do campo raw se existir
-        if (cache.raw) {
-          setRawKlaviyoData(cache.raw);
-        }
-        
-        const klaviyoFromCache: KlaviyoSummary['klaviyo'] & {
-          shopify_total_sales?: number;
-          shopify_total_orders?: number;
-          shopify_new_customers?: number;
-          shopify_returning_customers?: number;
-          top_flows_by_revenue?: any[];
-          top_flows_by_performance?: any[];
-        } = {
-          revenue_total: Number(cache.revenue_total) || 0,
-          revenue_campaigns: Number(cache.revenue_campaigns) || 0,
-          revenue_flows: Number(cache.revenue_flows) || 0,
-          orders_attributed: Number(cache.orders_attributed) || 0,
-          conversions_campaigns: Number(cache.conversions_campaigns) || 0,
-          conversions_flows: Number(cache.conversions_flows) || 0,
-          top_campaigns_by_revenue: Array.isArray(cache.top_campaigns_by_revenue) ? cache.top_campaigns_by_revenue as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
-          top_campaigns_by_conversions: Array.isArray(cache.top_campaigns_by_conversions) ? cache.top_campaigns_by_conversions as { id: string; name: string; revenue: number; conversions: number; send_time?: string; status?: string; }[] : [],
-          leads_total: Number(cache.leads_total) || 0,
-          // Top flows
-          top_flows_by_revenue: Array.isArray(cache.top_flows_by_revenue) ? cache.top_flows_by_revenue as any[] : [],
-          top_flows_by_performance: Array.isArray(cache.top_flows_by_performance) ? cache.top_flows_by_performance as any[] : [],
-          // Shopify data for impact calculation
-          shopify_total_sales: Number(cache.shopify_total_sales) || 0,
-          shopify_total_orders: Number(cache.shopify_total_orders) || 0,
-          shopify_new_customers: Number(cache.shopify_new_customers) || 0,
-          shopify_returning_customers: Number(cache.shopify_returning_customers) || 0,
-        };
+      let summaryApplied = false;
 
-        updateKlaviyoState(klaviyoFromCache);
-        console.log(`[${period}] Klaviyo data loaded for store ${storeId}:`, {
-          revenue_total: klaviyoFromCache.revenue_total,
-          revenue_campaigns: klaviyoFromCache.revenue_campaigns,
-          revenue_flows: klaviyoFromCache.revenue_flows,
-          conversions_campaigns: klaviyoFromCache.conversions_campaigns,
-          conversions_flows: klaviyoFromCache.conversions_flows,
-          data_age: new Date(cache.created_at).toLocaleString()
-        });
-        
-        // Show notification if data is very recent (less than 10 minutes old)
-        const dataAge = Date.now() - new Date(cache.created_at).getTime();
-        if (dataAge < 10 * 60 * 1000) { // 10 minutes
-          console.log(`[${period}] Fresh data detected for store ${storeId}, age:`, Math.round(dataAge / 60000), 'minutes');
+      if (cache && !cacheError) {
+        summaryApplied = applyKlaviyoCache(cache);
+        if (summaryApplied) {
+          const dataAge = Date.now() - new Date(cache.created_at).getTime();
+          if (dataAge < 10 * 60 * 1000) {
+            console.log(`[${period}] Fresh data detected for store ${storeId}, age:`, Math.round(dataAge / 60000), 'minutes');
+          }
         }
-      } else {
-        console.log(`[${period}] No Klaviyo data available for store ${storeId} (${periodStart} to ${periodEnd})`);
-        updateKlaviyoState(null);
+      }
+
+      if (!summaryApplied) {
+        console.log(`[${period}] No Klaviyo data available for store ${storeId} (${periodStart} to ${periodEnd}), trying fallback snapshot`);
+        const { data: fallbackSummary } = await supabase
+          .from('klaviyo_summaries')
+          .select('*')
+          .eq('store_id', storeId)
+          .order('period_end', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (fallbackSummary) {
+          applyKlaviyoCache(fallbackSummary, { isFallback: true });
+          setNeedsSync(true);
+        } else {
+          updateKlaviyoState(null);
+          setKlaviyoSnapshotInfo(null);
+        }
       }
     } catch (error) {
       console.error(`[${period}] Error fetching Klaviyo data for store ${storeId}:`, error);
       updateKlaviyoState(null);
+      setKlaviyoSnapshotInfo(null);
     }
   };
 
@@ -529,6 +613,7 @@ export const useDashboardData = (storeId: string, period: string) => {
       console.log(`📍 Period changed from ${lastPeriodRef.current} to ${period} - marking as needs sync`);
       setNeedsSync(true);
       lastPeriodRef.current = period;
+      klaviyoFallbackNotifiedRef.current = false;
     }
   }, [period]);
 
@@ -697,6 +782,29 @@ export const useDashboardData = (storeId: string, period: string) => {
         console.log(`[${period}] Reloading dashboard data...`);
         await loadData();
         console.log(`[${period}] Dashboard data reloaded successfully!`);
+        setNeedsSync(false);
+
+        const klaviyoSummary = data.summary?.klaviyo;
+        const shopifySummary = data.summary?.shopify;
+
+        if (klaviyoSummary && shopifySummary) {
+          try {
+            const { error: storeStatusError } = await supabase
+              .from('stores')
+              .update({ status: 'connected', updated_at: new Date().toISOString() })
+              .eq('id', storeId)
+              .neq('status', 'connected');
+
+            if (storeStatusError) {
+              console.warn(`[${period}] Could not update store status to connected:`, storeStatusError.message);
+            } else {
+              console.log(`[${period}] Store ${storeId} marked as connected.`);
+            }
+          } catch (statusUpdateError) {
+            console.warn(`[${period}] Error updating store status:`, statusUpdateError);
+          }
+        }
+
         setIsSyncing(false);
         setNeedsSync(false); // ✅ Marca como sincronizado
       } else {
@@ -852,6 +960,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     chartData,
     channelRevenue,
     klaviyoData,
+    klaviyoSnapshotInfo,
     rawKlaviyoData,
     topCampaigns,
     topFlows,

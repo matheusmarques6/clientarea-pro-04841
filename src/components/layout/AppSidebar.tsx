@@ -1,76 +1,99 @@
-import { useLocation, NavLink, useParams } from 'react-router-dom';
-import {
-  BarChart3,
-  RefreshCw,
-  DollarSign,
-  Package,
-  Settings,
-  HelpCircle,
-  Store,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useParams } from "react-router-dom";
+import { RefreshCw, DollarSign, Package, Settings, HelpCircle, LayoutGrid, ArrowLeft, FileEdit } from "lucide-react";
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import convertfyLogo from '@/assets/convertfy-logo.png';
+import { Sidebar, SidebarContent, useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import convertfyLogo from "@/assets/convertfy-logo.png";
 
 export function AppSidebar() {
   const location = useLocation();
   const { id: storeId } = useParams();
   const currentPath = location.pathname;
   const { state, toggleSidebar } = useSidebar();
+  const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
 
-  const items = [
+  useEffect(() => {
+    if (storeId) {
+      setActiveStoreId(storeId);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem("convertfy:last-store-id", storeId);
+        } catch (error) {
+          console.warn("Failed to persist store id", error);
+        }
+      }
+    } else if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("convertfy:last-store-id");
+        if (saved) {
+          setActiveStoreId(saved);
+        }
+      } catch (error) {
+        console.warn("Failed to read store id", error);
+      }
+    }
+  }, [storeId]);
+
+  const resolvedStoreId = storeId || activeStoreId;
+
+  const navSections = [
     {
-      title: 'Suas Lojas',
-      url: '/stores',
-      icon: Store,
+      label: "Principal",
+      items: [
+        {
+          title: "Dashboard",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}` : "/stores",
+          icon: LayoutGrid,
+          disabled: !resolvedStoreId,
+          exact: true,
+        },
+      ],
     },
     {
-      title: 'Dashboard',
-      url: storeId ? `/store/${storeId}` : '#',
-      icon: BarChart3,
-      disabled: !storeId,
+      label: "Operações",
+      items: [
+        {
+          title: "Formulário",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}/formulario` : "#",
+          icon: FileEdit,
+          disabled: !resolvedStoreId,
+        },
+        {
+          title: "Trocas & Devoluções",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}/returns` : "#",
+          icon: RefreshCw,
+          disabled: !resolvedStoreId,
+        },
+        {
+          title: "Reembolsos",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}/refunds` : "#",
+          icon: DollarSign,
+          disabled: !resolvedStoreId,
+        },
+        {
+          title: "Custo de Produto",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}/costs` : "#",
+          icon: Package,
+          disabled: !resolvedStoreId,
+        },
+      ],
     },
     {
-      title: 'Trocas & Devoluções',
-      url: storeId ? `/store/${storeId}/returns` : '#',
-      icon: RefreshCw,
-      disabled: !storeId,
-    },
-    {
-      title: 'Reembolsos',
-      url: storeId ? `/store/${storeId}/refunds` : '#',
-      icon: DollarSign,
-      disabled: !storeId,
-    },
-    {
-      title: 'Custo de Produto',
-      url: storeId ? `/store/${storeId}/costs` : '#',
-      icon: Package,
-      disabled: !storeId,
-    },
-    {
-      title: 'Configurações',
-      url: storeId ? `/store/${storeId}/settings` : '#',
-      icon: Settings,
-      disabled: !storeId,
-    },
-    {
-      title: 'Ajuda',
-      url: '/help',
-      icon: HelpCircle,
+      label: "Suporte",
+      items: [
+        {
+          title: "Configurações",
+          url: resolvedStoreId ? `/store/${resolvedStoreId}/settings` : "#",
+          icon: Settings,
+          disabled: !resolvedStoreId,
+        },
+        {
+          title: "Ajuda",
+          url: "/help",
+          icon: HelpCircle,
+        },
+      ],
     },
   ];
 
@@ -80,96 +103,97 @@ export function AppSidebar() {
     return currentPath.startsWith(path) && path !== `/store/${storeId}`;
   };
 
-  const getNavClassName = (item: any) => {
-    if (item.disabled) {
-      return 'opacity-40 cursor-not-allowed pointer-events-none text-muted-foreground/60 hover:bg-transparent';
-    }
-    return isActive(item.url)
-      ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25 border border-primary/20'
-      : 'text-foreground hover:bg-gradient-to-r hover:from-muted/60 hover:to-muted/40 hover:text-foreground border border-transparent hover:border-border/30 hover:shadow-sm';
-  };
-
-  const renderMenuItem = (item: any) => {
-    const content = (
-      <>
-        <item.icon className="h-5 w-5 flex-shrink-0" />
-        {state !== 'collapsed' && <span className="text-sm font-medium">{item.title}</span>}
-      </>
-    );
-
-    if (item.disabled) {
-      return (
-        <SidebarMenuButton className={cn("w-full justify-start px-4 py-3 rounded-xl transition-all duration-200", getNavClassName(item))}>
-          {content}
-        </SidebarMenuButton>
-      );
-    }
-
-    return (
-      <SidebarMenuButton asChild className={cn("w-full justify-start px-4 py-3 rounded-xl transition-all duration-200", getNavClassName(item))}>
-        <NavLink to={item.url} className="flex items-center gap-3">
-          {content}
-        </NavLink>
-      </SidebarMenuButton>
-    );
-  };
-
   return (
-    <Sidebar collapsible="icon" className="bg-gradient-to-b from-card via-card to-card/95 border-r border-border/50 shadow-lg backdrop-blur-sm">
-      <SidebarContent className="flex flex-col h-full p-3">
-        {/* Logo and collapse button */}
-        <div className="mb-6 px-3 flex items-center justify-between">
-          {state !== 'collapsed' && (
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <img 
-                  src={convertfyLogo} 
-                  alt="Convertfy" 
-                  className="h-10 w-auto drop-shadow-sm"
-                />
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur opacity-30"></div>
-              </div>
+    <Sidebar collapsible="icon" className="border-r border-border bg-sidebar text-sidebar-foreground">
+      <SidebarContent className="flex h-full flex-col gap-8 p-4">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-8 hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition hover:text-foreground md:flex"
+          aria-label={state === "collapsed" ? "Expandir menu" : "Recolher menu"}
+        >
+          <span className="text-sm font-semibold">{state === "collapsed" ? "›" : "‹"}</span>
+        </button>
+
+        <div className="flex items-center gap-3 px-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple/90 to-brand-blue text-white shadow-md">
+            <img src={convertfyLogo} alt="Convertfy" className="h-6 w-6" />
+          </div>
+          {state !== "collapsed" && (
+            <div className="flex flex-col">
+              <span className="text-lg font-extrabold tracking-tight">Convertfy</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-green">
+                Portal Pro
+              </span>
             </div>
           )}
-          {state === 'collapsed' && (
-            <div className="flex items-center justify-center w-full">
-              <div className="relative">
-                <img 
-                  src={convertfyLogo} 
-                  alt="Convertfy" 
-                  className="h-8 w-auto drop-shadow-sm"
-                />
-              </div>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleSidebar}
-            className={cn(
-              "h-8 w-8 p-0 hover:bg-muted/70 transition-all duration-200 hidden md:flex rounded-lg",
-              state === 'collapsed' && "absolute top-3 right-3"
-            )}
-          >
-            {state === 'collapsed' ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
         </div>
 
-        <SidebarGroup className="flex-1">
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-2 px-2">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {renderMenuItem(item)}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Link
+          to="/stores"
+          className={cn(
+            "flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-secondary hover:text-foreground",
+            state === "collapsed" && "justify-center px-0"
+          )}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {state !== "collapsed" && <span>Voltar para lojas</span>}
+        </Link>
+
+        <nav className="flex flex-1 flex-col gap-6">
+          {navSections.map((section) => (
+            <div key={section.label} className="space-y-2">
+              {state !== "collapsed" && (
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const disabled = item.disabled;
+                  const active = isActive(item.url);
+                  return disabled ? (
+                    <div
+                      key={item.title}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium opacity-40",
+                        state === "collapsed" ? "justify-center" : "justify-start",
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {state !== "collapsed" && <span>{item.title}</span>}
+                    </div>
+                  ) : (
+                    <NavLink
+                      key={item.title}
+                      to={item.url}
+                      end={item.exact}
+                      className={({ isActive: navActive }) =>
+                        cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition",
+                          state === "collapsed" ? "justify-center" : "justify-start",
+                          navActive || active
+                            ? "bg-brand-purple-light text-brand-purple shadow-sm"
+                            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        )
+                      }
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {state !== "collapsed" && <span>{item.title}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {state !== "collapsed" && (
+          <div className="rounded-lg border border-border bg-background px-3 py-4 text-xs text-muted-foreground shadow-sm">
+            <p className="font-semibold text-foreground">Sincronização ativa</p>
+            <p>Monitore o desempenho e sincronize os dados da sua loja Convertfy.</p>
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );

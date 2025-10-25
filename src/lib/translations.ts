@@ -23,6 +23,7 @@ export const translations = {
       selectType: 'Selecione o tipo',
       exchange: 'Troca',
       return: 'Devolução',
+      refund: 'Reembolso',
       reason: 'Motivo',
       selectReason: 'Selecione o motivo',
       reasons: [
@@ -72,6 +73,7 @@ export const translations = {
       selectType: 'Select type',
       exchange: 'Exchange',
       return: 'Return',
+      refund: 'Refund',
       reason: 'Reason',
       selectReason: 'Select reason',
       reasons: [
@@ -121,6 +123,7 @@ export const translations = {
       selectType: 'Seleccione tipo',
       exchange: 'Cambio',
       return: 'Devolución',
+      refund: 'Reembolso',
       reason: 'Motivo',
       selectReason: 'Seleccione motivo',
       reasons: [
@@ -170,6 +173,7 @@ export const translations = {
       selectType: 'Sélectionnez le type',
       exchange: 'Échange',
       return: 'Retour',
+      refund: 'Remboursement',
       reason: 'Raison',
       selectReason: 'Sélectionnez la raison',
       reasons: [
@@ -219,6 +223,7 @@ export const translations = {
       selectType: 'Typ auswählen',
       exchange: 'Umtausch',
       return: 'Rückgabe',
+      refund: 'Rückerstattung',
       reason: 'Grund',
       selectReason: 'Grund auswählen',
       reasons: [

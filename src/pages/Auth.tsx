@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AuthLayout } from '@/components/layout/AuthLayout';
 const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
   const { toast } = useToast();
@@ -64,7 +65,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="layout-center bg-gradient-premium">
+    <AuthLayout>
       <div className="layout-narrow">
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-xl flex items-center justify-center mb-4">
@@ -213,7 +214,7 @@ const Auth = () => {
           </p>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Calendar, User, Package, FileText, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,17 +13,27 @@ interface ReturnDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   returnRequest: ReturnRequest | null;
-  onStatusUpdate?: (id: string, newStatus: ReturnRequest['status']) => void;
+  onStatusUpdate?: (id: string, newStatus: ReturnRequest['status']) => Promise<boolean> | boolean;
+  isSaving?: boolean;
 }
 
 const ReturnDetailsModal = ({
   isOpen,
   onClose,
   returnRequest,
-  onStatusUpdate
+  onStatusUpdate,
+  isSaving,
 }: ReturnDetailsModalProps) => {
   const [isTimelineOpen, setIsTimelineOpen] = useState(true);
   const [newNote, setNewNote] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<ReturnRequest['status']>('Nova');
+
+  useEffect(() => {
+    if (returnRequest) {
+      setSelectedStatus(returnRequest.status);
+      setNewNote('');
+    }
+  }, [returnRequest]);
 
   if (!returnRequest) return null;
 
@@ -158,12 +168,8 @@ const ReturnDetailsModal = ({
                 <div>
                   <label className="text-sm font-medium mb-2 block">Status</label>
                   <Select
-                    value={returnRequest.status}
-                    onValueChange={(value) => {
-                      if (onStatusUpdate) {
-                        onStatusUpdate(returnRequest.id, value as ReturnRequest['status']);
-                      }
-                    }}
+                    value={selectedStatus}
+                    onValueChange={(value) => setSelectedStatus(value as ReturnRequest['status'])}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -260,7 +266,17 @@ const ReturnDetailsModal = ({
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          <Button>
+          <Button
+            onClick={async () => {
+              if (selectedStatus !== returnRequest.status && onStatusUpdate) {
+                const success = await onStatusUpdate(returnRequest.id, selectedStatus);
+                if (!success) {
+                  setSelectedStatus(returnRequest.status);
+                }
+              }
+            }}
+            disabled={selectedStatus === returnRequest.status || isSaving}
+          >
             Salvar Alterações
           </Button>
         </div>

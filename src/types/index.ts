@@ -13,6 +13,7 @@ export interface Store {
 
 export interface ReturnRequest {
   id: string;
+  code?: string;
   pedido: string;
   cliente: string;
   tipo: 'Troca' | 'Devolução';

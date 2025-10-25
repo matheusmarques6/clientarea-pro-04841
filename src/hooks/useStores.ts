@@ -98,12 +98,13 @@ export const useStores = () => {
 };
 
 export const useStore = (storeId: string) => {
-  const { stores, loading, error } = useStores();
+  const { stores, loading, error, refetch } = useStores();
   const store = stores?.find(s => s.id === storeId);
 
   return {
     store,
     isLoading: loading,
     error,
+    refetch,
   };
 };

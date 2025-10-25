@@ -7,7 +7,16 @@ export interface PublicLinkTheme {
   secondaryColor: string;
   backgroundColor: string;
   textColor: string;
+  lineColor?: string;
+  lineWidth?: number;
   logoUrl?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroDescription?: string;
+  heroButtonText?: string;
+  heroButtonColor?: string;
+  heroButtonAlignment?: "left" | "center" | "right";
+  heroButtonRadius?: number;
 }
 
 export interface PublicLinkConfig {
@@ -120,6 +129,14 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
       // For existing configs, always use the provided slug to allow updates
       const finalSlug = config?.id ? baseSlug : await getUniqueSlug(baseSlug);
 
+      // Merge auto_rules properly to avoid data loss
+      const mergedAutoRules = {
+        ...(config?.auto_rules || {}),        // Start with existing rules from DB
+        ...(updatedConfig.auto_rules || {}),  // Override with new rules from update
+        ...(updatedConfig.theme && { theme: updatedConfig.theme }), // Add theme if provided
+        ...(updatedConfig.language && { language: updatedConfig.language }) // Add language if provided
+      };
+
       const { data, error } = await supabase
         .from('public_links')
         .upsert({
@@ -127,17 +144,9 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
           store_id: storeId,
           type,
           slug: finalSlug,
-          auto_rules: updatedConfig.auto_rules,
+          auto_rules: mergedAutoRules,
           messages: updatedConfig.messages,
           enabled: updatedConfig.enabled,
-          // Store theme and language in auto_rules for now (can be separate columns later)
-          ...(updatedConfig.theme && { 
-            auto_rules: { 
-              ...updatedConfig.auto_rules, 
-              theme: updatedConfig.theme,
-              language: updatedConfig.language 
-            } 
-          })
         } as any)
         .select()
         .single();
@@ -162,18 +171,15 @@ export const usePublicLinks = (storeId: string, type: 'returns' | 'refunds') => 
     }
   };
 
-  const getPublicUrl = (storeName: string) => {
+  const getPublicUrl = (storeName: string): string | null => {
     const baseUrl = window.location.origin;
     if (config?.slug) {
-      return `${baseUrl}/public/${type}/${config.slug}`;
+      // Use different paths based on type
+      const path = type === 'returns' ? 'formulario' : 'public/refunds';
+      return `${baseUrl}/${path}/${config.slug}`;
     }
-    // Generate clean slug from store name as fallback
-    const cleanSlug = storeName
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9\s]/g, '')
-      .replace(/\s+/g, '-')
-      .trim();
-    return `${baseUrl}/public/${type}/${cleanSlug}`;
+    // No fallback - user must save config first to get a valid URL
+    return null;
   };
 
   useEffect(() => {
