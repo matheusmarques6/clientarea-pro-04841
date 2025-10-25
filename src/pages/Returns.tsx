@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Filter, Search, ExternalLink, Settings, User, Calendar, Menu } from 'lucide-react';
+import { Plus, Filter, Search, ExternalLink, User, Calendar, Menu } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { useStores } from '@/hooks/useStores';
 import type { ReturnRequest as UIReturn } from '@/types';
 import ReturnDetailsModal from '@/components/returns/ReturnDetailsModal';
 import NewReturnModal from '@/components/returns/NewReturnModal';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 
 // Helpers: map DB codes to UI labels (PT) and back
@@ -221,37 +222,40 @@ const Returns = () => {
     <Card
       draggable
       onDragStart={(event) => handleDragStart(event, item.id)}
-      className="bg-background border border-border/70 shadow-sm hover:shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing group rounded-2xl"
+      className="bg-background/95 backdrop-blur-sm border border-border/60 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-grab active:cursor-grabbing group rounded-lg overflow-hidden"
       onClick={() => handleReturnClick(item)}
     >
-      <CardContent className="p-4 sm:p-5 space-y-3 sm:space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Protocolo</p>
-            <p className="font-semibold text-primary text-sm sm:text-base truncate max-w-[150px] sm:max-w-none font-mono">
-              {item.id.length > 12 ? `${item.id.slice(0, 8)}…${item.id.slice(-4)}` : item.id}
+      <CardContent className="p-3 space-y-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Protocolo</p>
+            <p className="font-bold text-brand-purple text-xs truncate font-mono">
+              {item.id.length > 10 ? `${item.id.slice(0, 6)}...${item.id.slice(-4)}` : item.id}
             </p>
-            <p className="text-xs text-muted-foreground truncate">Pedido #{item.pedido}</p>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <ExternalLink className="h-3 w-3 text-muted-foreground" />
-          </Button>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-brand-purple transition-colors flex-shrink-0 mt-0.5" />
         </div>
 
-        <div className="flex items-center gap-2 min-w-0">
-          <User className="h-3 w-3 text-muted-foreground shrink-0" />
-          <span className="text-sm sm:text-base font-medium text-foreground truncate">{item.cliente}</span>
+        <div className="flex items-center gap-1.5 min-w-0 py-1">
+          <User className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+          <span className="text-xs font-semibold text-foreground truncate">{item.cliente}</span>
         </div>
 
-        <div className="space-y-2">
-          <Badge className="bg-warning/10 text-warning border-warning/20 text-xs font-medium px-2 py-0.5">{item.tipo}</Badge>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2">Motivo: {item.motivo || '-'}</p>
+        <div className="space-y-1.5">
+          <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wide">
+            {item.tipo}
+          </Badge>
+          <p className="text-[11px] text-muted-foreground/80 line-clamp-1">
+            <span className="font-medium">Pedido:</span> #{item.pedido}
+          </p>
         </div>
 
-        <div className="flex items-center justify-between pt-2 gap-2">
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-xs text-muted-foreground">$</span>
-            <span className="text-sm font-semibold text-success truncate">R$ {item.valor.toFixed(2).replace('.', ',')}</span>
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30">
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-[10px] text-muted-foreground/60">R$</span>
+            <span className="text-sm font-bold text-green-600 dark:text-green-400">
+              {item.valor.toFixed(2).replace('.', ',')}
+            </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -315,20 +319,24 @@ const Returns = () => {
 
         <Tabs defaultValue={isMobile ? "lista" : "kanban"} className="space-y-4 sm:space-y-6">
           <TabsList className="flex w-full rounded-2xl border border-border bg-card/80 text-muted-foreground shadow-lg shadow-black/5 p-1 sm:p-1.5 gap-1">
-            <TabsTrigger value="kanban" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+            <TabsTrigger value="kanban" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
               Kanban
             </TabsTrigger>
-            <TabsTrigger value="lista" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+            <TabsTrigger value="lista" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
               Lista
             </TabsTrigger>
-            <TabsTrigger value="resumo" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
+            <TabsTrigger value="resumo" className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground">
               Resumo
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="kanban" className="space-y-4 sm:space-y-6">
+            <div className="space-y-4 sm:space-y-6">
+
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <div
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
+            >
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -374,42 +382,42 @@ const Returns = () => {
             </div>
 
             {/* Kanban Board */}
-            <div className="overflow-x-auto pb-4 kanban-scroll">
-              <div className={`grid gap-3 sm:gap-4 min-h-[60vh] sm:min-h-[70vh] ${
-                isMobile 
-                  ? 'grid-cols-2 min-w-[600px]' 
-                  : 'grid-cols-7 min-w-[1400px]'
-              }`}>
-                {(isMobile ? filteredColumns.slice(0, 4) : filteredColumns).map((column) => (
-                  <div
-                    key={column.id}
-                    className={`bg-card/80 rounded-2xl border border-border/70 shadow-sm ${
-                    isMobile ? 'min-w-[280px]' : 'min-w-[200px]'
-                  }`}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleDrop(e, (column as any).status)}
-                  >
-                    <div className="p-3 sm:p-4 border-b border-border/70">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs sm:text-sm font-semibold text-foreground truncate">{column.title}</h3>
-                        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-muted/60 rounded-full shrink-0">
-                          <span className="text-xs font-medium text-muted-foreground">{(column as any).items.length}</span>
+            <div className="relative">
+              <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                <div className={`flex gap-3 sm:gap-4 ${isMobile ? 'min-w-max' : ''}`}>
+                  {(isMobile ? filteredColumns.slice(0, 4) : filteredColumns).map((column) => (
+                    <div
+                      key={column.id}
+                      className="flex-shrink-0 w-64 sm:w-72 bg-gradient-to-b from-card/90 to-card/70 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-200"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleDrop(e, (column as any).status)}
+                    >
+                      <div className="p-4 border-b border-border/30 bg-gradient-to-r from-background/50 to-transparent">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-sm font-bold text-foreground truncate flex-1">{column.title}</h3>
+                          <div className="flex items-center justify-center min-w-[28px] h-7 px-2 bg-brand-purple/10 border border-brand-purple/20 rounded-full">
+                            <span className="text-xs font-bold text-brand-purple">{(column as any).items.length}</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="p-3 space-y-2 min-h-[500px] max-h-[calc(100vh-350px)] overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent">
+                        {(column as any).items.map((item: UIReturn) => (
+                          <KanbanCard key={item.id} item={item} />
+                        ))}
+                        {(column as any).items.length === 0 && (
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3">
+                              <Menu className="w-6 h-6 text-muted-foreground/50" />
+                            </div>
+                            <p className="text-sm text-muted-foreground/70 font-medium">Nenhum item</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-2 sm:p-3 space-y-2 sm:space-y-3 min-h-[calc(60vh-60px)] sm:min-h-[calc(70vh-80px)] max-h-[calc(60vh-60px)] sm:max-h-[calc(70vh-80px)] overflow-y-auto">
-                      {(column as any).items.map((item: UIReturn) => (
-                        <KanbanCard key={item.id} item={item} />
-                      ))}
-                      {(column as any).items.length === 0 && (
-                        <div className="text-center py-8 sm:py-12">
-                          <p className="text-xs sm:text-sm text-muted-foreground">Nenhum item</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+            </div>
             </div>
           </TabsContent>
 

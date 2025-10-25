@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
 import {
   Search,
   Filter,
@@ -63,6 +64,9 @@ interface RefundItem {
   }>;
 }
 
+const now = new Date();
+const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+
 const mockRefunds: RefundItem[] = [
   {
     id: "1",
@@ -89,13 +93,13 @@ const mockRefunds: RefundItem[] = [
     reason: "Produto defeituoso",
     status: "REQUESTED",
     riskScore: 25,
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
+    createdAt: daysAgo(2),
+    updatedAt: daysAgo(1),
     attachments: ["photo1.jpg"],
     timeline: [
       {
         id: "1",
-        timestamp: "2024-01-15T10:00:00Z",
+        timestamp: daysAgo(2),
         action: "created",
         description: "Solicitação de reembolso criada",
         user: "Ana Silva",
@@ -124,20 +128,20 @@ const mockRefunds: RefundItem[] = [
     reason: "Mudança de ideia",
     status: "APPROVED",
     riskScore: 45,
-    createdAt: "2024-01-14T15:30:00Z",
-    updatedAt: "2024-01-14T16:00:00Z",
+    createdAt: daysAgo(5),
+    updatedAt: daysAgo(4),
     attachments: [],
     timeline: [
       {
         id: "1",
-        timestamp: "2024-01-14T15:30:00Z",
+        timestamp: daysAgo(5),
         action: "created",
         description: "Solicitação de reembolso criada",
         user: "Carlos Mendes",
       },
       {
         id: "2",
-        timestamp: "2024-01-14T16:00:00Z",
+        timestamp: daysAgo(4),
         action: "approved",
         description: "Reembolso aprovado",
         user: "Admin",
@@ -210,11 +214,13 @@ const formatCurrency = (value: number) =>
 export default function Refunds() {
   const { toast } = useToast();
   const { id: storeId } = useParams();
+  const navigate = useNavigate();
   const [refunds, setRefunds] = useState<RefundItem[]>(mockRefunds);
   const [selectedRefund, setSelectedRefund] = useState<RefundItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<RefundItem["status"] | "all">("all");
+  const [boardScale, setBoardScale] = useState(1);
 
   const filteredRefunds = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -244,6 +250,20 @@ export default function Refunds() {
     const total = refunds.reduce((sum, refund) => sum + refund.requestedAmount, 0);
     return total / refunds.length;
   }, [refunds]);
+
+  const lastUpdatedAt = useMemo(() => {
+    if (!refunds.length) return null;
+    return refunds.reduce<Date>((latest, refund) => {
+      const date = new Date(refund.updatedAt);
+      return date > latest ? date : latest;
+    }, new Date(refunds[0].updatedAt));
+  }, [refunds]);
+
+  const columnMinWidth = 230 * boardScale;
+  const cardPadding = 16 * boardScale;
+  const cardFontSize = 1 + (boardScale - 1) * 0.15;
+  const gridMinWidth = 900 * boardScale;
+  const boardFontStyle = { fontSize: `${cardFontSize}rem` };
 
   const kanbanColumns = useMemo(
     () =>
@@ -341,6 +361,18 @@ export default function Refunds() {
     });
   };
 
+  const handleOpenSettings = () => {
+    if (!storeId) {
+      toast({
+        title: "Selecione uma loja",
+        description: "Escolha uma loja antes de acessar as configurações de reembolso.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate(`/store/${storeId}/refunds/setup`);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -363,12 +395,10 @@ export default function Refunds() {
           <Button
             variant="outline"
             className="rounded-lg border border-border text-sm font-semibold"
-            asChild
+            onClick={handleOpenSettings}
           >
-            <Link to={`/store/${storeId}/refunds/setup`}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar
-            </Link>
+            <Settings className="mr-2 h-4 w-4" />
+            Configurar
           </Button>
           <Button className="rounded-lg bg-brand-purple text-sm font-semibold shadow-md hover:bg-brand-purple/90">
             <Download className="mr-2 h-4 w-4" />
@@ -674,9 +704,9 @@ export default function Refunds() {
                   Última atualização
                 </div>
                 <p className="text-3xl font-bold text-foreground">
-                  {refunds.length ? new Date(refunds[0].updatedAt).toLocaleDateString("pt-BR") : "--"}
+                  {new Date().toLocaleDateString("pt-BR")}
                 </p>
-                <p className="text-xs text-muted-foreground">Data da última mudança de status</p>
+                <p className="text-xs text-muted-foreground">Atualizado hoje às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
               </CardContent>
             </Card>
           </div>
