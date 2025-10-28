@@ -1,13 +1,16 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Slider } from "@/components/ui/slider";
 import {
   Search,
   Filter,
@@ -25,6 +28,9 @@ import {
   Users,
   DollarSign,
   Settings,
+  Copy,
+  Check,
+  Globe,
 } from "lucide-react";
 import { RefundDetailsModal } from "@/components/refunds/RefundDetailsModal";
 import { cn } from "@/lib/utils";
@@ -218,9 +224,10 @@ export default function Refunds() {
   const [refunds, setRefunds] = useState<RefundItem[]>(mockRefunds);
   const [selectedRefund, setSelectedRefund] = useState<RefundItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPublicLinkDialogOpen, setIsPublicLinkDialogOpen] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<RefundItem["status"] | "all">("all");
-  const [boardScale, setBoardScale] = useState(1);
 
   const filteredRefunds = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -250,20 +257,6 @@ export default function Refunds() {
     const total = refunds.reduce((sum, refund) => sum + refund.requestedAmount, 0);
     return total / refunds.length;
   }, [refunds]);
-
-  const lastUpdatedAt = useMemo(() => {
-    if (!refunds.length) return null;
-    return refunds.reduce<Date>((latest, refund) => {
-      const date = new Date(refund.updatedAt);
-      return date > latest ? date : latest;
-    }, new Date(refunds[0].updatedAt));
-  }, [refunds]);
-
-  const columnMinWidth = 230 * boardScale;
-  const cardPadding = 16 * boardScale;
-  const cardFontSize = 1 + (boardScale - 1) * 0.15;
-  const gridMinWidth = 900 * boardScale;
-  const boardFontStyle = { fontSize: `${cardFontSize}rem` };
 
   const kanbanColumns = useMemo(
     () =>
@@ -323,8 +316,14 @@ export default function Refunds() {
   }, [refunds]);
 
   const handleCopyPublicLink = () => {
+    setIsPublicLinkDialogOpen(true);
+  };
+
+  const handleCopyLinkToClipboard = () => {
     const publicLink = `${window.location.origin}/refunds/${storeId ?? "loja"}`;
     navigator.clipboard.writeText(publicLink);
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
     toast({
       title: "Link copiado!",
       description: "O link público foi copiado para a área de transferência.",
@@ -373,6 +372,137 @@ export default function Refunds() {
     navigate(`/store/${storeId}/refunds/setup`);
   };
 
+  const handleDragStart = (event: React.DragEvent, refundId: string) => {
+    event.dataTransfer.setData("refundId", refundId);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (event: React.DragEvent, newStatus: RefundItem["status"]) => {
+    event.preventDefault();
+    const refundId = event.dataTransfer.getData("refundId");
+
+    if (!refundId) return;
+
+    const refund = refunds.find((r) => r.id === refundId);
+    if (!refund || refund.status === newStatus) return;
+
+    setRefunds((prev) =>
+      prev.map((r) =>
+        r.id === refundId
+          ? {
+              ...r,
+              status: newStatus,
+              updatedAt: new Date().toISOString(),
+              timeline: [
+                ...r.timeline,
+                {
+                  id: Math.random().toString(36).slice(2),
+                  timestamp: new Date().toISOString(),
+                  action: newStatus.toLowerCase(),
+                  description: `Status alterado para ${statusConfig[newStatus].label}`,
+                  user: "Admin",
+                },
+              ],
+            }
+          : r,
+      ),
+    );
+
+    toast({
+      title: "Status atualizado",
+      description: `Reembolso movido para ${statusConfig[newStatus].label}.`,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(124, 58, 237); // brand-purple
+    doc.text("Relatório de Reembolsos", 14, 22);
+
+    // Store info
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Loja: ${storeId || "N/A"}`, 14, 30);
+    doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, 14, 36);
+    doc.text(`Hora: ${new Date().toLocaleTimeString("pt-BR")}`, 14, 42);
+
+    // Summary stats
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Resumo", 14, 52);
+
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Total de reembolsos: ${totalRefunds}`, 14, 58);
+    doc.text(`Em análise: ${pendingCount}`, 14, 63);
+    doc.text(`Concluídos: ${completedCount}`, 14, 68);
+    doc.text(`Valor médio: ${formatCurrency(averageValue)}`, 14, 73);
+
+    // Table data
+    const tableData = filteredRefunds.map((refund) => [
+      refund.protocol,
+      refund.orderId,
+      refund.customer.name,
+      statusConfig[refund.status].label,
+      methodConfig[refund.method].label,
+      formatCurrency(refund.requestedAmount),
+      `${refund.riskScore}%`,
+      new Date(refund.updatedAt).toLocaleDateString("pt-BR"),
+    ]);
+
+    // Table
+    autoTable(doc, {
+      startY: 80,
+      head: [["Protocolo", "Pedido", "Cliente", "Status", "Método", "Valor", "Risco", "Data"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: {
+        fillColor: [124, 58, 237], // brand-purple
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: "bold",
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [50, 50, 50],
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245],
+      },
+      margin: { top: 80, left: 14, right: 14 },
+    });
+
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Página ${i} de ${pageCount}`,
+        doc.internal.pageSize.getWidth() / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: "center" }
+      );
+    }
+
+    // Save
+    doc.save(`reembolsos-${storeId || "loja"}-${new Date().toISOString().split("T")[0]}.pdf`);
+
+    toast({
+      title: "PDF exportado",
+      description: "O relatório de reembolsos foi exportado com sucesso.",
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -400,7 +530,10 @@ export default function Refunds() {
             <Settings className="mr-2 h-4 w-4" />
             Configurar
           </Button>
-          <Button className="rounded-lg bg-brand-purple text-sm font-semibold shadow-md hover:bg-brand-purple/90">
+          <Button
+            onClick={handleExportPDF}
+            className="rounded-lg bg-brand-purple text-sm font-semibold shadow-md hover:bg-brand-purple/90"
+          >
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
@@ -439,22 +572,22 @@ export default function Refunds() {
       </div>
 
       <Tabs defaultValue="kanban" className="space-y-6">
-        <TabsList className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-secondary/60 p-1 text-muted-foreground shadow-sm">
+        <TabsList className="flex w-full rounded-2xl border border-border bg-card/80 text-muted-foreground shadow-lg shadow-black/5 p-1 sm:p-1.5 gap-1">
           <TabsTrigger
             value="kanban"
-            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground"
           >
             Kanban
           </TabsTrigger>
           <TabsTrigger
             value="lista"
-            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground"
           >
             Lista
           </TabsTrigger>
           <TabsTrigger
             value="resumo"
-            className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="flex-1 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-300 ease-out data-[state=active]:bg-brand-purple data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-muted/60 hover:text-foreground"
           >
             Resumo
           </TabsTrigger>
@@ -490,7 +623,12 @@ export default function Refunds() {
           <div className="overflow-x-auto pb-4">
             <div className="grid min-w-[900px] gap-4 sm:grid-cols-3 xl:grid-cols-6">
               {kanbanColumns.map((column) => (
-                <Card key={column.status} className="flex flex-col rounded-2xl border border-border bg-card shadow-sm">
+                <Card
+                  key={column.status}
+                  className="flex flex-col rounded-2xl border border-border bg-card shadow-sm"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, column.status)}
+                >
                   <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className={cn("h-2 w-2 rounded-full", column.indicator)} />
@@ -504,7 +642,9 @@ export default function Refunds() {
                     {column.items.map((refund) => (
                       <Card
                         key={refund.id}
-                        className="cursor-pointer border border-border bg-background shadow-xs transition hover:shadow-md"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, refund.id)}
+                        className="cursor-grab border border-border bg-background shadow-xs transition hover:shadow-md active:cursor-grabbing"
                         onClick={() => {
                           setSelectedRefund(refund);
                           setIsModalOpen(true);
@@ -793,6 +933,106 @@ export default function Refunds() {
         onClose={() => setIsModalOpen(false)}
         onStatusUpdate={handleStatusUpdate}
       />
+
+      <Dialog open={isPublicLinkDialogOpen} onOpenChange={setIsPublicLinkDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Copiar link público</DialogTitle>
+            <DialogDescription>
+              Compartilhe este link com seus clientes para que eles possam solicitar reembolsos diretamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Link público do portal</h3>
+                <Badge variant="outline" className="text-xs">
+                  <Globe className="mr-1 h-3 w-3" />
+                  Público
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Input
+                  value={`${window.location.origin}/refunds/${storeId ?? "loja"}`}
+                  readOnly
+                  className="flex-1 bg-muted/50 font-mono text-sm"
+                />
+                <Button
+                  onClick={handleCopyLinkToClipboard}
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                >
+                  {isLinkCopied ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Configurações atuais</h3>
+
+              <Card className="bg-muted/30">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Prazo para arrependimento</span>
+                    <Badge variant="secondary" className="font-semibold">7 dias</Badge>
+                  </div>
+                  <Separator className="opacity-50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Prazo para defeito</span>
+                    <Badge variant="secondary" className="font-semibold">30 dias</Badge>
+                  </div>
+                  <Separator className="opacity-50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Métodos disponíveis</span>
+                    <div className="flex gap-1">
+                      <Badge className="bg-brand-purple-light text-brand-purple text-xs">Cartão</Badge>
+                      <Badge className="bg-brand-green-light text-brand-green text-xs">PIX</Badge>
+                      <Badge className="bg-brand-orange-light text-brand-orange text-xs">Voucher</Badge>
+                    </div>
+                  </div>
+                  <Separator className="opacity-50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Aprovação automática até</span>
+                    <Badge variant="secondary" className="font-semibold">R$ 100,00</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+              <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Personalize suas configurações
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Acesse as configurações para alterar prazos, métodos de pagamento e outras opções do portal.
+                </p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  onClick={() => {
+                    setIsPublicLinkDialogOpen(false);
+                    handleOpenSettings();
+                  }}
+                >
+                  Ir para configurações →
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
