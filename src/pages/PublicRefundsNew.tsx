@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Package, Upload, Check, AlertCircle, FileText, Clock, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Package, Upload, Check, AlertCircle, FileText, Clock, CheckCircle, XCircle, Trash2, CreditCard, QrCode, Gift, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,7 +42,7 @@ interface FormField {
 }
 
 const defaultFormFields: FormField[] = [
-  { id: 'order', type: 'text', label: 'Número do Pedido', placeholder: 'Ex: #1234', required: true },
+  { id: 'order', type: 'text', label: 'Número do Pedido', placeholder: 'Ex: #1234', required: false },
   { id: 'email', type: 'email', label: 'E-mail do Pedido', placeholder: 'seu@email.com', required: true },
   { id: 'name', type: 'text', label: 'Nome Completo', placeholder: 'Seu nome', required: true },
   { id: 'type', type: 'select', label: 'Tipo de Solicitação', required: true, options: ['Troca', 'Devolução'] },
@@ -150,6 +150,23 @@ const hexToRGBA = (hex: string, alpha = 1) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+// Calculate luminance to determine if a color is light or dark
+const isLightColor = (hex: string): boolean => {
+  if (!hex) return false;
+  const value = hex.replace('#', '');
+  if (value.length !== 3 && value.length !== 6) return false;
+
+  const normalized = value.length === 3 ? value.split('').map((char) => char + char).join('') : value;
+  const int = parseInt(normalized, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+};
+
 const PublicReturnsNew = () => {
   const { slug } = useParams();
   const { toast } = useToast();
@@ -160,7 +177,8 @@ const PublicReturnsNew = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [theme, setTheme] = useState<any>(null);
   const [language, setLanguage] = useState('pt');
-  
+  const [refundConfig, setRefundConfig] = useState<any>(null);
+
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [selectedReason, setSelectedReason] = useState('');
   const [comments, setComments] = useState('');
@@ -194,10 +212,18 @@ const PublicReturnsNew = () => {
       };
     });
 
+    console.log('🔍 [PublicRefundsNew] Config:', config);
+    console.log('🔍 [PublicRefundsNew] Config auto_rules:', config?.auto_rules);
+    console.log('🔍 [PublicRefundsNew] Config fields:', config?.auto_rules?.fields);
+    console.log('🔍 [PublicRefundsNew] Custom fields:', customFields);
+    console.log('🔍 [PublicRefundsNew] Custom fields length:', customFields?.length);
+
     if (customFields && customFields.length > 0) {
+      console.log('✅ [PublicRefundsNew] Using custom fields:', customFields);
       return customFields;
     }
 
+    console.log('⚠️ [PublicRefundsNew] Falling back to default fields:', defaultFormFields);
     return defaultFormFields;
   }, [config?.auto_rules?.fields]);
   const reasonOptions = useMemo(
@@ -217,6 +243,51 @@ const PublicReturnsNew = () => {
   const borderColor = useMemo(() => hexToRGBA(pageText, 0.15), [pageText]);
   const lineWidth = Math.max(1, Math.min(6, theme?.lineWidth ?? 1));
 
+  // Choose correct logo based on theme background color
+  const activeLogo = useMemo(() => {
+    const isLight = isLightColor(pageBackground);
+    console.log('🎨 [PublicRefundsNew] Background is light?', isLight, 'Background:', pageBackground);
+
+    // If background is light, use logoDarkUrl (dark logo), otherwise use logoUrl (light logo)
+    if (isLight && theme?.logoDarkUrl) {
+      console.log('✅ [PublicRefundsNew] Using dark logo for light background:', theme.logoDarkUrl);
+      return theme.logoDarkUrl;
+    }
+
+    console.log('✅ [PublicRefundsNew] Using default logo:', theme?.logoUrl);
+    return theme?.logoUrl;
+  }, [theme?.logoUrl, theme?.logoDarkUrl, pageBackground]);
+
+  // Calculate available payment methods based on refundConfig
+  const availableMethods = useMemo(() => {
+    console.log('🎨 [PublicRefundsNew] Theme primary color:', theme?.primaryColor);
+    console.log('🎨 [PublicRefundsNew] Page background:', pageBackground);
+    console.log('🎨 [PublicRefundsNew] Page text:', pageText);
+
+    if (!refundConfig) {
+      return [
+        { id: 'PIX', label: 'PIX', icon: QrCode, enabled: true },
+        { id: 'CARD', label: 'Cartão de Crédito', icon: CreditCard, enabled: true },
+        { id: 'BOLETO', label: 'Boleto Bancário', icon: Receipt, enabled: false },
+        { id: 'VOUCHER', label: 'Vale-compra', icon: Gift, enabled: true },
+      ];
+    }
+
+    return [
+      { id: 'CARD', label: 'Cartão de Crédito', icon: CreditCard, enabled: refundConfig.enableCard ?? true },
+      { id: 'PIX', label: 'PIX', icon: QrCode, enabled: refundConfig.enablePix ?? true },
+      { id: 'BOLETO', label: 'Boleto Bancário', icon: Receipt, enabled: refundConfig.enableBoleto ?? false },
+      { id: 'VOUCHER', label: 'Vale-compra', icon: Gift, enabled: refundConfig.enableVoucher ?? true },
+    ].filter(method => method.enabled);
+  }, [refundConfig]);
+
+  // Set default method when available methods change
+  useEffect(() => {
+    if (availableMethods.length > 0 && !availableMethods.find(m => m.id === refundFields.method)) {
+      setRefundFields(prev => ({ ...prev, method: availableMethods[0].id as any }));
+    }
+  }, [availableMethods]);
+
   // Fetch store and config by slug
   useEffect(() => {
     const fetchStoreData = async () => {
@@ -232,7 +303,7 @@ const PublicReturnsNew = () => {
             stores!inner(id, name, currency)
           `)
           .eq('slug', slug)
-          .eq('type', 'returns')
+          .eq('type', 'refunds')
           .eq('enabled', true)
           .single();
 
@@ -245,14 +316,28 @@ const PublicReturnsNew = () => {
           auto_rules: linkData.auto_rules as any,
           messages: linkData.messages as any
         });
-        
+
         // Extract theme and language from auto_rules
         const rules = linkData.auto_rules as any;
+        console.log('🎨🎨🎨 [PublicRefundsNew] Full auto_rules from DB:', rules);
+        console.log('🎨🎨🎨 [PublicRefundsNew] Theme from DB:', rules?.theme);
+        console.log('🎨🎨🎨 [PublicRefundsNew] Primary color from DB:', rules?.theme?.primaryColor);
+
         if (rules?.theme) {
+          console.log('✅ [PublicRefundsNew] Setting theme:', rules.theme);
           setTheme(rules.theme);
+        } else {
+          console.log('⚠️ [PublicRefundsNew] No theme found in DB');
         }
+
         if (rules?.language) {
           setLanguage(rules.language);
+        }
+        if (rules?.config) {
+          console.log('✅ [PublicRefundsNew] Loading refund config from DB:', rules.config);
+          setRefundConfig(rules.config);
+        } else {
+          console.log('⚠️ [PublicRefundsNew] No refund config found in DB');
         }
       } catch (err: any) {
         console.error('Error fetching store data:', err);
@@ -752,28 +837,36 @@ const PublicReturnsNew = () => {
           }}
         >
           <CardHeader className="text-center space-y-6 pb-8">
-            {theme?.logoUrl && (
+            {activeLogo && (
               <div className="flex justify-center">
-                <img 
-                  src={theme.logoUrl} 
-                  alt={store.name} 
-                  className="h-16 w-auto object-contain" 
+                <img
+                  src={activeLogo}
+                  alt={store.name}
+                  className="h-16 w-auto object-contain"
                 />
               </div>
             )}
             <div className="space-y-2">
-              <CardTitle 
+              <CardTitle
                 className="text-2xl font-medium"
-                style={{ color: pageText }}
+                style={{ color: theme?.primaryColor || pageText }}
               >
-                {translation.formTitle}
+                {theme?.heroTitle || translation.formTitle}
               </CardTitle>
-              <p 
+              <p
                 className="text-sm opacity-70"
                 style={{ color: hexToRGBA(pageText, 0.65) }}
               >
-                {`${translation.subtitle} ${store.name}`}
+                {theme?.heroSubtitle || `${translation.subtitle} ${store.name}`}
               </p>
+              {theme?.heroDescription && (
+                <p
+                  className="text-xs opacity-60"
+                  style={{ color: hexToRGBA(pageText, 0.55) }}
+                >
+                  {theme.heroDescription}
+                </p>
+              )}
             </div>
           </CardHeader>
           
@@ -924,6 +1017,77 @@ const PublicReturnsNew = () => {
                 </div>
               </div>
 
+              {/* Método de Reembolso */}
+              <div className="space-y-3">
+                <Label
+                  className="text-sm font-medium"
+                  style={{ color: pageText }}
+                >
+                  Método de Reembolso *
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {availableMethods.map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = refundFields.method === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setRefundFields(prev => ({ ...prev, method: method.id as any }))}
+                        className="relative p-4 rounded-lg border-2 transition-all hover:scale-[1.02] focus:outline-none focus:ring-2"
+                        style={{
+                          borderColor: isSelected
+                            ? theme?.primaryColor || '#3b82f6'
+                            : borderColor,
+                          backgroundColor: isSelected
+                            ? `${theme?.primaryColor || '#3b82f6'}15`
+                            : inputSurface,
+                          borderWidth: isSelected ? '2px' : `${lineWidth}px`,
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="p-2 rounded-lg"
+                            style={{
+                              backgroundColor: isSelected
+                                ? `${theme?.primaryColor || '#3b82f6'}25`
+                                : hexToRGBA(pageText, 0.1),
+                            }}
+                          >
+                            <Icon
+                              className="h-5 w-5"
+                              style={{
+                                color: isSelected
+                                  ? theme?.primaryColor || '#3b82f6'
+                                  : pageText
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div
+                              className="text-sm font-medium"
+                              style={{
+                                color: isSelected
+                                  ? theme?.primaryColor || pageText
+                                  : pageText
+                              }}
+                            >
+                              {method.label}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Check
+                              className="h-5 w-5"
+                              style={{ color: theme?.primaryColor || '#3b82f6' }}
+                            />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Anexos */}
               <div className="space-y-3">
                   <Label
@@ -1037,8 +1201,15 @@ const PublicReturnsNew = () => {
                   )}
                 </div>
 
-              <Button type="submit" className="w-full h-12 text-base font-medium">
-                {translation.submitButton}
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-medium"
+                style={{
+                  backgroundColor: theme?.heroButtonColor || theme?.primaryColor,
+                  borderRadius: theme?.heroButtonRadius ? `${theme.heroButtonRadius}px` : undefined,
+                }}
+              >
+                {theme?.heroButtonText || translation.submitButton}
               </Button>
             </form>
           </CardContent>

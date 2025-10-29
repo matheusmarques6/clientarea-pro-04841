@@ -1,12 +1,13 @@
 export interface CreateStoreFormData {
   name: string;
-  country?: string;
+  country?: string | null;
   currency?: string;
   status?: string;
   klaviyo_private_key?: string;
   klaviyo_site_id?: string;
   shopify_access_token?: string;
   shopify_domain?: string;
+  first_sync_pending?: boolean;
 }
 
 export interface Store {
@@ -22,6 +23,7 @@ export interface Store {
   client_id?: string | null;
   customer_id?: string | null;
   created_at?: string | null;
+  first_sync_pending?: boolean | null;
 }
 
 export const COUNTRIES = [

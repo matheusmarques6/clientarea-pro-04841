@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { RefundDetailsModal } from "@/components/refunds/RefundDetailsModal";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RefundItem {
   id: string;
@@ -221,13 +222,108 @@ export default function Refunds() {
   const { toast } = useToast();
   const { id: storeId } = useParams();
   const navigate = useNavigate();
-  const [refunds, setRefunds] = useState<RefundItem[]>(mockRefunds);
+  const [refunds, setRefunds] = useState<RefundItem[]>([]);
   const [selectedRefund, setSelectedRefund] = useState<RefundItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPublicLinkDialogOpen, setIsPublicLinkDialogOpen] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<RefundItem["status"] | "all">("all");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Função para carregar refunds do banco de dados
+  const loadRefunds = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      // Mapear status do banco para o frontend
+      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'done' | 'rejected';
+      const dbToFrontendStatus: Record<DbStatus, RefundItem["status"]> = {
+        'new': 'REQUESTED',
+        'review': 'UNDER_REVIEW',
+        'approved': 'APPROVED',
+        'awaiting_post': 'PROCESSING',
+        'received_dc': 'PROCESSING',
+        'done': 'COMPLETED',
+        'rejected': 'REJECTED',
+      };
+
+      // Buscar refunds do banco
+      const { data: returnsData, error: returnsError } = await supabase
+        .from('returns')
+        .select('*')
+        .eq('type', 'refund')
+        .order('created_at', { ascending: false });
+
+      if (returnsError) throw returnsError;
+
+      if (!returnsData || returnsData.length === 0) {
+        setRefunds([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Buscar eventos de timeline para cada refund
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('return_events')
+        .select('*')
+        .in('return_id', returnsData.map(r => r.id))
+        .order('created_at', { ascending: true });
+
+      if (eventsError) throw eventsError;
+
+      // Mapear dados para o formato do frontend
+      const mappedRefunds: RefundItem[] = returnsData.map(returnData => {
+        const events = eventsData?.filter(e => e.return_id === returnData.id) || [];
+
+        return {
+          id: returnData.id,
+          protocol: returnData.code || `RB-${returnData.id.substring(0, 8)}`,
+          orderId: returnData.order_code,
+          customer: {
+            name: returnData.customer_name,
+            email: returnData.customer_email || '',
+            phone: returnData.customer_phone || undefined,
+          },
+          items: [], // TODO: buscar itens se houver tabela relacionada
+          requestedAmount: returnData.amount || 0,
+          finalAmount: returnData.amount || 0,
+          method: 'CARD', // TODO: buscar método real se estiver salvo
+          reason: returnData.reason || 'Não especificado',
+          status: dbToFrontendStatus[returnData.status as DbStatus] || 'REQUESTED',
+          riskScore: 0, // TODO: calcular score se necessário
+          createdAt: returnData.created_at || new Date().toISOString(),
+          updatedAt: returnData.updated_at || returnData.created_at || new Date().toISOString(),
+          attachments: [], // TODO: buscar anexos se houver
+          timeline: events.map(event => ({
+            id: event.id,
+            timestamp: event.created_at || new Date().toISOString(),
+            action: event.to_status,
+            description: event.reason || `Status alterado para ${event.to_status}`,
+            user: 'Admin',
+          })),
+        };
+      });
+
+      setRefunds(mappedRefunds);
+    } catch (error) {
+      console.error('Erro ao carregar refunds:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar os reembolsos.",
+        variant: "destructive",
+      });
+      // Em caso de erro, usar dados mockados
+      setRefunds(mockRefunds);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  // Carregar refunds ao montar o componente
+  useEffect(() => {
+    loadRefunds();
+  }, [loadRefunds]);
 
   const filteredRefunds = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -315,10 +411,6 @@ export default function Refunds() {
       .slice(0, 4);
   }, [refunds]);
 
-  const handleCopyPublicLink = () => {
-    setIsPublicLinkDialogOpen(true);
-  };
-
   const handleCopyLinkToClipboard = () => {
     const publicLink = `${window.location.origin}/refunds/${storeId ?? "loja"}`;
     navigator.clipboard.writeText(publicLink);
@@ -330,46 +422,60 @@ export default function Refunds() {
     });
   };
 
-  const handleStatusUpdate = (refundId: string, newStatus: RefundItem["status"]) => {
-    setRefunds((prev) =>
-      prev.map((refund) =>
-        refund.id === refundId
-          ? {
-              ...refund,
-              status: newStatus,
-              updatedAt: new Date().toISOString(),
-              timeline: [
-                ...refund.timeline,
-                {
-                id: Math.random().toString(36).slice(2),
-                  timestamp: new Date().toISOString(),
-                  action: newStatus.toLowerCase(),
-                  description: `Status alterado para ${statusConfig[newStatus].label}`,
-                  user: "Admin",
-                },
-              ],
-            }
-          : refund,
-      ),
-    );
-    setSelectedRefund(null);
-    setIsModalOpen(false);
-    toast({
-      title: "Status atualizado",
-      description: `Reembolso marcado como ${statusConfig[newStatus].label}.`,
-    });
-  };
+  const handleStatusUpdate = async (refundId: string, newStatus: RefundItem["status"]) => {
+    try {
+      // Mapear status do frontend para o banco de dados
+      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'done' | 'rejected';
 
-  const handleOpenSettings = () => {
-    if (!storeId) {
+      const statusMap: Record<RefundItem["status"], DbStatus> = {
+        REQUESTED: 'new',
+        UNDER_REVIEW: 'review',
+        APPROVED: 'approved',
+        PROCESSING: 'awaiting_post',
+        COMPLETED: 'done',
+        REJECTED: 'rejected',
+      };
+
+      const dbStatus = statusMap[newStatus];
+
+      // Buscar status atual do reembolso
+      const currentRefund = refunds.find(r => r.id === refundId);
+      const currentDbStatus = currentRefund ? statusMap[currentRefund.status] : undefined;
+
+      // Atualizar no banco de dados
+      const { error: updateError } = await supabase
+        .from('returns')
+        .update({ status: dbStatus })
+        .eq('id', refundId);
+
+      if (updateError) throw updateError;
+
+      // Criar evento na timeline
+      await supabase.from('return_events').insert([{
+        return_id: refundId,
+        from_status: currentDbStatus,
+        to_status: dbStatus,
+        reason: `Status alterado para ${statusConfig[newStatus].label}`,
+      }]);
+
+      setSelectedRefund(null);
+      setIsModalOpen(false);
+
       toast({
-        title: "Selecione uma loja",
-        description: "Escolha uma loja antes de acessar as configurações de reembolso.",
+        title: "Status atualizado",
+        description: `Reembolso marcado como ${statusConfig[newStatus].label}.`,
+      });
+
+      // Recarregar dados do banco para refletir as mudanças
+      await loadRefunds();
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o status do reembolso.",
         variant: "destructive",
       });
-      return;
     }
-    navigate(`/store/${storeId}/refunds/setup`);
   };
 
   const handleDragStart = (event: React.DragEvent, refundId: string) => {
@@ -514,22 +620,6 @@ export default function Refunds() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            onClick={handleCopyPublicLink}
-            className="rounded-lg border border-border bg-secondary text-sm font-semibold"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Copiar link público
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-lg border border-border text-sm font-semibold"
-            onClick={handleOpenSettings}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Configurar
-          </Button>
           <Button
             onClick={handleExportPDF}
             className="rounded-lg bg-brand-purple text-sm font-semibold shadow-md hover:bg-brand-purple/90"
@@ -1023,7 +1113,7 @@ export default function Refunds() {
                   className="h-auto p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                   onClick={() => {
                     setIsPublicLinkDialogOpen(false);
-                    handleOpenSettings();
+                    navigate(`/store/${storeId}/formulario#refund-config`);
                   }}
                 >
                   Ir para configurações →

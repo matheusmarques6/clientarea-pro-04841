@@ -11,6 +11,7 @@ export function AppSidebar() {
   const { id: storeId } = useParams();
   const currentPath = location.pathname;
   const { state, toggleSidebar } = useSidebar();
+  const { theme } = useTheme();
   const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -117,7 +118,11 @@ export function AppSidebar() {
 
         <div className="flex items-center gap-3 px-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple/90 to-brand-blue text-white shadow-md">
-            <img src={convertfyLogo} alt="Convertfy" className="h-6 w-6" />
+            <img
+              src={convertfyLogo}
+              alt="Convertfy"
+              className="h-6 w-6"
+            />
           </div>
           {state !== "collapsed" && (
             <div className="flex flex-col">

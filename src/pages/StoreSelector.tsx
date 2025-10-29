@@ -10,12 +10,16 @@ import StoreCard from '@/components/stores/StoreCard';
 import StoreStats from '@/components/stores/StoreStats';
 import StoreLoading from '@/components/stores/StoreLoading';
 import AddStoreModal from '@/components/stores/AddStoreModal';
+import { HelpModal } from '@/components/support/HelpModal';
+import { SupportModal } from '@/components/support/SupportModal';
 
 const StoreSelector = () => {
   const navigate = useNavigate();
   const { stores, loading, refetch } = useStores();
   const { signOut, user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -128,7 +132,11 @@ const StoreSelector = () => {
                       <Plus className="h-4 w-4" />
                       Adicionar Primeira Loja
                     </Button>
-                    <Button variant="outline" className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={() => setShowSupportModal(true)}
+                    >
                       <Mail className="h-4 w-4" />
                       Entrar em contato
                     </Button>
@@ -150,10 +158,17 @@ const StoreSelector = () => {
                     Nossa equipe está pronta para ajudar você a otimizar suas operações.
                   </p>
                   <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                    <Button variant="outline" className="border-border bg-background/80">
+                    <Button
+                      variant="outline"
+                      className="border-border bg-background/80"
+                      onClick={() => setShowHelpModal(true)}
+                    >
                       Central de Ajuda
                     </Button>
-                    <Button className="bg-gradient-primary text-primary-foreground shadow-md hover:opacity-90">
+                    <Button
+                      className="bg-gradient-primary text-primary-foreground shadow-md hover:opacity-90"
+                      onClick={() => setShowSupportModal(true)}
+                    >
                       Falar com Suporte
                     </Button>
                   </div>
@@ -171,6 +186,19 @@ const StoreSelector = () => {
         onSuccess={() => {
           refetch();
         }}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        open={showHelpModal}
+        onOpenChange={setShowHelpModal}
+        onContactSupport={() => setShowSupportModal(true)}
+      />
+
+      {/* Support Modal */}
+      <SupportModal
+        open={showSupportModal}
+        onOpenChange={setShowSupportModal}
       />
     </div>
   );

@@ -98,7 +98,11 @@ export function AdminSidebar() {
       <div className="flex items-center justify-between p-4 border-b">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <img src={convertfyLogo} alt="Convertfy" className="h-6" />
+            <img
+              src={convertfyLogo}
+              alt="Convertfy"
+              className="h-6"
+            />
             <span className="text-sm font-medium text-foreground">Admin</span>
           </div>
         )}

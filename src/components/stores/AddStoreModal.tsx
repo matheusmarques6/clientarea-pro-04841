@@ -88,20 +88,26 @@ export default function AddStoreModal({ open, onOpenChange, onSuccess }: AddStor
     setIsSubmitting(true);
 
     try {
+      // Verificar se tem credenciais completas
+      const hasKlaviyo = values.klaviyo_private_key && values.klaviyo_site_id;
+      const hasShopify = values.shopify_access_token && values.shopify_domain;
+      const hasAnyCredentials = hasKlaviyo || hasShopify;
+
       const dataToInsert: CreateStoreFormData = {
         name: values.name,
         country: values.country || null,
         currency: values.currency || 'BRL',
         status: values.status || 'active',
+        first_sync_pending: hasAnyCredentials, // Marcar se precisa sincronizar
       };
 
       // Adicionar credenciais apenas se preenchidas
-      if (values.klaviyo_private_key && values.klaviyo_site_id) {
+      if (hasKlaviyo) {
         dataToInsert.klaviyo_private_key = values.klaviyo_private_key;
         dataToInsert.klaviyo_site_id = values.klaviyo_site_id;
       }
 
-      if (values.shopify_access_token && values.shopify_domain) {
+      if (hasShopify) {
         dataToInsert.shopify_access_token = values.shopify_access_token;
         dataToInsert.shopify_domain = values.shopify_domain;
       }

@@ -40,6 +40,7 @@ import NotFound from "@/pages/NotFound";
 import PreDashboard from "@/pages/PreDashboard";
 import ProductCosts from "@/pages/ProductCosts";
 import PublicRefunds from "@/pages/PublicRefunds";
+import PublicRefundsNew from "@/pages/PublicRefundsNew";
 import PublicReturnsNew from "@/pages/PublicReturnsNew";
 import RefundStatus from "@/pages/RefundStatus";
 import Refunds from "@/pages/Refunds";
@@ -78,7 +79,7 @@ const App = () => (
 
                   {/* Public routes */}
                   <Route path="/formulario/:slug" element={<PublicReturnsNew />} />
-                  <Route path="/public/refunds/:storeSlug" element={<PublicRefunds />} />
+                  <Route path="/public/refunds/:slug" element={<PublicRefundsNew />} />
                   <Route path="/refunds/:storeSlug/status/:rid" element={<RefundStatus />} />
                   <Route path="/tracking" element={<TrackingPortal />} />
 

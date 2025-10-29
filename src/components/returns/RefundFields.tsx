@@ -6,6 +6,12 @@ import { CreditCard, Smartphone, Receipt, Gift } from 'lucide-react';
 interface RefundFieldsProps {
   method: 'CARD' | 'PIX' | 'BOLETO' | 'VOUCHER';
   onMethodChange: (method: 'CARD' | 'PIX' | 'BOLETO' | 'VOUCHER') => void;
+  enabledMethods?: {
+    enableCard?: boolean;
+    enablePix?: boolean;
+    enableBoleto?: boolean;
+    enableVoucher?: boolean;
+  };
 }
 
 const methodConfig = {
@@ -31,7 +37,19 @@ const methodConfig = {
   },
 };
 
-export const RefundFields = ({ method, onMethodChange }: RefundFieldsProps) => {
+export const RefundFields = ({ method, onMethodChange, enabledMethods }: RefundFieldsProps) => {
+  // Filtrar métodos baseado nas configurações (padrão: todos habilitados)
+  const methodKeys = {
+    CARD: enabledMethods?.enableCard !== false,
+    PIX: enabledMethods?.enablePix !== false,
+    BOLETO: enabledMethods?.enableBoleto !== false,
+    VOUCHER: enabledMethods?.enableVoucher !== false,
+  };
+
+  const availableMethods = Object.entries(methodConfig).filter(([key]) =>
+    methodKeys[key as keyof typeof methodKeys]
+  );
+
   return (
     <div className="space-y-4 p-4 bg-purple-50/50 dark:bg-purple-950/10 rounded-lg border border-purple-200 dark:border-purple-900">
       <div className="flex items-center gap-2 mb-3">
@@ -47,7 +65,7 @@ export const RefundFields = ({ method, onMethodChange }: RefundFieldsProps) => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(methodConfig).map(([key, config]) => {
+            {availableMethods.map(([key, config]) => {
               const Icon = config.icon;
               return (
                 <SelectItem key={key} value={key}>
@@ -66,7 +84,7 @@ export const RefundFields = ({ method, onMethodChange }: RefundFieldsProps) => {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {Object.entries(methodConfig).map(([key, config]) => {
+        {availableMethods.map(([key, config]) => {
           const Icon = config.icon;
           const isSelected = method === key;
           return (

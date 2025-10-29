@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import convertfyLogo from '@/assets/convertfy-logo.png';
 
 const PreDashboard = () => {
   const [period, setPeriod] = useState('30d');
   const [previousPeriod, setPreviousPeriod] = useState('30d');
-  
+
   // Fetch real data from all client stores
   const dashboardData = useClientDashboard(period);
   
@@ -117,9 +118,9 @@ const PreDashboard = () => {
               
               {/* Logo - Sempre no topo em mobile */}
               <div className="flex-shrink-0 order-1 lg:order-1">
-                <img 
-                  src={convertfyLogo} 
-                  alt="Convertfy" 
+                <img
+                  src={convertfyLogo}
+                  alt="Convertfy"
                   className="h-10 sm:h-12 lg:h-12 w-auto"
                 />
               </div>
@@ -143,11 +144,16 @@ const PreDashboard = () => {
                 )}
               </div>
               
-              {/* Status Badge */}
-              <div className="flex-shrink-0 order-3 lg:order-3">
-                <Badge variant="secondary" className="px-3 py-2 text-xs sm:text-sm rounded-full">
-                  {dashboardData.stores.length} loja{dashboardData.stores.length !== 1 ? 's' : ''} conectada{dashboardData.stores.length !== 1 ? 's' : ''}
-                </Badge>
+              {/* Status Badge e Theme Toggle */}
+              <div className="flex-shrink-0 order-3 lg:order-3 flex items-center gap-3">
+                {dashboardData.loading ? (
+                  <Skeleton className="h-8 w-36 rounded-full" />
+                ) : (
+                  <Badge variant="secondary" className="px-3 py-2 text-xs sm:text-sm rounded-full">
+                    {dashboardData.stores.length} loja{dashboardData.stores.length !== 1 ? 's' : ''} conectada{dashboardData.stores.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                <ThemeToggle />
               </div>
               
             </div>
@@ -156,52 +162,68 @@ const PreDashboard = () => {
           {/* Main KPI Card - Estética melhorada */}
           <Card className="w-full max-w-4xl glass-card shadow-lg">
             <CardContent className="p-6 sm:p-8 lg:p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-6 lg:gap-8">
-                
-                {/* Period Selector - Melhor estética mobile */}
-                <div className="text-center lg:text-left">
-                  <h2 className="text-lg sm:text-xl lg:text-xl font-semibold mb-4 leading-relaxed">
-                    Seu faturamento dos{' '}
-                    <Select value={period} onValueChange={setPeriod}>
-                      <SelectTrigger className="inline-flex w-auto h-auto p-1 border-none bg-transparent text-lg sm:text-xl lg:text-xl font-semibold focus:ring-2 focus:ring-primary/20 rounded-md">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="7d">últimos 7 dias</SelectItem>
-                        <SelectItem value="30d">últimos 30 dias</SelectItem>
-                        <SelectItem value="90d">últimos 90 dias</SelectItem>
-                        <SelectItem value="MTD">mês atual</SelectItem>
-                        <SelectItem value="YTD">ano atual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </h2>
+              {!dashboardData.loading && dashboardData.stores.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-lg text-muted-foreground mb-2">
+                    Nenhuma loja conectada
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Conecte uma loja para visualizar seus dados de faturamento.
+                  </p>
                 </div>
-                
-                {/* Revenue Display - Melhor spacing mobile */}
-                <div className="text-center lg:text-right">
-                  {dashboardData.loading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-12 w-64 mx-auto lg:ml-auto lg:mr-0" />
-                      <Skeleton className="h-8 w-24 mx-auto lg:ml-auto lg:mr-0" />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-premium leading-none mb-4">
-                        {formatCurrency(dashboardData.totalRevenue)}
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-6 lg:gap-8">
+
+                  {/* Period Selector - Melhor estética mobile */}
+                  <div className="text-center lg:text-left">
+                    <h2 className="text-lg sm:text-xl lg:text-xl font-semibold mb-4 leading-relaxed">
+                      Seu faturamento dos{' '}
+                      <Select value={period} onValueChange={setPeriod}>
+                        <SelectTrigger className="inline-flex w-auto h-auto p-1 border-none bg-transparent text-lg sm:text-xl lg:text-xl font-semibold focus:ring-2 focus:ring-primary/20 rounded-md">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="7d">últimos 7 dias</SelectItem>
+                          <SelectItem value="30d">últimos 30 dias</SelectItem>
+                          <SelectItem value="90d">últimos 90 dias</SelectItem>
+                          <SelectItem value="MTD">mês atual</SelectItem>
+                          <SelectItem value="YTD">ano atual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </h2>
+                  </div>
+
+                  {/* Revenue Display - Melhor spacing mobile */}
+                  <div className="text-center lg:text-right">
+                    {dashboardData.loading ? (
+                      <div className="space-y-4">
+                        <Skeleton className="h-12 w-64 mx-auto lg:ml-auto lg:mr-0" />
+                        <Skeleton className="h-8 w-24 mx-auto lg:ml-auto lg:mr-0" />
                       </div>
-                      {calculateGrowth() > 0 && (
-                        <Badge 
-                          variant="secondary" 
-                          className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
-                        >
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          +{calculateGrowth().toFixed(1)}%
-                        </Badge>
-                      )}
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <div className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-premium leading-none mb-4">
+                          {formatCurrency(dashboardData.totalRevenue)}
+                        </div>
+                        {dashboardData.totalRevenue === 0 && dashboardData.stores.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Nenhum pedido no período selecionado
+                          </p>
+                        )}
+                        {calculateGrowth() > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
+                          >
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            +{calculateGrowth().toFixed(1)}%
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 

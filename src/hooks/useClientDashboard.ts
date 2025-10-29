@@ -63,48 +63,34 @@ export const useClientDashboard = (period: string = '30d') => {
           .single();
 
         // Get all stores the user has access to
-        // For admin users, get all stores, otherwise get from store_members
+        // Check if user is admin
         const { data: isAdminData } = await supabase
           .rpc('is_admin', { _user_id: user.id });
-        
-        let userStores;
-        let storeIds = [];
-        
-        if (isAdminData) {
-          // Admin user - get all stores
-          const { data: allStores, error: storesError } = await supabase
-            .from('stores')
-            .select('id, name, currency, client_id')
-            .order('name');
-          
-          if (storesError) throw storesError;
-          userStores = allStores;
-          storeIds = allStores?.map(s => s.id) || [];
-        } else {
-          // Regular user - get stores through store_members
-          const { data: storeMembers } = await supabase
-            .from('store_members')
-            .select('store_id')
-            .eq('user_id', user.id);
 
-          if (!storeMembers || storeMembers.length === 0) {
-            setData(prev => ({ ...prev, loading: false }));
-            return;
-          }
+        // Get user stores - rely on RLS to filter stores for non-admin users
+        // This is the same approach used in useStores hook
+        const { data: userStores, error: storesError } = await supabase
+          .from('stores')
+          .select('id, name, currency, client_id')
+          .order('name');
 
-          storeIds = storeMembers.map(sm => sm.store_id);
+        if (storesError) throw storesError;
 
-          const { data: stores, error: storesError } = await supabase
-            .from('stores')
-            .select('id, name, currency, client_id')
-            .in('id', storeIds);
-
-          if (storesError) throw storesError;
-          userStores = stores;
-        }
+        const storeIds = userStores?.map(s => s.id) || [];
         
         if (!userStores || userStores.length === 0) {
-          setData(prev => ({ ...prev, loading: false }));
+          setData({
+            clientName: userData?.name || 'Cliente',
+            totalRevenue: 0,
+            totalConvertfyRevenue: 0,
+            emailRevenue: 0,
+            smsRevenue: 0,
+            whatsappRevenue: 0,
+            totalOrders: 0,
+            stores: [],
+            loading: false,
+            error: null
+          });
           return;
         }
 
@@ -167,36 +153,11 @@ export const useClientDashboard = (period: string = '30d') => {
             });
           }
         }
-        
-        // Fetch Convertfy revenue (flows + campaigns) for all stores in the selected period
-        const startDateStr = startDate.toISOString().slice(0, 10);
-        const endDateStr = endDate.toISOString().slice(0, 10);
 
-        const { data: convertfySummaries, error: summariesError } = await supabase
-          .from('klaviyo_summaries')
-          .select('store_id, revenue_flows, revenue_campaigns, period_start, period_end')
-          .in('store_id', storeIds)
-          .gte('period_start', startDateStr)
-          .lte('period_end', endDateStr);
+        // Calculate total Convertfy revenue from already fetched RPC data
+        // This is more reliable than klaviyo_summaries which may not be synced
+        const totalConvertfyRevenue = totalEmailRevenue + totalSmsRevenue + totalWhatsappRevenue;
 
-        const convertfyByStore: Record<string, number> = {};
-        if (!summariesError && convertfySummaries) {
-          (convertfySummaries as any[]).forEach((row: any) => {
-            const sid = row.store_id as string;
-            const flows = Number(row.revenue_flows || 0);
-            const campaigns = Number(row.revenue_campaigns || 0);
-            convertfyByStore[sid] = (convertfyByStore[sid] || 0) + flows + campaigns;
-          });
-        }
-
-        // Attach per-store Convertfy revenue (flows + campaigns)
-        (storesWithRevenue as any[]).forEach((s: any) => {
-          s.convertfyRevenue = convertfyByStore[s.id] || 0;
-        });
-
-        // Calculate total Convertfy revenue across all client's stores
-        const totalConvertfyRevenue = Object.values(convertfyByStore).reduce((sum, v) => sum + v, 0);
-        
         console.log('Dashboard totals:', {
           stores: userStores?.length || 0,
           totalRevenue,

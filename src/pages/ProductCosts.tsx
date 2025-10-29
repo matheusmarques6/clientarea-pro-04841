@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { RefreshCw, Upload, Download, DollarSign, TrendingUp, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ const ProductCosts = () => {
   const { data: products, loading: productsLoading } = useProducts(storeId);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCosts, setEditingCosts] = useState<{ [key: string]: any }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const mockFxRates = {
     USD_BRL: 5.20,
@@ -76,6 +77,179 @@ const ProductCosts = () => {
     setEditingCosts({});
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Verificar se é um arquivo CSV
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        title: "Formato inválido",
+        description: "Por favor, selecione um arquivo CSV.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+
+      if (lines.length < 2) {
+        toast({
+          title: "Arquivo vazio",
+          description: "O arquivo CSV não contém dados.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Parse CSV header
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const skuIndex = headers.indexOf('sku');
+      const costBrlIndex = headers.indexOf('cost_brl') !== -1 ? headers.indexOf('cost_brl') : headers.indexOf('custo_brl');
+      const costUsdIndex = headers.indexOf('cost_usd') !== -1 ? headers.indexOf('cost_usd') : headers.indexOf('custo_usd');
+      const costEurIndex = headers.indexOf('cost_eur') !== -1 ? headers.indexOf('cost_eur') : headers.indexOf('custo_eur');
+      const costGbpIndex = headers.indexOf('cost_gbp') !== -1 ? headers.indexOf('cost_gbp') : headers.indexOf('custo_gbp');
+
+      if (skuIndex === -1) {
+        toast({
+          title: "Formato inválido",
+          description: "O arquivo CSV deve ter uma coluna 'SKU'.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Parse data rows
+      const importedCosts: { [key: string]: any } = {};
+      let validRows = 0;
+      let skippedRows = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const sku = values[skuIndex];
+
+        if (!sku) {
+          skippedRows++;
+          continue;
+        }
+
+        importedCosts[sku] = {};
+
+        if (costBrlIndex !== -1 && values[costBrlIndex]) {
+          const value = parseFloat(values[costBrlIndex]);
+          if (!isNaN(value)) importedCosts[sku].BRL = value;
+        }
+
+        if (costUsdIndex !== -1 && values[costUsdIndex]) {
+          const value = parseFloat(values[costUsdIndex]);
+          if (!isNaN(value)) importedCosts[sku].USD = value;
+        }
+
+        if (costEurIndex !== -1 && values[costEurIndex]) {
+          const value = parseFloat(values[costEurIndex]);
+          if (!isNaN(value)) importedCosts[sku].EUR = value;
+        }
+
+        if (costGbpIndex !== -1 && values[costGbpIndex]) {
+          const value = parseFloat(values[costGbpIndex]);
+          if (!isNaN(value)) importedCosts[sku].GBP = value;
+        }
+
+        if (Object.keys(importedCosts[sku]).length > 0) {
+          validRows++;
+        } else {
+          delete importedCosts[sku];
+        }
+      }
+
+      if (validRows === 0) {
+        toast({
+          title: "Nenhum dado válido",
+          description: "O arquivo não contém custos válidos para importar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Merge with existing editing costs
+      setEditingCosts(prev => ({
+        ...prev,
+        ...importedCosts
+      }));
+
+      toast({
+        title: "Importação concluída",
+        description: `${validRows} produto(s) importado(s) com sucesso.${skippedRows > 0 ? ` ${skippedRows} linha(s) ignorada(s).` : ''}`,
+      });
+
+    } catch (error) {
+      console.error('Erro ao importar CSV:', error);
+      toast({
+        title: "Erro ao importar",
+        description: "Ocorreu um erro ao processar o arquivo CSV.",
+        variant: "destructive",
+      });
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleExportClick = () => {
+    try {
+      // Create CSV content
+      const headers = ['SKU', 'Produto', 'Variante', 'Preço (USD)', 'Cost_BRL', 'Cost_USD', 'Cost_EUR', 'Cost_GBP'];
+      const rows = allVariants.map(variant => {
+        const costData = productCosts.find(cost => cost.sku === variant.sku);
+        return [
+          variant.sku || '',
+          variant.productTitle || '',
+          variant.title || '',
+          variant.price?.toFixed(2) || '',
+          costData?.cost_brl?.toFixed(2) || '',
+          costData?.cost_usd?.toFixed(2) || '',
+          costData?.cost_eur?.toFixed(2) || '',
+          costData?.cost_gbp?.toFixed(2) || ''
+        ].join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute('href', url);
+      link.setAttribute('download', `custos_produtos_${store.name}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Exportação concluída",
+        description: `${allVariants.length} produto(s) exportado(s) com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      toast({
+        title: "Erro ao exportar",
+        description: "Ocorreu um erro ao gerar o arquivo CSV.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getCostForSku = (sku: string, currency: string) => {
     if (editingCosts[sku]?.[currency] !== undefined) {
       return editingCosts[sku][currency];
@@ -120,11 +294,18 @@ const ProductCosts = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Sincronizar Shopify
           </Button>
-          <Button variant="outline">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button variant="outline" onClick={handleImportClick}>
             <Upload className="h-4 w-4 mr-2" />
             Importar CSV
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportClick}>
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
           </Button>

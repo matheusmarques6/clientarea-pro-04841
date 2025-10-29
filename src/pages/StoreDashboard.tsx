@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft, Info } from 'lucide-react';
+import { TrendingUp, DollarSign, Percent, ShoppingBag, RefreshCw, Package, ArrowLeft, Info, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useStore } from '@/hooks/useStores';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -11,10 +12,14 @@ import { TopCampaigns } from '@/components/dashboard/TopCampaigns';
 import { TopFlows } from '@/components/dashboard/TopFlows';
 import { CustomerMetrics } from '@/components/dashboard/CustomerMetrics';
 import { DetailedKlaviyoMetrics } from '@/components/dashboard/DetailedKlaviyoMetrics';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const StoreDashboard = () => {
   const { id } = useParams();
   const [period, setPeriod] = useState('30d');
+  const [isVerifyingConnection, setIsVerifyingConnection] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
   
   const { store, isLoading: storeLoading } = useStore(id!);
   const { 
@@ -79,6 +84,74 @@ const StoreDashboard = () => {
 
   const periodLabel = periodLabelMap[period] || periodLabelMap['7d'];
 
+  // Verificar se a loja tem credenciais configuradas mas não está conectada
+  const hasKlaviyoCredentials = store?.klaviyo_private_key && store?.klaviyo_site_id;
+  const hasShopifyCredentials = store?.shopify_access_token && store?.shopify_domain;
+  const hasAnyCredentials = hasKlaviyoCredentials || hasShopifyCredentials;
+  const needsFirstSync = store?.first_sync_pending || (hasAnyCredentials && store?.status !== 'connected');
+
+  // Wrapper para syncData que verifica e atualiza o status após sincronização
+  const handleFirstSync = async () => {
+    setIsVerifyingConnection(true);
+
+    try {
+      // Executar sincronização
+      await syncData();
+
+      // Se a loja precisa de primeira sincronização, verificar se foi bem-sucedida
+      if (needsFirstSync) {
+        // Aguardar sincronização processar e recarregar dados
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Recarregar dados do dashboard
+        await refetch();
+
+        // Aguardar mais um momento para garantir que dados foram carregados
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Verificar se obteve dados (significa que credenciais estão corretas)
+        const hasData = kpis && (kpis.total_revenue > 0 || kpis.order_count > 0);
+
+        if (hasData || !isSyncing) {
+          // Atualizar status da loja para connected e remover flag
+          const { error } = await supabase
+            .from('stores')
+            .update({
+              status: 'connected',
+              first_sync_pending: false
+            })
+            .eq('id', id!);
+
+          if (!error) {
+            toast.success('Loja conectada com sucesso!', {
+              description: 'Suas integrações estão funcionando corretamente.',
+            });
+
+            // Mostrar alert verde de sucesso
+            setSyncSuccess(true);
+
+            // Recarregar dados da loja após um momento
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
+        } else {
+          // Se não obteve dados, ainda assim permitir que tente novamente
+          toast.info('Sincronização iniciada', {
+            description: 'Os dados podem demorar alguns minutos para aparecer.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      toast.error('Erro ao sincronizar', {
+        description: 'Verifique suas credenciais nas configura\u00e7\u00f5es da loja.',
+      });
+    } finally {
+      setIsVerifyingConnection(false);
+    }
+  };
+
   return (
     <div className="px-2 py-6 space-y-6">
       {/* Header */}
@@ -91,19 +164,19 @@ const StoreDashboard = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            onClick={syncData}
-            disabled={isSyncing}
-            variant="outline"
+          <Button
+            onClick={needsFirstSync ? handleFirstSync : syncData}
+            disabled={isSyncing || isVerifyingConnection}
+            variant={needsFirstSync ? "default" : "outline"}
             size="sm"
             className="relative"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-            {needsSync && !isSyncing && (
+            <RefreshCw className={`w-4 h-4 mr-2 ${(isSyncing || isVerifyingConnection) ? 'animate-spin' : ''}`} />
+            {isVerifyingConnection ? 'Verificando...' : isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            {(needsSync || needsFirstSync) && !isSyncing && !isVerifyingConnection && (
               <span
-                className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-warning animate-pulse"
-                aria-label="Dados desatualizados, sincronize para atualizar."
+                className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full animate-pulse ${needsFirstSync ? 'bg-blue-500' : 'bg-warning'}`}
+                aria-label={needsFirstSync ? "Primeira sincronização necessária" : "Dados desatualizados, sincronize para atualizar."}
               />
             )}
           </Button>
@@ -121,6 +194,46 @@ const StoreDashboard = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Success Alert - Green */}
+      {syncSuccess && (
+        <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-900 relative">
+          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-2 h-8 w-8 p-0 hover:bg-green-100 dark:hover:bg-green-900"
+            onClick={() => setSyncSuccess(false)}
+          >
+            <X className="h-4 w-4 text-green-700 dark:text-green-300" />
+          </Button>
+          <AlertTitle className="text-green-900 dark:text-green-100 font-semibold">
+            Sincronização realizada com sucesso
+          </AlertTitle>
+          <AlertDescription className="text-green-800 dark:text-green-200 mt-2">
+            Suas credenciais foram verificadas e a importação de dados foi iniciada com sucesso.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* First Sync Alert - Blue (only show if not success) */}
+      {needsFirstSync && !syncSuccess && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-900">
+          <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <AlertTitle className="text-blue-900 dark:text-blue-100 font-semibold">
+            Primeira sincronização necessária
+          </AlertTitle>
+          <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2">
+            <p className="mb-3">
+              Você configurou credenciais de {hasKlaviyoCredentials && hasShopifyCredentials ? 'Klaviyo e Shopify' : hasKlaviyoCredentials ? 'Klaviyo' : 'Shopify'} nesta loja.
+              Para começar a visualizar seus dados, clique no botão <strong>"Sincronizar"</strong> destacado no canto superior direito.
+            </p>
+            <p className="text-sm">
+              A sincronização irá verificar suas credenciais e começar a importar dados automaticamente.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -210,7 +323,7 @@ const StoreDashboard = () => {
       {/* Enhanced Convertfy Impact Section */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-stretch">
         {/* Main Impact Card */}
-        <Card className="relative overflow-hidden border border-border bg-card shadow-lg lg:col-span-2">
+        <Card className="relative overflow-hidden border border-border bg-card shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent dark:from-primary/30 dark:via-primary/15 opacity-80"></div>
           <CardContent className="relative p-6 sm:p-8">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
@@ -276,7 +389,7 @@ const StoreDashboard = () => {
           <CustomerMetrics
             customersDistinct={kpis.customers_distinct}
             customersReturning={kpis.customers_returning}
-            layout="stacked"
+            layout="grid"
           />
         )}
       </div>
