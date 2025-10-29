@@ -11,7 +11,6 @@ export function AppSidebar() {
   const { id: storeId } = useParams();
   const currentPath = location.pathname;
   const { state, toggleSidebar } = useSidebar();
-  const { theme } = useTheme();
   const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
 
   useEffect(() => {
