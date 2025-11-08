@@ -89,52 +89,6 @@ export const useDashboardData = (storeId: string, period: string) => {
     return { startDate, endDate };
   };
 
-  const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs);
-    });
-
-    try {
-      return await Promise.race([promise, timeoutPromise]);
-    } finally {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle);
-      }
-    }
-  };
-
-  type EdgeFunctionResult<T> = { data: T | null; error: { message?: string } | null };
-
-  const invokeEdgeFunction = async <T>(
-    name: string,
-    body: Record<string, unknown>,
-    timeoutMs = 20000
-  ): Promise<T | null> => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-
-    if (!token) {
-      throw new Error('No authentication token available');
-    }
-
-    const result = await withTimeout(
-      supabase.functions.invoke<T>(name, {
-        body,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }) as Promise<EdgeFunctionResult<T>>,
-      timeoutMs
-    );
-
-    if (result?.error) {
-      const errorMessage = result.error.message || 'Edge function error';
-      throw new Error(errorMessage);
-    }
-
-    return result?.data ?? null;
-  };
 
   const applyKpis = (klaviyoRevenue?: number | null) => {
     if (!kpiBaseRef.current) {
@@ -629,143 +583,110 @@ export const useDashboardData = (storeId: string, period: string) => {
 
   const syncData = useCallback(async () => {
     if (!storeId || isSyncing) return;
-    
+
     setIsSyncing(true);
-    
-    // Create a timeout to force stop syncing after 5 minutes
-    const syncTimeoutId = setTimeout(() => {
-      console.warn(`[${period}] Sync timeout reached after 5 minutes, forcing stop`);
-      setIsSyncing(false);
 
-      // Try to load data anyway in case it arrived
-      console.log(`[${period}] Attempting to load data after timeout`);
-      loadData();
-
-      sonnerToast.warning('A sincronização está demorando mais que o esperado. Verificando dados disponíveis...');
-    }, 5 * 60 * 1000); // 5 minutes
-    
-    // Store timeout ID globally to clear it if sync completes
-    (window as any).__syncTimeoutId = syncTimeoutId;
-    
     try {
       const { startDate, endDate } = getPeriodDates(period);
       const periodStart = startDate.toISOString().split('T')[0];
       const periodEnd = endDate.toISOString().split('T')[0];
-      
-      console.log(`[${period}] Starting sync for store: ${storeId}, period: ${periodStart} to ${periodEnd}`);
-      
-      // Clean up stuck jobs mais agressivamente - qualquer job mais antigo que 30 minutos
-      const currentTime = new Date();
-      const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
-      
-      // Primeiro, limpar qualquer job travado para esta loja independente do período (mais de 30min)
-      const { data: allStuckJobs } = await supabase
-        .from('n8n_jobs')
-        .select('id, status, started_at, period_start, period_end, request_id')
-        .eq('store_id', storeId)
-        .in('status', ['QUEUED', 'PROCESSING'])
-        .lt('started_at', thirtyMinutesAgo.toISOString());
-      
-      if (allStuckJobs && allStuckJobs.length > 0) {
-        console.log(`[${period}] Found stuck jobs older than 30min, cleaning up:`, allStuckJobs);
-        await supabase
-          .from('n8n_jobs')
-          .update({ 
-            status: 'ERROR', 
-            error: 'Job timeout - cleaned up (30min+ old)',
-            finished_at: new Date().toISOString()
-          })
-          .in('id', allStuckJobs.map(job => job.id));
-        
-        console.log(`[${period}] Cleaned up ${allStuckJobs.length} stuck jobs`);
+
+      console.log(`[${period}] Starting Level 2 queue-based sync for store: ${storeId}, period: ${periodStart} to ${periodEnd}`);
+
+      // ========================================================================
+      // LEVEL 2: QUEUE-BASED SYNC WITH CACHE
+      // ========================================================================
+
+      // 1) Check cache first
+      const { QueueService } = await import('@/services/QueueService');
+
+      console.log(`[${period}] Checking cache for analytics data...`);
+      const cacheResult = await QueueService.checkCache(
+        storeId,
+        'analytics',
+        periodStart,
+        periodEnd
+      );
+
+      if (cacheResult.success && cacheResult.cached && cacheResult.data) {
+        console.log(`[${period}] ✓ Cache hit! Using cached data`);
+        sonnerToast.success('Dados carregados do cache!', { duration: 2000 });
+
+        // Reload data from cache
+        await loadData();
+        setIsSyncing(false);
+        setNeedsSync(false);
+        return;
       }
-      
-      // Verificação dupla - limpar qualquer job para este período específico que ainda esteja travado (10min+)
-      const tenMinutesAgo = new Date(currentTime.getTime() - 10 * 60 * 1000);
-      
-      const { data: specificStuckJobs } = await supabase
-        .from('n8n_jobs')
-        .select('id, status, started_at')
-        .eq('store_id', storeId)
-        .eq('period_start', periodStart)
-        .eq('period_end', periodEnd)
-        .in('status', ['QUEUED', 'PROCESSING'])
-        .lt('started_at', tenMinutesAgo.toISOString());
-      
-      if (specificStuckJobs && specificStuckJobs.length > 0) {
-        console.log(`[${period}] Found stuck jobs for this specific period, force cleaning:`, specificStuckJobs);
-        await supabase
-          .from('n8n_jobs')
-          .update({ 
-            status: 'ERROR', 
-            error: 'Job timeout - force cleaned for new sync',
-            finished_at: new Date().toISOString()
-          })
-          .in('id', specificStuckJobs.map(job => job.id));
+
+      console.log(`[${period}] Cache miss, adding job to queue...`);
+
+      // 2) Add job to queue
+      const queueResult = await QueueService.addToQueue(
+        storeId,
+        periodStart,
+        periodEnd,
+        5 // Default priority
+      );
+
+      if (!queueResult.success || !queueResult.job_id) {
+        throw new Error(queueResult.error || 'Failed to add job to queue');
       }
-      
-      // Iniciar o job específico para este período usando nova Edge Function
-      console.log(`[${period}] Starting sync for store ${storeId}, period ${periodStart} to ${periodEnd}`);
 
-      // Check if we're in development mode
-      const isDevelopment = import.meta.env.DEV;
-      let data: any = null;
-      let error: any = null;
+      const jobId = queueResult.job_id;
+      const jobStatus = queueResult.job?.status;
 
-      if (isDevelopment) {
-        // Development mode: use local mock proxy
-        console.log('🔧 [DEV MODE] Using local sync proxy instead of Edge Function');
+      console.log(`[${period}] Job added to queue: ${jobId}, status: ${jobStatus}`);
 
-        try {
-          const { syncStoreLocal } = await import('@/api/sync-store-proxy');
-          data = await syncStoreLocal({
-            store_id: storeId,
-            period_start: periodStart,
-            period_end: periodEnd
-          });
-        } catch (err: any) {
-          error = err;
-        }
+      // If job already exists and is queued/processing, show appropriate message
+      if (jobStatus === 'processing') {
+        sonnerToast.info('Sincronização já em andamento...', { duration: 3000 });
+      } else if (jobStatus === 'queued') {
+        sonnerToast.info('Sincronização adicionada à fila...', { duration: 3000 });
       } else {
-        // Production mode: use real Edge Function
-        const response = await supabase.functions.invoke('sync-store', {
-          body: {
-            store_id: storeId,
-            period_start: periodStart,
-            period_end: periodEnd
+        sonnerToast.info('Iniciando sincronização...', { duration: 2000 });
+      }
+
+      // 3) Poll job until completion
+      console.log(`[${period}] Polling job ${jobId} until completion...`);
+
+      const pollResult = await QueueService.pollJobUntilComplete(
+        jobId,
+        (job) => {
+          // Progress callback
+          console.log(`[${period}] Job ${jobId} status: ${job.status}`);
+
+          if (job.status === 'processing') {
+            sonnerToast.info('Processando sincronização...', {
+              id: `sync-${jobId}`,
+              duration: Infinity // Keep showing while processing
+            });
           }
-        });
-        data = response.data;
-        error = response.error;
+        },
+        2000, // Poll every 2 seconds
+        150   // Max 5 minutes (150 * 2s = 300s = 5min)
+      );
+
+      // Dismiss the processing toast
+      sonnerToast.dismiss(`sync-${jobId}`);
+
+      if (!pollResult.success || !pollResult.job) {
+        throw new Error(pollResult.error || 'Job failed or timeout');
       }
 
-      console.log(`[${period}] Sync response:`, { data, error });
+      const finalJob = pollResult.job;
 
-      // Clear timeout since sync completed (success or error)
-      clearTimeout(syncTimeoutId);
-      (window as any).__syncTimeoutId = null;
+      console.log(`[${period}] Job completed with status: ${finalJob.status}`);
 
-      if (error) {
-        console.error(`[${period}] Sync error details:`, error);
+      if (finalJob.status === 'completed') {
+        // Success! Data is now in cache
+        console.log(`[${period}] ✓ Sync completed successfully!`);
 
-        if (error.message?.includes('Klaviyo credentials not configured')) {
-          throw new Error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
-        }
-        if (error.message?.includes('Store credentials not configured')) {
-          throw new Error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
-        }
-        throw error;
-      }
+        const processingTime = finalJob.meta?.processing_time_ms || 0;
+        const summary = finalJob.meta?.sync_result;
 
-      // Nova Edge Function retorna sucesso imediatamente com todos os dados
-      if (data?.success && data?.job_id) {
-        console.log(`[${period}] Sync completed successfully with job ID: ${data.job_id} for store ${storeId}`);
-        console.log(`[${period}] Processing time: ${data.processing_time_ms}ms`);
-        console.log(`[${period}] Summary:`, data.summary);
-
-        // Mostrar resumo da sincronização
-        const klaviyoRevenue = data.summary?.klaviyo?.total_revenue || 0;
-        const klaviyoOrders = data.summary?.klaviyo?.total_orders || 0;
+        const klaviyoRevenue = summary?.klaviyo?.total_revenue || 0;
+        const klaviyoOrders = summary?.klaviyo?.total_orders || 0;
 
         sonnerToast.success(
           `Sincronização ${period} concluída! ` +
@@ -774,56 +695,47 @@ export const useDashboardData = (storeId: string, period: string) => {
           { duration: 5000 }
         );
 
-        // Aguardar 500ms para garantir que os dados foram commitados no banco
-        console.log(`[${period}] Waiting 500ms before reloading data...`);
+        // Wait a bit for data to propagate
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Recarregar dados
+        // Reload dashboard data
         console.log(`[${period}] Reloading dashboard data...`);
         await loadData();
         console.log(`[${period}] Dashboard data reloaded successfully!`);
-        setNeedsSync(false);
 
-        const klaviyoSummary = data.summary?.klaviyo;
-        const shopifySummary = data.summary?.shopify;
+        // Update store status
+        try {
+          const { error: storeStatusError } = await supabase
+            .from('stores')
+            .update({ status: 'connected', updated_at: new Date().toISOString() })
+            .eq('id', storeId)
+            .neq('status', 'connected');
 
-        if (klaviyoSummary && shopifySummary) {
-          try {
-            const { error: storeStatusError } = await supabase
-              .from('stores')
-              .update({ status: 'connected', updated_at: new Date().toISOString() })
-              .eq('id', storeId)
-              .neq('status', 'connected');
-
-            if (storeStatusError) {
-              console.warn(`[${period}] Could not update store status to connected:`, storeStatusError.message);
-            } else {
-              console.log(`[${period}] Store ${storeId} marked as connected.`);
-            }
-          } catch (statusUpdateError) {
-            console.warn(`[${period}] Error updating store status:`, statusUpdateError);
+          if (!storeStatusError) {
+            console.log(`[${period}] Store ${storeId} marked as connected.`);
           }
+        } catch (statusUpdateError) {
+          console.warn(`[${period}] Error updating store status:`, statusUpdateError);
         }
 
         setIsSyncing(false);
-        setNeedsSync(false); // ✅ Marca como sincronizado
-      } else {
-        throw new Error('Resposta inesperada da sincronização');
+        setNeedsSync(false);
+
+      } else if (finalJob.status === 'failed') {
+        // Job failed permanently
+        console.error(`[${period}] Job failed permanently:`, finalJob.error_message);
+        throw new Error(finalJob.error_message || 'Sync failed after retries');
       }
-      
+
     } catch (error: any) {
       console.error(`[${period}] Sync failed for store ${storeId}:`, error);
-      
-      // Clear timeout on error
-      clearTimeout(syncTimeoutId);
-      (window as any).__syncTimeoutId = null;
-      
-      if (error.message === 'Klaviyo credentials not configured') {
+
+      if (error.message?.includes('Klaviyo credentials not configured')) {
         sonnerToast.error('Configure as credenciais do Klaviyo (API key e Site ID) para sincronizar os dados');
-      } else if (error.message === 'Store credentials not configured') {
+      } else if (error.message?.includes('Store credentials not configured')) {
         sonnerToast.error('Configure as credenciais do Shopify e Klaviyo para sincronizar os dados');
       } else {
-        sonnerToast.error(`Erro ao iniciar sincronização ${period}: ${error.message}`);
+        sonnerToast.error(`Erro na sincronização ${period}: ${error.message}`);
       }
       setIsSyncing(false);
     }

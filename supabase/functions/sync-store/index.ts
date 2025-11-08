@@ -361,6 +361,101 @@ serve(async (req) => {
     }
 
     // ========================================================================
+    // 6.3) SALVAR NO CACHE (NÍVEL 2)
+    // ========================================================================
+    console.log('[Cache] Saving data to store_sync_cache...')
+
+    try {
+      const cacheRecords = [
+        // Cache de analytics
+        {
+          store_id: store_id,
+          data_type: 'analytics',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'combined',
+          data: {
+            revenue_total: revenueTotal,
+            revenue_campaigns: revenueCampaigns,
+            revenue_flows: revenueFlows,
+            orders_attributed: ordersAttributed,
+            conversions_campaigns: conversionsCampaigns,
+            conversions_flows: conversionsFlows,
+            campaigns_count: campanhas.length,
+            flows_count: flows.length,
+            campaigns_with_revenue: campaignsWithRevenue,
+            flows_with_revenue: flowsWithRevenue
+          },
+          sync_status: 'success'
+        },
+        // Cache de campanhas
+        {
+          store_id: store_id,
+          data_type: 'campaigns',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'klaviyo',
+          data: {
+            campaigns: campanhas,
+            top_by_revenue: topCampaignsByRevenue,
+            top_by_conversions: topCampaignsByConversions
+          },
+          sync_status: 'success'
+        },
+        // Cache de flows
+        {
+          store_id: store_id,
+          data_type: 'flows',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'klaviyo',
+          data: {
+            flows: flows,
+            flow_perf: flowPerf
+          },
+          sync_status: 'success'
+        }
+      ]
+
+      // Se tem dados Shopify, adicionar
+      if (shopifyData) {
+        cacheRecords.push({
+          store_id: store_id,
+          data_type: 'orders',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'shopify',
+          data: {
+            total_orders: shopifyData.pedidos,
+            total_sales: shopifyData.totalVendas,
+            new_customers: shopifyData.clientesPrimeiraVez || 0,
+            returning_customers: shopifyData.clientesRecorrentes || 0,
+            returning_rate: shopifyData.taxaClientesRecorrentes || 0,
+            top_products: shopifyData.produtosMaisVendidos?.slice(0, 10) || []
+          },
+          sync_status: 'success'
+        })
+      }
+
+      // Fazer upsert em lote
+      const { error: cacheError } = await supabase
+        .from('store_sync_cache')
+        .upsert(cacheRecords, {
+          onConflict: 'store_id,data_type,period_start,period_end,source'
+        })
+
+      if (cacheError) {
+        console.error('[Cache] Error saving to cache:', cacheError)
+        // Não vamos falhar todo o sync por erro de cache
+      } else {
+        console.log('[Cache] ✓ Saved', cacheRecords.length, 'cache entries')
+      }
+    } catch (cacheErr) {
+      console.error('[Cache] Exception saving to cache:', cacheErr)
+      // Continua mesmo se cache falhar
+    }
+
+    // ========================================================================
     // 7. ATUALIZAR JOB STATUS
     // ========================================================================
     const processingTime = Date.now() - startTime
