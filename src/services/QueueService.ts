@@ -5,11 +5,14 @@
 
 import { supabase } from '@/lib/supabase'
 
+export type DataType = 'analytics' | 'campaigns' | 'flows' | 'orders'
+
 export interface SyncJob {
   id: string
   store_id: string
   period_start: string
   period_end: string
+  data_type?: DataType
   status: 'queued' | 'processing' | 'completed' | 'failed'
   priority: number
   retry_count: number
@@ -31,7 +34,104 @@ export interface QueueJobResult {
 
 export class QueueService {
   /**
-   * Add a sync job to the queue
+   * Add multiple micro-jobs to the queue (Level 2 optimization)
+   * Creates 4 separate jobs for: analytics, campaigns, flows, orders
+   * This prevents timeouts by splitting the work into smaller chunks
+   * @param storeId - UUID of the store
+   * @param periodStart - Start date (YYYY-MM-DD)
+   * @param periodEnd - End date (YYYY-MM-DD)
+   * @param priority - Priority 1-10 (1 = highest, default 5)
+   * @returns Array of job IDs or error
+   */
+  static async addMicroJobsToQueue(
+    storeId: string,
+    periodStart: string,
+    periodEnd: string,
+    priority: number = 1 // Higher priority for user-initiated syncs
+  ): Promise<{ success: boolean; job_ids?: string[]; jobs?: SyncJob[]; error?: string }> {
+    try {
+      console.log('[QueueService] Adding MICRO-JOBS to queue:', {
+        storeId,
+        periodStart,
+        periodEnd,
+        priority
+      })
+
+      const dataTypes: DataType[] = ['analytics', 'campaigns', 'flows', 'orders']
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Check for existing jobs
+      const { data: existingJobs } = await supabase
+        .from('sync_queue')
+        .select('*')
+        .eq('store_id', storeId)
+        .eq('period_start', periodStart)
+        .eq('period_end', periodEnd)
+        .in('data_type', dataTypes)
+        .in('status', ['queued', 'processing'])
+
+      // Filter out data types that already have jobs
+      const existingDataTypes = new Set(existingJobs?.map(j => j.data_type) || [])
+      const dataTypesToCreate = dataTypes.filter(dt => !existingDataTypes.has(dt))
+
+      if (dataTypesToCreate.length === 0) {
+        console.log('[QueueService] All micro-jobs already exist')
+        return {
+          success: true,
+          job_ids: existingJobs!.map(j => j.id),
+          jobs: existingJobs!
+        }
+      }
+
+      // Create jobs for missing data types
+      const jobsToInsert = dataTypesToCreate.map(dataType => ({
+        store_id: storeId,
+        period_start: periodStart,
+        period_end: periodEnd,
+        data_type: dataType,
+        priority,
+        status: 'queued' as const,
+        triggered_by: user?.id,
+        meta: {
+          triggered_from: 'frontend',
+          user_agent: navigator.userAgent,
+          mode: 'micro_job'
+        }
+      }))
+
+      const { data: newJobs, error: insertError } = await supabase
+        .from('sync_queue')
+        .insert(jobsToInsert)
+        .select()
+
+      if (insertError) {
+        console.error('[QueueService] Error inserting micro-jobs:', insertError)
+        throw insertError
+      }
+
+      const allJobs = [...(existingJobs || []), ...(newJobs || [])]
+
+      console.log('[QueueService] ✓ Micro-jobs added:', newJobs?.length, 'new,', existingJobs?.length || 0, 'existing')
+
+      return {
+        success: true,
+        job_ids: allJobs.map(j => j.id),
+        jobs: allJobs
+      }
+
+    } catch (error: any) {
+      console.error('[QueueService] Failed to add micro-jobs:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to add micro-jobs'
+      }
+    }
+  }
+
+  /**
+   * Add a sync job to the queue (LEGACY - single job)
    * @param storeId - UUID of the store
    * @param periodStart - Start date (YYYY-MM-DD)
    * @param periodEnd - End date (YYYY-MM-DD)

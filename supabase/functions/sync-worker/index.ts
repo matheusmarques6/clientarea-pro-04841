@@ -144,6 +144,7 @@ serve(async (req) => {
     console.log(`[WORKER] Processing job: ${job.id}`)
     console.log(`[WORKER] Store: ${job.store_id}`)
     console.log(`[WORKER] Period: ${job.period_start} to ${job.period_end}`)
+    console.log(`[WORKER] Data type: ${job.data_type || 'ALL (full sync)'}`)
     console.log(`[WORKER] Priority: ${job.priority}`)
     console.log(`[WORKER] Retry count: ${job.retry_count}/${job.max_retries}`)
 
@@ -171,19 +172,36 @@ serve(async (req) => {
     console.log('[WORKER] Invoking sync-store Edge Function...')
 
     try {
-      const syncResponse = await supabase.functions.invoke('sync-store', {
-        body: {
-          store_id: job.store_id,
-          period_start: job.period_start,
-          period_end: job.period_end
-        }
-      })
+      // Fazer requisição HTTP direta com service role key
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-      if (syncResponse.error) {
-        throw syncResponse.error
+      const requestBody: any = {
+        store_id: job.store_id,
+        period_start: job.period_start,
+        period_end: job.period_end
       }
 
-      const syncData = syncResponse.data
+      // Se é micro-job, incluir data_type
+      if (job.data_type) {
+        requestBody.data_type = job.data_type
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-store`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const syncData = await response.json()
 
       if (!syncData || !syncData.success) {
         throw new Error(syncData?.error || 'Sync failed without error message')

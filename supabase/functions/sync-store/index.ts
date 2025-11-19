@@ -41,21 +41,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      console.error('[Auth] Authentication error:', authError)
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
-
     // Obter parâmetros
-    const { store_id, period_start, period_end } = await req.json()
+    const { store_id, period_start, period_end, data_type } = await req.json()
 
     if (!store_id || !period_start || !period_end) {
       return new Response(
@@ -64,24 +51,28 @@ serve(async (req) => {
       )
     }
 
+    // Validar data_type se especificado
+    const validDataTypes = ['analytics', 'campaigns', 'flows', 'orders']
+    if (data_type && !validDataTypes.includes(data_type)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid data_type. Must be one of: ${validDataTypes.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const isMicroJob = !!data_type
+    const syncMode = isMicroJob ? `MICRO-JOB (${data_type})` : 'FULL SYNC'
+
     console.log('='.repeat(80))
     console.log('[SYNC] Starting sync process')
+    console.log('[SYNC] Mode:', syncMode)
     console.log('[SYNC] Store ID:', store_id)
     console.log('[SYNC] Period:', period_start, 'to', period_end)
-    console.log('[SYNC] User:', user.email)
+    console.log('[SYNC] Invoked by: worker (internal)')
     console.log('='.repeat(80))
 
-    // Verificar acesso à loja
-    const { data: storeAccess } = await supabase
-      .from('v_user_stores')
-      .select('store_id')
-      .eq('user_id', user.id)
-      .eq('store_id', store_id)
-      .single()
-
-    if (!storeAccess) {
-      return new Response('Access denied to this store', { status: 403, headers: corsHeaders })
-    }
+    // Usar null para user (sempre invocado pelo worker)
+    const user = null
 
     // ========================================================================
     // 2. BUSCAR CREDENCIAIS DA LOJA
@@ -130,13 +121,14 @@ serve(async (req) => {
         period_end: period_end,
         request_id: request_id,
         status: 'PROCESSING',
-        created_by: user.id,
+        created_by: user ? user.id : null,
         meta: {
-          user_id: user.id,
-          user_email: user.email,
+          user_id: user ? user.id : null,
+          user_email: user ? user.email : 'worker',
           store_name: store.name,
           sync_version: '2.0',
-          has_shopify: hasShopify
+          has_shopify: hasShopify,
+          invoked_by: user ? 'user' : 'worker'
         }
       })
       .select()
@@ -150,9 +142,194 @@ serve(async (req) => {
     console.log('[Job] Created successfully:', job.id)
 
     // ========================================================================
-    // 4. EXECUTAR SYNC PARALELO: KLAVIYO + SHOPIFY
+    // 4. EXECUTAR SYNC (MICRO-JOB OU COMPLETO)
     // ========================================================================
-    console.log('[Sync] Starting parallel data fetch...')
+
+    // MICRO-JOB: buscar apenas o tipo específico
+    if (isMicroJob) {
+      console.log(`[Sync] MICRO-JOB mode - fetching only ${data_type}...`)
+
+      if (data_type === 'orders') {
+        // Orders vem do Shopify
+        if (!hasShopify) {
+          throw new Error('Shopify credentials not configured')
+        }
+
+        console.log('[Shopify] Fetching orders data...')
+        const shopifyData = await fetchShopifyData(
+          store.shopify_domain,
+          store.shopify_access_token,
+          period_start,
+          period_end,
+          store.timezone_offset || '-03:00'
+        )
+
+        // Salvar apenas orders no cache
+        const cacheRecord = {
+          store_id: store_id,
+          data_type: 'orders',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'shopify',
+          data: {
+            total_orders: shopifyData.pedidos,
+            total_sales: shopifyData.totalVendas,
+            new_customers: shopifyData.clientesPrimeiraVez || 0,
+            returning_customers: shopifyData.clientesRecorrentes || 0,
+            returning_rate: shopifyData.taxaClientesRecorrentes || 0,
+            top_products: shopifyData.produtosMaisVendidos?.slice(0, 10) || []
+          },
+          sync_status: 'success',
+          record_count: shopifyData.pedidos || 0,
+          data_summary: `${shopifyData.pedidos || 0} orders, ${shopifyData.totalVendas || 0} revenue`
+        }
+
+        const { error: cacheError } = await supabase
+          .from('store_sync_cache')
+          .upsert([cacheRecord], {
+            onConflict: 'store_id,data_type,period_start,period_end,source'
+          })
+
+        if (cacheError) throw cacheError
+
+        // Atualizar job
+        await supabase.from('n8n_jobs').update({
+          status: 'SUCCESS',
+          finished_at: new Date().toISOString(),
+          meta: { data_type, processing_time_ms: Date.now() - startTime }
+        }).eq('id', job.id)
+
+        return new Response(JSON.stringify({
+          success: true,
+          job_id: job.id,
+          data_type,
+          processing_time_ms: Date.now() - startTime,
+          summary: { orders: shopifyData.pedidos, revenue: shopifyData.totalVendas }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+      } else {
+        // analytics, campaigns, flows vêm do Klaviyo
+        console.log('[Klaviyo] Fetching data...')
+        const klaviyoData = await fetchKlaviyoData(
+          store.klaviyo_private_key,
+          period_start,
+          period_end
+        )
+
+        const campanhas = klaviyoData.campanhas || []
+        const flows = klaviyoData.flows || []
+
+        // Calcular métricas baseado no data_type
+        let cacheRecord: any
+
+        if (data_type === 'campaigns') {
+          let revenueCampaigns = 0
+          let conversionsCampaigns = 0
+          for (const camp of campanhas) {
+            revenueCampaigns += camp.receita || 0
+            conversionsCampaigns += camp.conversoes || 0
+          }
+
+          const topByRevenue = [...campanhas]
+            .sort((a, b) => (b.receita || 0) - (a.receita || 0))
+            .slice(0, 10)
+            .map(c => ({ id: c.id, name: c.nome, revenue: c.receita || 0, conversions: c.conversoes || 0 }))
+
+          cacheRecord = {
+            store_id: store_id,
+            data_type: 'campaigns',
+            period_start: period_start,
+            period_end: period_end,
+            source: 'klaviyo',
+            data: { campaigns: campanhas, top_by_revenue: topByRevenue },
+            sync_status: 'success',
+            record_count: campanhas.length,
+            data_summary: `${campanhas.length} campaigns, ${revenueCampaigns} revenue`
+          }
+
+        } else if (data_type === 'flows') {
+          let revenueFlows = 0
+          let conversionsFlows = 0
+          for (const flow of flows) {
+            revenueFlows += flow.receita || 0
+            conversionsFlows += flow.conversoes || 0
+          }
+
+          cacheRecord = {
+            store_id: store_id,
+            data_type: 'flows',
+            period_start: period_start,
+            period_end: period_end,
+            source: 'klaviyo',
+            data: { flows: flows },
+            sync_status: 'success',
+            record_count: flows.length,
+            data_summary: `${flows.length} flows, ${revenueFlows} revenue`
+          }
+
+        } else if (data_type === 'analytics') {
+          let revenueCampaigns = 0, conversionsCampaigns = 0
+          for (const camp of campanhas) {
+            revenueCampaigns += camp.receita || 0
+            conversionsCampaigns += camp.conversoes || 0
+          }
+
+          let revenueFlows = 0, conversionsFlows = 0
+          for (const flow of flows) {
+            revenueFlows += flow.receita || 0
+            conversionsFlows += flow.conversoes || 0
+          }
+
+          cacheRecord = {
+            store_id: store_id,
+            data_type: 'analytics',
+            period_start: period_start,
+            period_end: period_end,
+            source: 'combined',
+            data: {
+              revenue_total: revenueCampaigns + revenueFlows,
+              revenue_campaigns: revenueCampaigns,
+              revenue_flows: revenueFlows,
+              orders_attributed: conversionsCampaigns + conversionsFlows,
+              campaigns_count: campanhas.length,
+              flows_count: flows.length
+            },
+            sync_status: 'success',
+            record_count: campanhas.length + flows.length,
+            data_summary: `${revenueCampaigns + revenueFlows} revenue`
+          }
+        }
+
+        // Salvar no cache
+        const { error: cacheError } = await supabase
+          .from('store_sync_cache')
+          .upsert([cacheRecord], {
+            onConflict: 'store_id,data_type,period_start,period_end,source'
+          })
+
+        if (cacheError) throw cacheError
+
+        // Atualizar job
+        await supabase.from('n8n_jobs').update({
+          status: 'SUCCESS',
+          finished_at: new Date().toISOString(),
+          meta: { data_type, processing_time_ms: Date.now() - startTime }
+        }).eq('id', job.id)
+
+        return new Response(JSON.stringify({
+          success: true,
+          job_id: job.id,
+          data_type,
+          processing_time_ms: Date.now() - startTime,
+          summary: cacheRecord.data
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
+    // ========================================================================
+    // MODO COMPLETO (LEGACY) - buscar todos os dados
+    // ========================================================================
+    console.log('[Sync] FULL SYNC mode - fetching all data...')
 
     const [klaviyoResult, shopifyResult] = await Promise.allSettled([
       // Klaviyo (sempre executado)
