@@ -37,21 +37,21 @@ const StoreSelector = () => {
   return (
     <div className="min-h-screen bg-background w-full flex-1">
       {/* Modern Header - Full Width */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="w-full py-4 bg-white">
+      <header className="border-b border-border/40 bg-card/80 backdrop-blur-lg supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50 shadow-sm">
+        <div className="w-full py-4">
           <div className="flex items-center justify-between px-4 md:px-[60px]">
             {/* Logo & Title */}
             <div className="flex items-center gap-4">
               <img src={convertfyLogo} alt="Convertfy" className="h-8 w-auto" />
               <div className="hidden sm:block h-6 w-px bg-border" />
-              <h1 className="hidden sm:block text-lg font-semibold">Suas Lojas</h1>
+              <h1 className="hidden sm:block text-lg font-semibold text-foreground">Suas Lojas</h1>
             </div>
 
             {/* User Menu */}
             <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/80 border border-border/40">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium text-foreground">
                   {user?.email?.split('@')[0] || 'Usuário'}
                 </span>
               </div>
@@ -59,7 +59,7 @@ const StoreSelector = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-muted/80 text-foreground"
               >
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline">Sair</span>
@@ -105,7 +105,10 @@ const StoreSelector = () => {
                 <>
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-semibold">Suas Lojas ({stores.length})</h2>
-                    <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowAddModal(true)}
+                      className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+                    >
                       <Plus className="h-4 w-4" />
                       <span className="hidden sm:inline">Adicionar Loja</span>
                       <span className="sm:hidden">Nova</span>
@@ -128,14 +131,19 @@ const StoreSelector = () => {
                     Comece adicionando sua primeira loja para acessar o dashboard.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowAddModal(true)}
+                      className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
+                      size="lg"
+                    >
                       <Plus className="h-4 w-4" />
                       Adicionar Primeira Loja
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 border-2 hover:bg-muted/50"
                       onClick={() => setShowSupportModal(true)}
+                      size="lg"
                     >
                       <Mail className="h-4 w-4" />
                       Entrar em contato
@@ -160,13 +168,13 @@ const StoreSelector = () => {
                   <div className="flex flex-col justify-center gap-3 sm:flex-row">
                     <Button
                       variant="outline"
-                      className="border-border bg-background/80"
+                      className="border-2 bg-background/80 hover:bg-muted/50"
                       onClick={() => setShowHelpModal(true)}
                     >
                       Central de Ajuda
                     </Button>
                     <Button
-                      className="bg-gradient-primary text-primary-foreground shadow-md hover:opacity-90"
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
                       onClick={() => setShowSupportModal(true)}
                     >
                       Falar com Suporte
