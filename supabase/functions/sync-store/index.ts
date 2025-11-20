@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchKlaviyoData } from '../_shared/klaviyo.ts'
 import { fetchShopifyData } from '../_shared/shopify.ts'
+import { offsetToISO } from '../_shared/timezone.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -156,12 +157,13 @@ serve(async (req) => {
         }
 
         console.log('[Shopify] Fetching orders data...')
+        const timezoneISO = offsetToISO(store.timezone_offset ?? -3)
         const shopifyData = await fetchShopifyData(
           store.shopify_domain,
           store.shopify_access_token,
           period_start,
           period_end,
-          store.timezone_offset || '-03:00'
+          timezoneISO
         )
 
         // Salvar apenas orders no cache
@@ -213,7 +215,8 @@ serve(async (req) => {
         const klaviyoData = await fetchKlaviyoData(
           store.klaviyo_private_key,
           period_start,
-          period_end
+          period_end,
+          store.klaviyo_metric_id
         )
 
         const campanhas = klaviyoData.campanhas || []
@@ -338,7 +341,8 @@ serve(async (req) => {
         const data = await fetchKlaviyoData(
           store.klaviyo_private_key,
           period_start,
-          period_end
+          period_end,
+          store.klaviyo_metric_id
         )
         console.log('[Parallel] Klaviyo sync completed')
         return data
@@ -348,12 +352,13 @@ serve(async (req) => {
       hasShopify
         ? (async () => {
             console.log('[Parallel] Starting Shopify sync...')
+            const timezoneISO = offsetToISO(store.timezone_offset ?? -3)
             const data = await fetchShopifyData(
               store.shopify_domain,
               store.shopify_access_token,
               period_start,
               period_end,
-              store.timezone_offset || '-03:00'
+              timezoneISO
             )
             console.log('[Parallel] Shopify sync completed')
             return data

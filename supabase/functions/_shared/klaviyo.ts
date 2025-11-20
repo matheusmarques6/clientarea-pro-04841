@@ -131,7 +131,8 @@ async function klaviyoRequest(
 export async function fetchKlaviyoData(
   apiKey: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  metricIdFromStore?: string | null
 ): Promise<KlaviyoResult> {
 
   console.log('[Klaviyo] Starting data fetch...')
@@ -140,61 +141,68 @@ export async function fetchKlaviyoData(
   // ========================================================================
   // 1. BUSCAR MÉTRICA "Placed Order"
   // ========================================================================
-  console.log('[Klaviyo] Searching for Placed Order metric...')
-  const metricsRes = await klaviyoRequest(apiKey, 'GET', '/metrics')
-  let metricaId: string | null = null
+  let metricaId: string | null = metricIdFromStore || null
 
-  if (metricsRes.success) {
-    const metrics = metricsRes.data?.data || []
-    const placedOrders = metrics.filter((m: any) => m.attributes?.name === 'Placed Order')
+  // Se já temos metric ID salvo na store, usar ele
+  if (metricaId) {
+    console.log(`[Klaviyo] Using stored metric ID: ${metricaId}`)
+  } else {
+    // Caso contrário, auto-detectar
+    console.log('[Klaviyo] No stored metric, searching for Placed Order metric...')
+    const metricsRes = await klaviyoRequest(apiKey, 'GET', '/metrics')
 
-    if (placedOrders.length === 1) {
-      metricaId = placedOrders[0].id
-      console.log(`[Klaviyo] Found metric: ${placedOrders[0].attributes.name} (${metricaId})`)
-    } else if (placedOrders.length > 1) {
-      // Testar qual métrica tem dados
-      console.log(`[Klaviyo] Multiple metrics found, testing which has data...`)
-      const testes = await execQueue(placedOrders.slice(0, 3), 3, async (metric: any) => {
-        const testBody = {
-          data: {
-            type: 'flow-values-report',
-            attributes: {
-              timeframe: {
-                start: startDate + 'T00:00:00Z',
-                end: endDate + 'T23:59:59Z'
-              },
-              conversion_metric_id: metric.id,
-              statistics: ['conversion_value']
+    if (metricsRes.success) {
+      const metrics = metricsRes.data?.data || []
+      const placedOrders = metrics.filter((m: any) => m.attributes?.name === 'Placed Order')
+
+      if (placedOrders.length === 1) {
+        metricaId = placedOrders[0].id
+        console.log(`[Klaviyo] Found metric: ${placedOrders[0].attributes.name} (${metricaId})`)
+      } else if (placedOrders.length > 1) {
+        // Testar qual métrica tem dados
+        console.log(`[Klaviyo] Multiple metrics found, testing which has data...`)
+        const testes = await execQueue(placedOrders.slice(0, 3), 3, async (metric: any) => {
+          const testBody = {
+            data: {
+              type: 'flow-values-report',
+              attributes: {
+                timeframe: {
+                  start: startDate + 'T00:00:00Z',
+                  end: endDate + 'T23:59:59Z'
+                },
+                conversion_metric_id: metric.id,
+                statistics: ['conversion_value']
+              }
             }
           }
-        }
-        const testRes = await klaviyoRequest(apiKey, 'POST', '/flow-values-reports/', '', testBody)
-        let total = 0
-        if (testRes.success) {
-          const results = testRes.data?.data?.attributes?.results || []
-          total = results.reduce((sum: number, r: any) => sum + (r.statistics?.conversion_value || 0), 0)
-        }
-        return { metric, total }
-      })
+          const testRes = await klaviyoRequest(apiKey, 'POST', '/flow-values-reports/', '', testBody)
+          let total = 0
+          if (testRes.success) {
+            const results = testRes.data?.data?.attributes?.results || []
+            total = results.reduce((sum: number, r: any) => sum + (r.statistics?.conversion_value || 0), 0)
+          }
+          return { metric, total }
+        })
 
-      let metricaEscolhida = null
-      let maiorReceita = 0
-      for (const t of testes) {
-        if (t.total > maiorReceita) {
-          maiorReceita = t.total
-          metricaEscolhida = t.metric
+        let metricaEscolhida = null
+        let maiorReceita = 0
+        for (const t of testes) {
+          if (t.total > maiorReceita) {
+            maiorReceita = t.total
+            metricaEscolhida = t.metric
+          }
         }
-      }
-      if (metricaEscolhida) {
-        metricaId = metricaEscolhida.id
-        console.log(`[Klaviyo] Selected metric with highest revenue: ${metricaId}`)
+        if (metricaEscolhida) {
+          metricaId = metricaEscolhida.id
+          console.log(`[Klaviyo] Selected metric with highest revenue: ${metricaId}`)
+        }
       }
     }
-  }
 
-  if (!metricaId) {
-    metricaId = 'W8Gk3c' // Fallback default
-    console.log('[Klaviyo] Using default metric ID: W8Gk3c')
+    if (!metricaId) {
+      metricaId = 'W8Gk3c' // Fallback default
+      console.log('[Klaviyo] Using default metric ID: W8Gk3c')
+    }
   }
 
   // ========================================================================
