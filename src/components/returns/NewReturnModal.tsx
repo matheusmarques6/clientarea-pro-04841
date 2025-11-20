@@ -187,9 +187,9 @@ export const NewReturnModal = ({ isOpen, onClose, storeId, onCreated }: NewRetur
       // 7. Criar evento inicial na timeline
       await supabase.from('return_events').insert({
         return_id: refund.id,
-        action: 'created',
-        description: 'Solicitação de reembolso criada',
-        user: 'Sistema',
+        from_status: null,
+        to_status: initialStatus,
+        reason: 'Solicitação de reembolso criada',
       });
 
       toast({
@@ -246,6 +246,15 @@ export const NewReturnModal = ({ isOpen, onClose, storeId, onCreated }: NewRetur
         title: 'Solicitação criada',
         description: 'A nova solicitação foi registrada com sucesso.',
       });
+
+      if (data?.id) {
+        await supabase.from('return_events').insert({
+          return_id: data.id,
+          from_status: null,
+          to_status: 'new',
+          reason: 'Solicitação criada',
+        });
+      }
 
       if (onCreated && data) {
         onCreated(data as ReturnRequest);

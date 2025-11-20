@@ -16,15 +16,8 @@ const PreDashboard = () => {
 
   // Fetch real data from all client stores
   const dashboardData = useClientDashboard(period);
-  
-  // Calculate growth (simplified - comparing with previous period)
-  const calculateGrowth = () => {
-    // This is a simplified calculation - in production, you'd compare with previous period
-    if (dashboardData.totalRevenue > 0) {
-      return 12.8; // Placeholder growth percentage
-    }
-    return 0;
-  };
+  // Sem comparativo histórico disponível aqui; ocultar badge até ter base real
+  const growthPercentage: number | null = null;
   
   const periodLabels = {
     '7d': 'últimos 7 dias',
@@ -210,14 +203,14 @@ const PreDashboard = () => {
                             Nenhum pedido no período selecionado
                           </p>
                         )}
-                        {calculateGrowth() > 0 && (
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
-                          >
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            +{calculateGrowth().toFixed(1)}%
-                          </Badge>
+                        {growthPercentage !== null && growthPercentage > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2 text-sm rounded-full"
+                            >
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                              +{growthPercentage.toFixed(1)}%
+                            </Badge>
                         )}
                       </>
                     )}

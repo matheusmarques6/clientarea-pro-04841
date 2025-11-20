@@ -71,121 +71,35 @@ interface RefundItem {
   }>;
 }
 
-const now = new Date();
-const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
-
-const mockRefunds: RefundItem[] = [
-  {
-    id: "1",
-    protocol: "RB-2024-001",
-    orderId: "#12345",
-    customer: {
-      name: "Ana Silva",
-      email: "ana.silva@email.com",
-      phone: "+55 11 99999-9999",
-    },
-    items: [
-      {
-        id: "1",
-        name: "Camiseta Premium",
-        sku: "CAM-001",
-        quantity: 1,
-        price: 89.9,
-        image: "/placeholder.svg",
-      },
-    ],
-    requestedAmount: 89.9,
-    finalAmount: 89.9,
-    method: "CARD",
-    reason: "Produto defeituoso",
-    status: "REQUESTED",
-    riskScore: 25,
-    createdAt: daysAgo(2),
-    updatedAt: daysAgo(1),
-    attachments: ["photo1.jpg"],
-    timeline: [
-      {
-        id: "1",
-        timestamp: daysAgo(2),
-        action: "created",
-        description: "Solicitação de reembolso criada",
-        user: "Ana Silva",
-      },
-    ],
-  },
-  {
-    id: "2",
-    protocol: "RB-2024-002",
-    orderId: "#12346",
-    customer: {
-      name: "Carlos Mendes",
-      email: "carlos.mendes@email.com",
-    },
-    items: [
-      {
-        id: "2",
-        name: "Tênis Esportivo",
-        sku: "TEN-002",
-        quantity: 1,
-        price: 299.9,
-      },
-    ],
-    requestedAmount: 299.9,
-    method: "PIX",
-    reason: "Mudança de ideia",
-    status: "APPROVED",
-    riskScore: 45,
-    createdAt: daysAgo(5),
-    updatedAt: daysAgo(4),
-    attachments: [],
-    timeline: [
-      {
-        id: "1",
-        timestamp: daysAgo(5),
-        action: "created",
-        description: "Solicitação de reembolso criada",
-        user: "Carlos Mendes",
-      },
-      {
-        id: "2",
-        timestamp: daysAgo(4),
-        action: "approved",
-        description: "Reembolso aprovado",
-        user: "Admin",
-      },
-    ],
-  },
-];
-
 const statusConfig = {
   REQUESTED: {
     label: "Solicitado",
-    indicator: "bg-brand-purple",
-    chip: "bg-brand-purple-light text-brand-purple",
+    indicator: "bg-primary",
+    chip: "bg-primary/15 text-primary",
     icon: Clock,
   },
   UNDER_REVIEW: {
     label: "Em análise",
-    indicator: "bg-brand-orange",
-    chip: "bg-brand-orange-light text-brand-orange",
+    indicator: "bg-warning",
+    chip: "bg-warning/20 text-warning-foreground",
     icon: Eye,
   },
   APPROVED: {
     label: "Aprovado",
-    indicator: "bg-brand-green",
-    chip: "bg-brand-green-light text-brand-green",
+    indicator: "bg-success",
+    chip: "bg-success/15 text-success",
     icon: CheckCircle,
   },
   PROCESSING: {
     label: "Processando",
-    indicator: "bg-brand-blue",
-    chip: "bg-brand-blue-light text-brand-blue",
+    indicator: "bg-accent",
+    chip: "bg-accent text-accent-foreground",
     icon: Clock,
   },
   COMPLETED: {
     label: "Concluído",
-    indicator: "bg-primary",
-    chip: "bg-brand-green-light text-brand-green",
+    indicator: "bg-success",
+    chip: "bg-success/15 text-success",
     icon: CheckCircle,
   },
   REJECTED: {
@@ -197,10 +111,10 @@ const statusConfig = {
 } as const;
 
 const methodConfig = {
-  CARD: { label: "Cartão", icon: CreditCard, chip: "bg-brand-purple-light text-brand-purple" },
-  PIX: { label: "PIX", icon: Smartphone, chip: "bg-brand-green-light text-brand-green" },
-  BOLETO: { label: "Boleto", icon: Receipt, chip: "bg-brand-blue-light text-brand-blue" },
-  VOUCHER: { label: "Voucher", icon: Gift, chip: "bg-brand-orange-light text-brand-orange" },
+  CARD: { label: "Cartão", icon: CreditCard, chip: "bg-primary/15 text-primary" },
+  PIX: { label: "PIX", icon: Smartphone, chip: "bg-success/15 text-success" },
+  BOLETO: { label: "Boleto", icon: Receipt, chip: "bg-accent text-accent-foreground" },
+  VOUCHER: { label: "Voucher", icon: Gift, chip: "bg-warning/20 text-warning-foreground" },
 } as const;
 
 const statusOrder: RefundItem["status"][] = [
@@ -233,26 +147,42 @@ export default function Refunds() {
 
   // Função para carregar refunds do banco de dados
   const loadRefunds = useCallback(async () => {
+    if (!storeId) {
+      toast({
+        title: "Selecione uma loja",
+        description: "É necessário escolher uma loja para visualizar reembolsos.",
+        variant: "destructive",
+      });
+      navigate("/stores");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
       // Mapear status do banco para o frontend
-      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'done' | 'rejected';
+      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'closed' | 'rejected';
       const dbToFrontendStatus: Record<DbStatus, RefundItem["status"]> = {
         'new': 'REQUESTED',
         'review': 'UNDER_REVIEW',
         'approved': 'APPROVED',
         'awaiting_post': 'PROCESSING',
         'received_dc': 'PROCESSING',
-        'done': 'COMPLETED',
+        'closed': 'COMPLETED',
         'rejected': 'REJECTED',
       };
 
       // Buscar refunds do banco
       const { data: returnsData, error: returnsError } = await supabase
         .from('returns')
-        .select('*')
+        .select(`
+          *,
+          return_items(*),
+          return_labels(path),
+          return_events(*)
+        `)
         .eq('type', 'refund')
+        .eq('store_id', storeId)
         .order('created_at', { ascending: false });
 
       if (returnsError) throw returnsError;
@@ -276,6 +206,9 @@ export default function Refunds() {
       const mappedRefunds: RefundItem[] = returnsData.map(returnData => {
         const events = eventsData?.filter(e => e.return_id === returnData.id) || [];
 
+        const items = (returnData as any).return_items || [];
+        const labels = (returnData as any).return_labels || [];
+
         return {
           id: returnData.id,
           protocol: returnData.code || `RB-${returnData.id.substring(0, 8)}`,
@@ -285,16 +218,23 @@ export default function Refunds() {
             email: returnData.customer_email || '',
             phone: returnData.customer_phone || undefined,
           },
-          items: [], // TODO: buscar itens se houver tabela relacionada
-          requestedAmount: returnData.amount || 0,
-          finalAmount: returnData.amount || 0,
-          method: 'CARD', // TODO: buscar método real se estiver salvo
+          items: items.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            sku: item.sku,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image_url || undefined,
+          })),
+          requestedAmount: returnData.requested_amount ?? returnData.amount ?? 0,
+          finalAmount: returnData.final_amount ?? returnData.requested_amount ?? returnData.amount ?? 0,
+          method: (returnData.method as RefundItem["method"]) || 'CARD',
           reason: returnData.reason || 'Não especificado',
           status: dbToFrontendStatus[returnData.status as DbStatus] || 'REQUESTED',
-          riskScore: 0, // TODO: calcular score se necessário
+          riskScore: returnData.risk_score ?? 0,
           createdAt: returnData.created_at || new Date().toISOString(),
           updatedAt: returnData.updated_at || returnData.created_at || new Date().toISOString(),
-          attachments: [], // TODO: buscar anexos se houver
+          attachments: labels.map((label: any) => label.path).filter(Boolean),
           timeline: events.map(event => ({
             id: event.id,
             timestamp: event.created_at || new Date().toISOString(),
@@ -313,12 +253,11 @@ export default function Refunds() {
         description: "Não foi possível carregar os reembolsos.",
         variant: "destructive",
       });
-      // Em caso de erro, usar dados mockados
-      setRefunds(mockRefunds);
+      setRefunds([]);
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, navigate, storeId]);
 
   // Carregar refunds ao montar o componente
   useEffect(() => {
@@ -423,16 +362,25 @@ export default function Refunds() {
   };
 
   const handleStatusUpdate = async (refundId: string, newStatus: RefundItem["status"]) => {
+    if (!storeId) {
+      toast({
+        title: "Selecione uma loja",
+        description: "Escolha uma loja antes de alterar um reembolso.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Mapear status do frontend para o banco de dados
-      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'done' | 'rejected';
+      type DbStatus = 'new' | 'review' | 'approved' | 'awaiting_post' | 'received_dc' | 'closed' | 'rejected';
 
       const statusMap: Record<RefundItem["status"], DbStatus> = {
         REQUESTED: 'new',
         UNDER_REVIEW: 'review',
         APPROVED: 'approved',
         PROCESSING: 'awaiting_post',
-        COMPLETED: 'done',
+        COMPLETED: 'closed',
         REJECTED: 'rejected',
       };
 
@@ -446,7 +394,8 @@ export default function Refunds() {
       const { error: updateError } = await supabase
         .from('returns')
         .update({ status: dbStatus })
-        .eq('id', refundId);
+        .eq('id', refundId)
+        .eq('store_id', storeId);
 
       if (updateError) throw updateError;
 

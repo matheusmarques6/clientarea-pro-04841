@@ -3,7 +3,7 @@
 // Service to interact with sync_queue table for Level 2 architecture
 // ============================================================================
 
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 
 export type DataType = 'analytics' | 'campaigns' | 'flows' | 'orders'
 
