@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { AuthLayout } from '@/components/layout/AuthLayout';
+
 const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
-  const { toast } = useToast();
-  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -34,27 +31,6 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     await signUp(formData.email, formData.password, formData.name);
-  };
-
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      toast({
-        title: 'Informe seu e-mail',
-        description: 'Digite seu e-mail para enviarmos o link de redefinição.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
-
-    if (error) {
-      toast({ title: 'Erro ao enviar link', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Verifique seu e-mail', description: 'Enviamos um link para redefinir sua senha.' });
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +58,7 @@ const Auth = () => {
               Entre ou crie uma nova conta para continuar
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Entrar</TabsTrigger>
