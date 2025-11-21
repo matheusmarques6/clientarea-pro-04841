@@ -290,6 +290,90 @@ export class QueueService {
   }
 
   /**
+   * Poll multiple jobs until ALL complete or ANY fails
+   * @param jobIds - Array of job IDs
+   * @param onProgress - Callback for progress updates (receives all jobs)
+   * @param pollInterval - Interval in ms (default 2000)
+   * @param maxPolls - Maximum number of polls (default 150 = 5 minutes at 2s interval)
+   * @returns Final result with all jobs
+   */
+  static async pollMultipleJobsUntilComplete(
+    jobIds: string[],
+    onProgress?: (jobs: SyncJob[], completed: number, total: number) => void,
+    pollInterval: number = 2000,
+    maxPolls: number = 150
+  ): Promise<{ success: boolean; jobs?: SyncJob[]; error?: string }> {
+    let pollCount = 0
+
+    return new Promise((resolve) => {
+      const poll = async () => {
+        pollCount++
+
+        // Fetch status of all jobs
+        const { data: jobs, error } = await supabase
+          .from('sync_queue')
+          .select('*')
+          .in('id', jobIds) as { data: SyncJob[] | null; error: any }
+
+        if (error || !jobs) {
+          resolve({
+            success: false,
+            error: error?.message || 'Failed to fetch job statuses'
+          })
+          return
+        }
+
+        // Count completed jobs
+        const completedJobs = jobs.filter(j => j.status === 'completed')
+        const failedJobs = jobs.filter(j => j.status === 'failed')
+
+        // Call progress callback
+        if (onProgress) {
+          onProgress(jobs, completedJobs.length, jobs.length)
+        }
+
+        // Check if any job failed
+        if (failedJobs.length > 0) {
+          console.error('[QueueService] ✗ One or more jobs failed:', failedJobs.map(j => j.id))
+          resolve({
+            success: false,
+            jobs,
+            error: failedJobs[0].error_message || 'One or more jobs failed'
+          })
+          return
+        }
+
+        // Check if all jobs completed
+        if (completedJobs.length === jobs.length) {
+          console.log('[QueueService] ✓ All jobs completed successfully')
+          resolve({
+            success: true,
+            jobs
+          })
+          return
+        }
+
+        // Check if max polls reached
+        if (pollCount >= maxPolls) {
+          console.warn('[QueueService] Max polls reached, some jobs still not complete')
+          resolve({
+            success: false,
+            jobs,
+            error: `Timeout: ${completedJobs.length}/${jobs.length} jobs completed`
+          })
+          return
+        }
+
+        // Continue polling
+        setTimeout(poll, pollInterval)
+      }
+
+      // Start polling
+      poll()
+    })
+  }
+
+  /**
    * Poll a job until it completes (or fails)
    * @param jobId - UUID of the job
    * @param onProgress - Callback for progress updates

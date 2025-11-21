@@ -619,113 +619,107 @@ export const useDashboardData = (storeId: string, period: string) => {
         return;
       }
 
-      console.log(`[${period}] Cache miss, adding job to queue...`);
+      console.log(`[${period}] Cache miss, adding micro-jobs to queue...`);
 
-      // 2) Add job to queue
-      const queueResult = await QueueService.addToQueue(
+      // 2) Add MICRO-JOBS to queue (prevents timeout by splitting work)
+      const queueResult = await QueueService.addMicroJobsToQueue(
         storeId,
         periodStart,
         periodEnd,
-        5 // Default priority
+        1 // Higher priority for user-initiated syncs
       );
 
-      if (!queueResult.success || !queueResult.job_id) {
-        throw new Error(queueResult.error || 'Failed to add job to queue');
+      if (!queueResult.success || !queueResult.job_ids) {
+        throw new Error(queueResult.error || 'Failed to add jobs to queue');
       }
 
-      const jobId = queueResult.job_id;
-      const jobStatus = queueResult.job?.status;
+      const jobIds = queueResult.job_ids;
+      const jobCount = jobIds.length;
 
-      console.log(`[${period}] Job added to queue: ${jobId}, status: ${jobStatus}`);
+      console.log(`[${period}] ${jobCount} micro-jobs added to queue:`, jobIds);
 
-      // If job already exists and is queued/processing, show appropriate message
-      if (jobStatus === 'processing') {
-        sonnerToast.info('Sincronização já em andamento...', { duration: 3000 });
-      } else if (jobStatus === 'queued') {
-        sonnerToast.info('Sincronização adicionada à fila...', { duration: 3000 });
-      } else {
-        sonnerToast.info('Iniciando sincronização...', { duration: 2000 });
-      }
+      // Show appropriate message
+      const toastId = `sync-${storeId}-${period}`;
+      sonnerToast.info(`Sincronizando ${jobCount} tipos de dados...`, {
+        id: toastId,
+        description: 'Analytics, Campanhas, Flows e Pedidos',
+        duration: Infinity
+      });
 
-      // 3) Poll job until completion
-      console.log(`[${period}] Polling job ${jobId} until completion...`);
+      // 3) Poll all jobs until completion
+      console.log(`[${period}] Polling ${jobCount} jobs until completion...`);
 
-      const pollResult = await QueueService.pollJobUntilComplete(
-        jobId,
-        (job) => {
+      const pollResult = await QueueService.pollMultipleJobsUntilComplete(
+        jobIds,
+        (jobs, completed, total) => {
           // Progress callback
-          console.log(`[${period}] Job ${jobId} status: ${job.status}`);
+          console.log(`[${period}] Progress: ${completed}/${total} jobs completed`);
 
-          if (job.status === 'processing') {
-            sonnerToast.info('Processando sincronização...', {
-              id: `sync-${jobId}`,
-              duration: Infinity // Keep showing while processing
-            });
-          }
+          sonnerToast.info(`Processando sincronização... (${completed}/${total})`, {
+            id: toastId,
+            description: 'Analytics, Campanhas, Flows e Pedidos',
+            duration: Infinity
+          });
         },
         2000, // Poll every 2 seconds
         150   // Max 5 minutes (150 * 2s = 300s = 5min)
       );
 
       // Dismiss the processing toast
-      sonnerToast.dismiss(`sync-${jobId}`);
+      sonnerToast.dismiss(toastId);
 
-      if (!pollResult.success || !pollResult.job) {
-        throw new Error(pollResult.error || 'Job failed or timeout');
+      if (!pollResult.success || !pollResult.jobs) {
+        throw new Error(pollResult.error || 'Jobs failed or timeout');
       }
 
-      const finalJob = pollResult.job;
+      const finalJobs = pollResult.jobs;
 
-      console.log(`[${period}] Job completed with status: ${finalJob.status}`);
+      console.log(`[${period}] All ${finalJobs.length} jobs completed successfully`);
 
-      if (finalJob.status === 'completed') {
-        // Success! Data is now in cache
-        console.log(`[${period}] ✓ Sync completed successfully!`);
+      // Aggregate results from all jobs
+      let totalRevenue = 0;
+      let totalOrders = 0;
 
-        const processingTime = finalJob.meta?.processing_time_ms || 0;
-        const summary = finalJob.meta?.sync_result;
-
-        const klaviyoRevenue = summary?.klaviyo?.total_revenue || 0;
-        const klaviyoOrders = summary?.klaviyo?.total_orders || 0;
-
-        sonnerToast.success(
-          `Sincronização ${period} concluída! ` +
-          `Receita Klaviyo: ${formatToastCurrency(klaviyoRevenue)} | ` +
-          `Pedidos: ${klaviyoOrders}`,
-          { duration: 5000 }
-        );
-
-        // Wait a bit for data to propagate
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Reload dashboard data
-        console.log(`[${period}] Reloading dashboard data...`);
-        await loadData();
-        console.log(`[${period}] Dashboard data reloaded successfully!`);
-
-        // Update store status
-        try {
-          const { error: storeStatusError } = await supabase
-            .from('stores')
-            .update({ status: 'connected', updated_at: new Date().toISOString() })
-            .eq('id', storeId)
-            .neq('status', 'connected');
-
-          if (!storeStatusError) {
-            console.log(`[${period}] Store ${storeId} marked as connected.`);
-          }
-        } catch (statusUpdateError) {
-          console.warn(`[${period}] Error updating store status:`, statusUpdateError);
+      finalJobs.forEach(job => {
+        const summary = job.meta?.sync_result;
+        if (summary?.klaviyo) {
+          totalRevenue += summary.klaviyo.total_revenue || 0;
+          totalOrders += summary.klaviyo.total_orders || 0;
         }
+      });
 
-        setIsSyncing(false);
-        setNeedsSync(false);
+      sonnerToast.success(
+        `Sincronização ${period} concluída! ` +
+        `Receita: ${formatToastCurrency(totalRevenue)} | ` +
+        `Pedidos: ${totalOrders}`,
+        { duration: 5000 }
+      );
 
-      } else if (finalJob.status === 'failed') {
-        // Job failed permanently
-        console.error(`[${period}] Job failed permanently:`, finalJob.error_message);
-        throw new Error(finalJob.error_message || 'Sync failed after retries');
+      // Wait a bit for data to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Reload dashboard data
+      console.log(`[${period}] Reloading dashboard data...`);
+      await loadData();
+      console.log(`[${period}] Dashboard data reloaded successfully!`);
+
+      // Update store status
+      try {
+        const { error: storeStatusError } = await supabase
+          .from('stores')
+          .update({ status: 'connected', updated_at: new Date().toISOString() })
+          .eq('id', storeId)
+          .neq('status', 'connected');
+
+        if (!storeStatusError) {
+          console.log(`[${period}] Store ${storeId} marked as connected.`);
+        }
+      } catch (statusUpdateError) {
+        console.warn(`[${period}] Error updating store status:`, statusUpdateError);
       }
+
+      setIsSyncing(false);
+      setNeedsSync(false);
 
     } catch (error: any) {
       console.error(`[${period}] Sync failed for store ${storeId}:`, error);
