@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_ENV_CONFIGURED } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -97,6 +97,15 @@ export const useAuthState = () => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (!SUPABASE_ENV_CONFIGURED) {
+      toast({
+        title: "Configuração ausente",
+        description: "Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY antes de entrar.",
+        variant: "destructive",
+      });
+      return { error: "Supabase não configurado" };
+    }
+
     try {
       setLoading(true);
       let { error } = await supabase.auth.signInWithPassword({
@@ -116,9 +125,12 @@ export const useAuthState = () => {
       }
 
       if (error) {
+        const isEnvError = /invalid api key/i.test(error.message);
         toast({
           title: "Erro no login",
-          description: error.message,
+          description: isEnvError
+            ? "Chave da API inválida. Verifique VITE_SUPABASE_ANON_KEY."
+            : error.message,
           variant: "destructive",
         });
         return { error: error.message };

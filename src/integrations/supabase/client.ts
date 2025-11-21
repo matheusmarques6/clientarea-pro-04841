@@ -5,21 +5,24 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.error('Supabase env vars missing: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
-  if (typeof window !== 'undefined') {
-    alert('Configuração do Supabase ausente. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente antes de continuar.');
-  }
-  throw new Error('Missing Supabase configuration');
+export const SUPABASE_ENV_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+if (!SUPABASE_ENV_CONFIGURED) {
+  console.error('Supabase env vars missing: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY');
 }
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+// Note: if envs estiverem faltando, cria um client inoperante (requisições vão falhar)
+export const supabase = createClient<Database>(
+  SUPABASE_URL || 'http://env-missing.supabase.local',
+  SUPABASE_PUBLISHABLE_KEY || 'env-missing-key',
+  {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    }
   }
-});
+);
