@@ -123,6 +123,23 @@ export default function AddStoreModal({ open, onOpenChange, onSuccess }: AddStor
         throw new Error(error.message);
       }
 
+      // Criar vínculo do usuário atual como owner da loja
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && data) {
+        const { error: memberError } = await supabase
+          .from('store_members')
+          .insert({
+            user_id: user.id,
+            store_id: data.id,
+            role: 'owner'
+          });
+
+        if (memberError) {
+          console.error('Error creating store member link:', memberError);
+          // Não falhar a operação, apenas logar o erro
+        }
+      }
+
       toast.success('Loja criada com sucesso!', {
         description: `${values.name} foi adicionada à sua conta.`,
       });
