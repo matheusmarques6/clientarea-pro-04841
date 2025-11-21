@@ -1,3 +1,4 @@
+npm warn exec The following package was not found and will be installed: supabase@2.58.5
 export type Json =
   | string
   | number
@@ -506,7 +507,7 @@ export type Database = {
       n8n_jobs: {
         Row: {
           created_at: string | null
-          created_by: string
+          created_by: string | null
           error: string | null
           finished_at: string | null
           id: string
@@ -522,7 +523,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           error?: string | null
           finished_at?: string | null
           id?: string
@@ -538,7 +539,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           error?: string | null
           finished_at?: string | null
           id?: string
@@ -1468,10 +1469,14 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           id: string
+          method: string | null
           notes: string | null
           order_code: string
           origin: string | null
+          protocol: string | null
           reason: string | null
+          requested_amount: number | null
+          risk_score: number | null
           sla_days: number | null
           status: Database["public"]["Enums"]["return_status"]
           store_id: string | null
@@ -1486,10 +1491,14 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           id?: string
+          method?: string | null
           notes?: string | null
           order_code: string
           origin?: string | null
+          protocol?: string | null
           reason?: string | null
+          requested_amount?: number | null
+          risk_score?: number | null
           sla_days?: number | null
           status?: Database["public"]["Enums"]["return_status"]
           store_id?: string | null
@@ -1504,10 +1513,14 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           id?: string
+          method?: string | null
           notes?: string | null
           order_code?: string
           origin?: string | null
+          protocol?: string | null
           reason?: string | null
+          requested_amount?: number | null
+          risk_score?: number | null
           sla_days?: number | null
           status?: Database["public"]["Enums"]["return_status"]
           store_id?: string | null
@@ -1524,13 +1537,359 @@ export type Database = {
           },
         ]
       }
+      rm_refunds: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          currency: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          processed_at: string | null
+          provider_response: Json | null
+          reason: string | null
+          refund_method: string | null
+          request_id: string
+          shopify_refund_id: string | null
+          shopify_transaction_id: string | null
+          status: Database["public"]["Enums"]["rm_refund_status"]
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          processed_at?: string | null
+          provider_response?: Json | null
+          reason?: string | null
+          refund_method?: string | null
+          request_id: string
+          shopify_refund_id?: string | null
+          shopify_transaction_id?: string | null
+          status?: Database["public"]["Enums"]["rm_refund_status"]
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          processed_at?: string | null
+          provider_response?: Json | null
+          reason?: string | null
+          refund_method?: string | null
+          request_id?: string
+          shopify_refund_id?: string | null
+          shopify_transaction_id?: string | null
+          status?: Database["public"]["Enums"]["rm_refund_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rm_refunds_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "rm_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rm_request_events: {
+        Row: {
+          created_at: string | null
+          description: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          metadata: Json | null
+          new_status: Database["public"]["Enums"]["request_status"] | null
+          old_status: Database["public"]["Enums"]["request_status"] | null
+          request_id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id?: string
+          metadata?: Json | null
+          new_status?: Database["public"]["Enums"]["request_status"] | null
+          old_status?: Database["public"]["Enums"]["request_status"] | null
+          request_id: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          metadata?: Json | null
+          new_status?: Database["public"]["Enums"]["request_status"] | null
+          old_status?: Database["public"]["Enums"]["request_status"] | null
+          request_id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rm_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "rm_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rm_request_items: {
+        Row: {
+          condition: string | null
+          condition_notes: string | null
+          created_at: string | null
+          exchange_for_product_id: string | null
+          exchange_for_product_name: string | null
+          exchange_for_variant_id: string | null
+          exchange_for_variant_title: string | null
+          id: string
+          image_url: string | null
+          metadata: Json | null
+          price: number | null
+          product_name: string
+          quantity: number
+          request_id: string
+          shopify_product_id: string | null
+          shopify_variant_id: string | null
+          sku: string | null
+          variant_title: string | null
+        }
+        Insert: {
+          condition?: string | null
+          condition_notes?: string | null
+          created_at?: string | null
+          exchange_for_product_id?: string | null
+          exchange_for_product_name?: string | null
+          exchange_for_variant_id?: string | null
+          exchange_for_variant_title?: string | null
+          id?: string
+          image_url?: string | null
+          metadata?: Json | null
+          price?: number | null
+          product_name: string
+          quantity?: number
+          request_id: string
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
+          sku?: string | null
+          variant_title?: string | null
+        }
+        Update: {
+          condition?: string | null
+          condition_notes?: string | null
+          created_at?: string | null
+          exchange_for_product_id?: string | null
+          exchange_for_product_name?: string | null
+          exchange_for_variant_id?: string | null
+          exchange_for_variant_title?: string | null
+          id?: string
+          image_url?: string | null
+          metadata?: Json | null
+          price?: number | null
+          product_name?: string
+          quantity?: number
+          request_id?: string
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
+          sku?: string | null
+          variant_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rm_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "rm_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rm_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          code: string
+          completed_at: string | null
+          created_at: string
+          currency: string | null
+          customer_address: Json | null
+          customer_email: string
+          customer_name: string
+          customer_notes: string | null
+          customer_phone: string | null
+          id: string
+          metadata: Json | null
+          order_code: string
+          reason: string
+          received_at: string | null
+          refund_amount: number | null
+          return_address: Json | null
+          shopify_order_id: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          store_id: string
+          tracking_carrier: string | null
+          tracking_code: string | null
+          tracking_url: string | null
+          type: Database["public"]["Enums"]["request_type"]
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_address?: Json | null
+          customer_email: string
+          customer_name: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          id?: string
+          metadata?: Json | null
+          order_code: string
+          reason: string
+          received_at?: string | null
+          refund_amount?: number | null
+          return_address?: Json | null
+          shopify_order_id?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          store_id: string
+          tracking_carrier?: string | null
+          tracking_code?: string | null
+          tracking_url?: string | null
+          type: Database["public"]["Enums"]["request_type"]
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_address?: Json | null
+          customer_email?: string
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          id?: string
+          metadata?: Json | null
+          order_code?: string
+          reason?: string
+          received_at?: string | null
+          refund_amount?: number | null
+          return_address?: Json | null
+          shopify_order_id?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          store_id?: string
+          tracking_carrier?: string | null
+          tracking_code?: string | null
+          tracking_url?: string | null
+          type?: Database["public"]["Enums"]["request_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rm_requests_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rm_shipping_labels: {
+        Row: {
+          carrier: string
+          cost: number | null
+          created_at: string | null
+          currency: string | null
+          from_address: Json
+          generated_at: string | null
+          id: string
+          label_url: string | null
+          metadata: Json | null
+          printed_at: string | null
+          provider_label_id: string | null
+          provider_response: Json | null
+          request_id: string
+          service_type: string | null
+          status: Database["public"]["Enums"]["label_status"]
+          to_address: Json
+          tracking_code: string | null
+        }
+        Insert: {
+          carrier: string
+          cost?: number | null
+          created_at?: string | null
+          currency?: string | null
+          from_address: Json
+          generated_at?: string | null
+          id?: string
+          label_url?: string | null
+          metadata?: Json | null
+          printed_at?: string | null
+          provider_label_id?: string | null
+          provider_response?: Json | null
+          request_id: string
+          service_type?: string | null
+          status?: Database["public"]["Enums"]["label_status"]
+          to_address: Json
+          tracking_code?: string | null
+        }
+        Update: {
+          carrier?: string
+          cost?: number | null
+          created_at?: string | null
+          currency?: string | null
+          from_address?: Json
+          generated_at?: string | null
+          id?: string
+          label_url?: string | null
+          metadata?: Json | null
+          printed_at?: string | null
+          provider_label_id?: string | null
+          provider_response?: Json | null
+          request_id?: string
+          service_type?: string | null
+          status?: Database["public"]["Enums"]["label_status"]
+          to_address?: Json
+          tracking_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rm_shipping_labels_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "rm_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           success: boolean | null
           user_agent: string | null
           user_id: string | null
@@ -1540,7 +1899,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
           user_agent?: string | null
           user_id?: string | null
@@ -1550,7 +1909,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
           user_agent?: string | null
           user_id?: string | null
@@ -1601,6 +1960,65 @@ export type Database = {
           },
         ]
       }
+      store_sync_cache: {
+        Row: {
+          created_at: string | null
+          data: Json
+          data_summary: string | null
+          data_type: string
+          error_message: string | null
+          id: string
+          period_end: string
+          period_start: string
+          record_count: number | null
+          source: string
+          store_id: string
+          sync_status: string
+          synced_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          data_summary?: string | null
+          data_type: string
+          error_message?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          record_count?: number | null
+          source: string
+          store_id: string
+          sync_status?: string
+          synced_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          data_summary?: string | null
+          data_type?: string
+          error_message?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          record_count?: number | null
+          source?: string
+          store_id?: string
+          sync_status?: string
+          synced_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sync_cache_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           client_id: string | null
@@ -1608,6 +2026,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           customer_id: string | null
+          first_sync_pending: boolean | null
           id: string
           klaviyo_private_key: string | null
           klaviyo_site_id: string | null
@@ -1622,6 +2041,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           customer_id?: string | null
+          first_sync_pending?: boolean | null
           id?: string
           klaviyo_private_key?: string | null
           klaviyo_site_id?: string | null
@@ -1636,6 +2056,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           customer_id?: string | null
+          first_sync_pending?: boolean | null
           id?: string
           klaviyo_private_key?: string | null
           klaviyo_site_id?: string | null
@@ -1660,6 +2081,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_email: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_email: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       sync_logs: {
         Row: {
@@ -1699,6 +2165,77 @@ export type Database = {
           sync_type?: string
         }
         Relationships: []
+      }
+      sync_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          data_type: string | null
+          error_message: string | null
+          id: string
+          last_error_at: string | null
+          max_retries: number | null
+          meta: Json | null
+          period_end: string
+          period_start: string
+          priority: number | null
+          queued_at: string | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          store_id: string
+          triggered_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_type?: string | null
+          error_message?: string | null
+          id?: string
+          last_error_at?: string | null
+          max_retries?: number | null
+          meta?: Json | null
+          period_end: string
+          period_start: string
+          priority?: number | null
+          queued_at?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          store_id: string
+          triggered_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_type?: string | null
+          error_message?: string | null
+          id?: string
+          last_error_at?: string | null
+          max_retries?: number | null
+          meta?: Json | null
+          period_end?: string
+          period_start?: string
+          priority?: number | null
+          queued_at?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          store_id?: string
+          triggered_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_queue_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_auth_data: {
         Row: {
@@ -1997,6 +2534,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_sync_queue_stats: {
+        Row: {
+          avg_duration_seconds: number | null
+          job_count: number | null
+          max_duration_seconds: number | null
+          oldest_job_at: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       v_user_stores: {
         Row: {
           store_id: string | null
@@ -2058,14 +2605,9 @@ export type Database = {
         Args: { p_period_id: string; p_profile_id: string }
         Returns: undefined
       }
-      is_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      is_admin_with_audit: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      generate_request_code: { Args: never; Returns: string }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_with_audit: { Args: { _user_id: string }; Returns: boolean }
       kpi_customers_distinct: {
         Args: { p_end: string; p_start: string; p_store: string }
         Returns: number
@@ -2117,10 +2659,7 @@ export type Database = {
         Args: { _end_date: string; _start_date: string; _store_id: string }
         Returns: Json
       }
-      trigger_auto_sync: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      trigger_auto_sync: { Args: never; Returns: string }
       update_store_integrations: {
         Args: {
           p_klaviyo_private_key?: string
@@ -2142,8 +2681,17 @@ export type Database = {
     }
     Enums: {
       channel_attribution: "email" | "sms" | "whatsapp" | "none"
+      event_type:
+        | "created"
+        | "status_changed"
+        | "note_added"
+        | "tracking_updated"
+        | "label_generated"
+        | "refund_issued"
+        | "exchange_shipped"
       integration_provider: "shopify" | "klaviyo" | "sms" | "whatsapp"
       integration_status: "connected" | "error" | "disconnected"
+      label_status: "pending" | "generated" | "printed" | "cancelled"
       refund_status:
         | "requested"
         | "review"
@@ -2151,6 +2699,16 @@ export type Database = {
         | "processing"
         | "done"
         | "rejected"
+      request_status:
+        | "new"
+        | "in_review"
+        | "approved"
+        | "awaiting_post"
+        | "in_transit"
+        | "received"
+        | "completed"
+        | "rejected"
+      request_type: "return" | "exchange"
       return_status:
         | "new"
         | "review"
@@ -2159,6 +2717,12 @@ export type Database = {
         | "received_dc"
         | "done"
         | "rejected"
+      rm_refund_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "cancelled"
       role_type:
         | "owner"
         | "manager"
@@ -2294,8 +2858,18 @@ export const Constants = {
   public: {
     Enums: {
       channel_attribution: ["email", "sms", "whatsapp", "none"],
+      event_type: [
+        "created",
+        "status_changed",
+        "note_added",
+        "tracking_updated",
+        "label_generated",
+        "refund_issued",
+        "exchange_shipped",
+      ],
       integration_provider: ["shopify", "klaviyo", "sms", "whatsapp"],
       integration_status: ["connected", "error", "disconnected"],
+      label_status: ["pending", "generated", "printed", "cancelled"],
       refund_status: [
         "requested",
         "review",
@@ -2304,6 +2878,17 @@ export const Constants = {
         "done",
         "rejected",
       ],
+      request_status: [
+        "new",
+        "in_review",
+        "approved",
+        "awaiting_post",
+        "in_transit",
+        "received",
+        "completed",
+        "rejected",
+      ],
+      request_type: ["return", "exchange"],
       return_status: [
         "new",
         "review",
@@ -2312,6 +2897,13 @@ export const Constants = {
         "received_dc",
         "done",
         "rejected",
+      ],
+      rm_refund_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled",
       ],
       role_type: [
         "owner",
