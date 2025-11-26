@@ -581,7 +581,7 @@ export const useDashboardData = (storeId: string, period: string) => {
     }
   }, [storeId, period]);
 
-  const syncData = useCallback(async () => {
+  const syncData = useCallback(async (forceSync: boolean = false) => {
     if (!storeId || isSyncing) return;
 
     setIsSyncing(true);
@@ -591,35 +591,40 @@ export const useDashboardData = (storeId: string, period: string) => {
       const periodStart = startDate.toISOString().split('T')[0];
       const periodEnd = endDate.toISOString().split('T')[0];
 
-      console.log(`[${period}] Starting Level 2 queue-based sync for store: ${storeId}, period: ${periodStart} to ${periodEnd}`);
+      console.log(`[${period}] Starting Level 2 queue-based sync for store: ${storeId}, period: ${periodStart} to ${periodEnd}, forceSync: ${forceSync}`);
 
       // ========================================================================
       // LEVEL 2: QUEUE-BASED SYNC WITH CACHE
       // ========================================================================
 
-      // 1) Check cache first
       const { QueueService } = await import('@/services/QueueService');
 
-      console.log(`[${period}] Checking cache for analytics data...`);
-      const cacheResult = await QueueService.checkCache(
-        storeId,
-        'analytics',
-        periodStart,
-        periodEnd
-      );
+      // 1) Check cache first (skip if forceSync)
+      if (!forceSync) {
+        console.log(`[${period}] Checking cache for analytics data...`);
+        const cacheResult = await QueueService.checkCache(
+          storeId,
+          'analytics',
+          periodStart,
+          periodEnd
+        );
 
-      if (cacheResult.success && cacheResult.cached && cacheResult.data) {
-        console.log(`[${period}] ✓ Cache hit! Using cached data`);
-        sonnerToast.success('Dados carregados do cache!', { duration: 2000 });
+        if (cacheResult.success && cacheResult.cached && cacheResult.data) {
+          console.log(`[${period}] ✓ Cache hit! Using cached data`);
+          sonnerToast.success('Dados carregados do cache!', { duration: 2000 });
 
-        // Reload data from cache
-        await loadData();
-        setIsSyncing(false);
-        setNeedsSync(false);
-        return;
+          // Reload data from cache
+          await loadData();
+          setIsSyncing(false);
+          setNeedsSync(false);
+          return;
+        }
+      } else {
+        console.log(`[${period}] Force sync requested, skipping cache check`);
+        sonnerToast.info('Forçando sincronização...', { duration: 2000 });
       }
 
-      console.log(`[${period}] Cache miss, adding micro-jobs to queue...`);
+      console.log(`[${period}] Adding micro-jobs to queue...`);
 
       // 2) Add MICRO-JOBS to queue (prevents timeout by splitting work)
       const queueResult = await QueueService.addMicroJobsToQueue(

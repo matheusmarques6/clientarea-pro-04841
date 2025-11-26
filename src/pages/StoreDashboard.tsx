@@ -165,11 +165,20 @@ const StoreDashboard = () => {
         
         <div className="flex gap-2">
           <Button
-            onClick={needsFirstSync ? handleFirstSync : syncData}
+            onClick={(e) => {
+              // Shift+Click = forçar sync (ignora cache)
+              const forceSync = e.shiftKey;
+              if (needsFirstSync) {
+                handleFirstSync();
+              } else {
+                syncData(forceSync);
+              }
+            }}
             disabled={isSyncing || isVerifyingConnection}
             variant={needsFirstSync ? "default" : "outline"}
             size="sm"
             className="relative"
+            title="Clique para sincronizar. Shift+Clique para forçar atualização ignorando cache."
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${(isSyncing || isVerifyingConnection) ? 'animate-spin' : ''}`} />
             {isVerifyingConnection ? 'Verificando...' : isSyncing ? 'Sincronizando...' : 'Sincronizar'}
