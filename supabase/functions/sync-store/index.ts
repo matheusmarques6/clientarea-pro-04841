@@ -6,7 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { fetchKlaviyoData } from '../_shared/klaviyo.ts'
+import { fetchKlaviyoData, fetchKlaviyoCampaignsOnly, fetchKlaviyoFlowsOnly, fetchKlaviyoAnalytics } from '../_shared/klaviyo.ts'
 import { fetchShopifyData } from '../_shared/shopify.ts'
 import { offsetToISO } from '../_shared/timezone.ts'
 
@@ -209,110 +209,46 @@ serve(async (req) => {
           summary: { orders: shopifyData.pedidos, revenue: shopifyData.totalVendas }
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-      } else {
-        // analytics, campaigns, flows vêm do Klaviyo
-        console.log('[Klaviyo] Fetching data...')
-        const klaviyoData = await fetchKlaviyoData(
+      } else if (data_type === 'campaigns') {
+        // ====== MICRO-JOB: CAMPAIGNS ONLY ======
+        console.log('[Klaviyo] MICRO-JOB: Fetching campaigns only...')
+        const { campanhas } = await fetchKlaviyoCampaignsOnly(
           store.klaviyo_private_key,
           period_start,
           period_end,
           store.klaviyo_metric_id
         )
 
-        const campanhas = klaviyoData.campanhas || []
-        const flows = klaviyoData.flows || []
-
-        // Calcular métricas baseado no data_type
-        let cacheRecord: any
-
-        if (data_type === 'campaigns') {
-          let revenueCampaigns = 0
-          let conversionsCampaigns = 0
-          for (const camp of campanhas) {
-            revenueCampaigns += camp.receita || 0
-            conversionsCampaigns += camp.conversoes || 0
-          }
-
-          const topByRevenue = [...campanhas]
-            .sort((a, b) => (b.receita || 0) - (a.receita || 0))
-            .slice(0, 10)
-            .map(c => ({ id: c.id, name: c.nome, revenue: c.receita || 0, conversions: c.conversoes || 0 }))
-
-          cacheRecord = {
-            store_id: store_id,
-            data_type: 'campaigns',
-            period_start: period_start,
-            period_end: period_end,
-            source: 'klaviyo',
-            data: { campaigns: campanhas, top_by_revenue: topByRevenue },
-            sync_status: 'success',
-            record_count: campanhas.length,
-            data_summary: `${campanhas.length} campaigns, ${revenueCampaigns} revenue`
-          }
-
-        } else if (data_type === 'flows') {
-          let revenueFlows = 0
-          let conversionsFlows = 0
-          for (const flow of flows) {
-            revenueFlows += flow.receita || 0
-            conversionsFlows += flow.conversoes || 0
-          }
-
-          cacheRecord = {
-            store_id: store_id,
-            data_type: 'flows',
-            period_start: period_start,
-            period_end: period_end,
-            source: 'klaviyo',
-            data: { flows: flows },
-            sync_status: 'success',
-            record_count: flows.length,
-            data_summary: `${flows.length} flows, ${revenueFlows} revenue`
-          }
-
-        } else if (data_type === 'analytics') {
-          let revenueCampaigns = 0, conversionsCampaigns = 0
-          for (const camp of campanhas) {
-            revenueCampaigns += camp.receita || 0
-            conversionsCampaigns += camp.conversoes || 0
-          }
-
-          let revenueFlows = 0, conversionsFlows = 0
-          for (const flow of flows) {
-            revenueFlows += flow.receita || 0
-            conversionsFlows += flow.conversoes || 0
-          }
-
-          cacheRecord = {
-            store_id: store_id,
-            data_type: 'analytics',
-            period_start: period_start,
-            period_end: period_end,
-            source: 'combined',
-            data: {
-              revenue_total: revenueCampaigns + revenueFlows,
-              revenue_campaigns: revenueCampaigns,
-              revenue_flows: revenueFlows,
-              orders_attributed: conversionsCampaigns + conversionsFlows,
-              campaigns_count: campanhas.length,
-              flows_count: flows.length
-            },
-            sync_status: 'success',
-            record_count: campanhas.length + flows.length,
-            data_summary: `${revenueCampaigns + revenueFlows} revenue`
-          }
+        let revenueCampaigns = 0
+        let conversionsCampaigns = 0
+        for (const camp of campanhas) {
+          revenueCampaigns += camp.receita || 0
+          conversionsCampaigns += camp.conversoes || 0
         }
 
-        // Salvar no cache
-        const { error: cacheError } = await supabase
+        const topByRevenue = [...campanhas]
+          .sort((a, b) => (b.receita || 0) - (a.receita || 0))
+          .slice(0, 10)
+          .map(c => ({ id: c.id, name: c.nome, revenue: c.receita || 0, conversions: c.conversoes || 0 }))
+
+        const cacheRecordCampaigns = {
+          store_id: store_id,
+          data_type: 'campaigns',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'klaviyo',
+          data: { campaigns: campanhas, top_by_revenue: topByRevenue },
+          sync_status: 'success',
+          record_count: campanhas.length,
+          data_summary: `${campanhas.length} campaigns, ${revenueCampaigns} revenue`
+        }
+
+        const { error: cacheError1 } = await supabase
           .from('store_sync_cache')
-          .upsert([cacheRecord], {
-            onConflict: 'store_id,data_type,period_start,period_end,source'
-          })
+          .upsert([cacheRecordCampaigns], { onConflict: 'store_id,data_type,period_start,period_end,source' })
 
-        if (cacheError) throw cacheError
+        if (cacheError1) throw cacheError1
 
-        // Atualizar job
         await supabase.from('n8n_jobs').update({
           status: 'SUCCESS',
           finished_at: new Date().toISOString(),
@@ -324,7 +260,105 @@ serve(async (req) => {
           job_id: job.id,
           data_type,
           processing_time_ms: Date.now() - startTime,
-          summary: cacheRecord.data
+          summary: { campaigns_count: campanhas.length, revenue: revenueCampaigns }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+      } else if (data_type === 'flows') {
+        // ====== MICRO-JOB: FLOWS ONLY ======
+        console.log('[Klaviyo] MICRO-JOB: Fetching flows only...')
+        const { flows } = await fetchKlaviyoFlowsOnly(
+          store.klaviyo_private_key,
+          period_start,
+          period_end,
+          store.klaviyo_metric_id
+        )
+
+        let revenueFlows = 0
+        let conversionsFlows = 0
+        for (const flow of flows) {
+          revenueFlows += flow.receita || 0
+          conversionsFlows += flow.conversoes || 0
+        }
+
+        const cacheRecordFlows = {
+          store_id: store_id,
+          data_type: 'flows',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'klaviyo',
+          data: { flows: flows },
+          sync_status: 'success',
+          record_count: flows.length,
+          data_summary: `${flows.length} flows, ${revenueFlows} revenue`
+        }
+
+        const { error: cacheError2 } = await supabase
+          .from('store_sync_cache')
+          .upsert([cacheRecordFlows], { onConflict: 'store_id,data_type,period_start,period_end,source' })
+
+        if (cacheError2) throw cacheError2
+
+        await supabase.from('n8n_jobs').update({
+          status: 'SUCCESS',
+          finished_at: new Date().toISOString(),
+          meta: { data_type, processing_time_ms: Date.now() - startTime }
+        }).eq('id', job.id)
+
+        return new Response(JSON.stringify({
+          success: true,
+          job_id: job.id,
+          data_type,
+          processing_time_ms: Date.now() - startTime,
+          summary: { flows_count: flows.length, revenue: revenueFlows }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+      } else if (data_type === 'analytics') {
+        // ====== MICRO-JOB: ANALYTICS (AGGREGATED) ======
+        console.log('[Klaviyo] MICRO-JOB: Fetching analytics (aggregated)...')
+        const analytics = await fetchKlaviyoAnalytics(
+          store.klaviyo_private_key,
+          period_start,
+          period_end,
+          store.klaviyo_metric_id
+        )
+
+        const cacheRecordAnalytics = {
+          store_id: store_id,
+          data_type: 'analytics',
+          period_start: period_start,
+          period_end: period_end,
+          source: 'combined',
+          data: {
+            revenue_total: analytics.revenue_campaigns + analytics.revenue_flows,
+            revenue_campaigns: analytics.revenue_campaigns,
+            revenue_flows: analytics.revenue_flows,
+            orders_attributed: analytics.conversions_campaigns + analytics.conversions_flows,
+            campaigns_count: analytics.campaigns_count,
+            flows_count: analytics.flows_count
+          },
+          sync_status: 'success',
+          record_count: analytics.campaigns_count + analytics.flows_count,
+          data_summary: `${analytics.revenue_campaigns + analytics.revenue_flows} revenue`
+        }
+
+        const { error: cacheError3 } = await supabase
+          .from('store_sync_cache')
+          .upsert([cacheRecordAnalytics], { onConflict: 'store_id,data_type,period_start,period_end,source' })
+
+        if (cacheError3) throw cacheError3
+
+        await supabase.from('n8n_jobs').update({
+          status: 'SUCCESS',
+          finished_at: new Date().toISOString(),
+          meta: { data_type, processing_time_ms: Date.now() - startTime }
+        }).eq('id', job.id)
+
+        return new Response(JSON.stringify({
+          success: true,
+          job_id: job.id,
+          data_type,
+          processing_time_ms: Date.now() - startTime,
+          summary: cacheRecordAnalytics.data
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
     }

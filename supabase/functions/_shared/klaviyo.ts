@@ -365,3 +365,288 @@ export async function fetchKlaviyoData(
     metricaId
   }
 }
+
+// ============================================================================
+// FUNÇÕES OTIMIZADAS PARA MICRO-JOB (evitam timeout)
+// ============================================================================
+
+/**
+ * Busca APENAS campanhas - otimizado para MICRO-JOB
+ */
+export async function fetchKlaviyoCampaignsOnly(
+  apiKey: string,
+  startDate: string,
+  endDate: string,
+  metricIdFromStore?: string | null
+): Promise<{ campanhas: Campaign[], metricaId: string }> {
+  console.log('[Klaviyo] MICRO-JOB: Fetching campaigns only...')
+
+  // Buscar métrica se não tiver
+  let metricaId = metricIdFromStore || null
+  if (!metricaId) {
+    const metricsRes = await klaviyoRequest(apiKey, 'GET', '/metrics')
+    if (metricsRes.success) {
+      const metrics = metricsRes.data?.data || []
+      const placedOrder = metrics.find((m: any) => m.attributes?.name === 'Placed Order')
+      metricaId = placedOrder?.id || 'W8Gk3c'
+    } else {
+      metricaId = 'W8Gk3c'
+    }
+  }
+
+  // Buscar campanhas
+  const campanhasRes = await klaviyoRequest(apiKey, 'GET', '/campaigns', 'filter=equals(messages.channel,"email")')
+  const campanhas: Campaign[] = []
+
+  if (campanhasRes.success && campanhasRes.data?.data) {
+    const todasCampanhas = campanhasRes.data.data
+    const inicio = new Date(startDate)
+    const fim = new Date(endDate)
+    fim.setHours(23, 59, 59, 999)
+
+    const campanhasDoPeriodo = todasCampanhas.filter((camp: any) => {
+      const sendTime = camp.attributes?.send_time
+      if (!sendTime) return false
+      const dataCamp = new Date(sendTime)
+      return dataCamp >= inicio && dataCamp <= fim
+    })
+
+    console.log(`[Klaviyo] Campaigns in period: ${campanhasDoPeriodo.length}`)
+
+    // Criar mapa de campanhas para lookup rápido
+    const campaignMap = new Map<string, Campaign>()
+    for (const camp of campanhasDoPeriodo) {
+      campaignMap.set(camp.id, {
+        id: camp.id,
+        nome: camp.attributes?.name,
+        status: camp.attributes?.status,
+        data_envio: camp.attributes?.send_time,
+        receita: 0,
+        conversoes: 0
+      })
+    }
+
+    // OTIMIZAÇÃO: Usar group_by para obter todas as campanhas em UMA única requisição
+    if (metricaId && campaignMap.size > 0) {
+      const aggregatedBody = {
+        data: {
+          type: 'campaign-values-report',
+          attributes: {
+            timeframe: { start: startDate + 'T00:00:00Z', end: endDate + 'T23:59:59Z' },
+            conversion_metric_id: metricaId,
+            statistics: ['conversion_value', 'conversions'],
+            group_by: ['campaign_id']  // Agrupa por campanha - retorna todas de uma vez!
+          }
+        }
+      }
+
+      console.log('[Klaviyo] Fetching all campaigns revenue in single request (group_by)...')
+      const aggregatedRes = await klaviyoRequest(apiKey, 'POST', '/campaign-values-reports/', '', aggregatedBody)
+
+      if (aggregatedRes.success && aggregatedRes.data?.data?.attributes?.results) {
+        const results = aggregatedRes.data.data.attributes.results || []
+        console.log(`[Klaviyo] Got ${results.length} campaign results from aggregated report`)
+
+        // Atualizar cada campanha com seus dados
+        for (const result of results) {
+          const campaignId = result.dimensions?.campaign_id
+          if (campaignId && campaignMap.has(campaignId)) {
+            const campaign = campaignMap.get(campaignId)!
+            campaign.receita = result.statistics?.conversion_value || 0
+            campaign.conversoes = result.statistics?.conversions || 0
+          }
+        }
+      }
+    }
+
+    // Converter mapa para array
+    campanhas.push(...campaignMap.values())
+  }
+
+  console.log(`[Klaviyo] MICRO-JOB: Processed ${campanhas.length} campaigns`)
+  return { campanhas, metricaId: metricaId || 'W8Gk3c' }
+}
+
+/**
+ * Busca APENAS flows - otimizado para MICRO-JOB
+ * Sem buscar performance individual para economizar requests
+ */
+export async function fetchKlaviyoFlowsOnly(
+  apiKey: string,
+  startDate: string,
+  endDate: string,
+  metricIdFromStore?: string | null
+): Promise<{ flows: Flow[], metricaId: string }> {
+  console.log('[Klaviyo] MICRO-JOB: Fetching flows only...')
+
+  // Buscar métrica se não tiver
+  let metricaId = metricIdFromStore || null
+  if (!metricaId) {
+    const metricsRes = await klaviyoRequest(apiKey, 'GET', '/metrics')
+    if (metricsRes.success) {
+      const metrics = metricsRes.data?.data || []
+      const placedOrder = metrics.find((m: any) => m.attributes?.name === 'Placed Order')
+      metricaId = placedOrder?.id || 'W8Gk3c'
+    } else {
+      metricaId = 'W8Gk3c'
+    }
+  }
+
+  // Buscar flows
+  const flowsRes = await klaviyoRequest(apiKey, 'GET', '/flows')
+  const flows: Flow[] = []
+
+  if (flowsRes.success && flowsRes.data?.data) {
+    const todosFlows = flowsRes.data.data
+    console.log(`[Klaviyo] Total flows found: ${todosFlows.length}`)
+
+    // Criar mapa de flows para lookup rápido
+    const flowMap = new Map<string, Flow>()
+    for (const flow of todosFlows) {
+      flowMap.set(flow.id, {
+        id: flow.id,
+        nome: flow.attributes?.name || 'Unnamed Flow',
+        status: flow.attributes?.status || 'unknown',
+        receita: 0,
+        conversoes: 0
+      })
+    }
+
+    // OTIMIZAÇÃO: Usar group_by para obter todos os flows em UMA única requisição
+    if (metricaId && flowMap.size > 0) {
+      const aggregatedBody = {
+        data: {
+          type: 'flow-values-report',
+          attributes: {
+            timeframe: { start: startDate + 'T00:00:00Z', end: endDate + 'T23:59:59Z' },
+            conversion_metric_id: metricaId,
+            statistics: ['conversion_value', 'conversions'],
+            group_by: ['flow_id']  // Agrupa por flow - retorna todos de uma vez!
+          }
+        }
+      }
+
+      console.log('[Klaviyo] Fetching all flows revenue in single request (group_by)...')
+      const aggregatedRes = await klaviyoRequest(apiKey, 'POST', '/flow-values-reports/', '', aggregatedBody)
+
+      if (aggregatedRes.success && aggregatedRes.data?.data?.attributes?.results) {
+        const results = aggregatedRes.data.data.attributes.results || []
+        console.log(`[Klaviyo] Got ${results.length} flow results from aggregated report`)
+
+        // Atualizar cada flow com seus dados
+        for (const result of results) {
+          const flowId = result.dimensions?.flow_id
+          if (flowId && flowMap.has(flowId)) {
+            const flow = flowMap.get(flowId)!
+            flow.receita = result.statistics?.conversion_value || 0
+            flow.conversoes = result.statistics?.conversions || 0
+          }
+        }
+      }
+    }
+
+    // Converter mapa para array
+    flows.push(...flowMap.values())
+  }
+
+  console.log(`[Klaviyo] MICRO-JOB: Processed ${flows.length} flows`)
+  return { flows, metricaId: metricaId || 'W8Gk3c' }
+}
+
+/**
+ * Busca analytics agregados - otimizado para MICRO-JOB
+ * Usa report agregado em vez de buscar item por item
+ */
+export async function fetchKlaviyoAnalytics(
+  apiKey: string,
+  startDate: string,
+  endDate: string,
+  metricIdFromStore?: string | null
+): Promise<{
+  revenue_campaigns: number,
+  revenue_flows: number,
+  conversions_campaigns: number,
+  conversions_flows: number,
+  campaigns_count: number,
+  flows_count: number,
+  metricaId: string
+}> {
+  console.log('[Klaviyo] MICRO-JOB: Fetching analytics (aggregated)...')
+
+  // Buscar métrica se não tiver
+  let metricaId = metricIdFromStore || null
+  if (!metricaId) {
+    const metricsRes = await klaviyoRequest(apiKey, 'GET', '/metrics')
+    if (metricsRes.success) {
+      const metrics = metricsRes.data?.data || []
+      const placedOrder = metrics.find((m: any) => m.attributes?.name === 'Placed Order')
+      metricaId = placedOrder?.id || 'W8Gk3c'
+    } else {
+      metricaId = 'W8Gk3c'
+    }
+  }
+
+  // Buscar totais de campanhas (1 request agregado)
+  const campaignReportBody = {
+    data: {
+      type: 'campaign-values-report',
+      attributes: {
+        timeframe: { start: startDate + 'T00:00:00Z', end: endDate + 'T23:59:59Z' },
+        conversion_metric_id: metricaId,
+        statistics: ['conversion_value', 'conversions']
+      }
+    }
+  }
+
+  const campaignRes = await klaviyoRequest(apiKey, 'POST', '/campaign-values-reports/', '', campaignReportBody)
+  let revenue_campaigns = 0
+  let conversions_campaigns = 0
+  let campaigns_count = 0
+
+  if (campaignRes.success && campaignRes.data?.data?.attributes?.results) {
+    const results = campaignRes.data.data.attributes.results || []
+    campaigns_count = results.length
+    for (const r of results) {
+      revenue_campaigns += r.statistics?.conversion_value || 0
+      conversions_campaigns += r.statistics?.conversions || 0
+    }
+  }
+
+  // Buscar totais de flows (1 request agregado)
+  const flowReportBody = {
+    data: {
+      type: 'flow-values-report',
+      attributes: {
+        timeframe: { start: startDate + 'T00:00:00Z', end: endDate + 'T23:59:59Z' },
+        conversion_metric_id: metricaId,
+        statistics: ['conversion_value', 'conversions']
+      }
+    }
+  }
+
+  const flowRes = await klaviyoRequest(apiKey, 'POST', '/flow-values-reports/', '', flowReportBody)
+  let revenue_flows = 0
+  let conversions_flows = 0
+  let flows_count = 0
+
+  if (flowRes.success && flowRes.data?.data?.attributes?.results) {
+    const results = flowRes.data.data.attributes.results || []
+    flows_count = results.length
+    for (const r of results) {
+      revenue_flows += r.statistics?.conversion_value || 0
+      conversions_flows += r.statistics?.conversions || 0
+    }
+  }
+
+  console.log(`[Klaviyo] MICRO-JOB Analytics: campaigns=${revenue_campaigns}, flows=${revenue_flows}`)
+
+  return {
+    revenue_campaigns,
+    revenue_flows,
+    conversions_campaigns,
+    conversions_flows,
+    campaigns_count,
+    flows_count,
+    metricaId: metricaId || 'W8Gk3c'
+  }
+}
